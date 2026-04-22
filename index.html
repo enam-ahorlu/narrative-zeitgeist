@@ -2747,4 +2747,123 @@ function renderWatchlist(){
         +   '<button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button>'
         + '</div>'
         + '<div class="wl-actions">'
-        +   '<button class="btn btn-p btn-sm" st
+        +   '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlMoveToCollection(\''+it.id+'\')">Move to Collection</button>'
+        +   '<button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button>'
+        +   '<div class="wl-remove-confirm"><span>Remove?</span>'
+        +     '<button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button>'
+        +     '<button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button>'
+        +   '</div>'
+        +   '<button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me">✕</button>'
+        + '</div>'
+        + '</div>';
+    });
+  });
+  listEl.innerHTML = html;
+}
+
+function _timeAgo(iso){
+  var diff = Date.now() - new Date(iso).getTime();
+  var mins = Math.floor(diff / 60000);
+  if(mins < 1)   return 'just now';
+  if(mins < 60)  return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if(hrs < 24)   return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  if(days === 1) return 'yesterday';
+  if(days < 30)  return days + ' days ago';
+  var mos = Math.floor(days / 30);
+  return mos + (mos === 1 ? ' month ago' : ' months ago');
+}
+
+function setWlTab(el){
+  document.querySelectorAll('.wl-stab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  var txt = el.textContent.trim().toLowerCase().replace(' ', '_');
+  _wlTab = txt === 'up_next' ? 'up_next' : txt === 'maybe' ? 'maybe' : 'all';
+  renderWatchlist();
+}
+
+function startWlRemove(btn){
+  var actions = btn.closest('.wl-actions');
+  btn.style.display = 'none';
+  var confirmEl = actions.querySelector('.wl-remove-confirm');
+  if(confirmEl) confirmEl.classList.add('open');
+}
+function cancelWlRemove(btn){
+  var actions   = btn.closest('.wl-actions');
+  var confirmEl = actions.querySelector('.wl-remove-confirm');
+  if(confirmEl) confirmEl.classList.remove('open');
+  var removeBtn = actions.querySelector('.wl-remove-btn');
+  if(removeBtn) removeBtn.style.display = '';
+}
+async function confirmWlRemove(btn){
+  var item  = btn.closest('.wl-item');
+  var id    = item.dataset.wlId;
+  var title = (item.querySelector('.wl-title')||{}).textContent || 'Item';
+  if(id){
+    var res = await SUPA.from('watchlist').delete().eq('id', id);
+    if(res.error){ showToast('Could not remove: ' + res.error.message); return; }
+  }
+  _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
+  _animateRemove(item, function(){ renderWatchlist(); });
+  showToast(title + ' removed from Watchlist');
+}
+
+async function passWlItem(btn){
+  var item  = btn.closest('.wl-item');
+  var id    = item.dataset.wlId;
+  var title = (item.querySelector('.wl-title')||{}).textContent || 'Item';
+  if(id){
+    await SUPA.from('watchlist').delete().eq('id', id);
+    _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
+  }
+  _animateRemove(item, function(){ renderWatchlist(); });
+  showToast('Passed on ' + title, '✗  ');
+}
+
+function _animateRemove(el, cb){
+  el.style.transition = 'opacity .3s, transform .3s';
+  el.style.opacity    = '0';
+  el.style.transform  = 'translateX(-14px)';
+  setTimeout(cb, 320);
+}
+
+function wlMoveToCollection(id){
+  var it = _wlItems.find(function(x){ return x.id === id; });
+  if(!it) return;
+  _wlMoveId = id; /* remember so saveEntry() can clean up */
+  /* Pre-fill the Add Entry modal */
+  openModal('add');
+  setTimeout(function(){
+    var titleInp = document.getElementById('add-title');
+    if(titleInp) titleInp.value = it.title;
+    /* Set format pill */
+    var fmtMap = { show:'Show', book:'Book', sports_match:'Match', music:'Music' };
+    var fmtLabel = fmtMap[it.format] || 'Show';
+    document.querySelectorAll('#m-add .pill').forEach(function(p){
+      if(p.textContent.trim() === fmtLabel){
+        p.click(); /* activates pill and triggers updateSportField */
+      }
+    });
+    /* Pre-select tags */
+    (it.tags || []).forEach(function(tag){
+      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
+        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
+      });
+    });
+  }, 80);
+}
+
+/* ── O2: Toggle fingerprint building/sparse state ── */
+function toggleFpState(){
+  var el = document.getElementById('fp-building');
+  var btn = document.getElementById('fp-demo-btn');
+  if(!el) return;
+  var showing = el.classList.contains('show');
+  el.classList.toggle('show', !showing);
+  if(btn) btn.textContent = showing ? 'Demo: sparse state' : 'Demo: full state';
+}
+
+</script>
+</body>
+</html>
