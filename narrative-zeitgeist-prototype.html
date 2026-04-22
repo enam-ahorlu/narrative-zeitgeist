@@ -1757,7 +1757,7 @@ SUPA.auth.onAuthStateChange(function(event, session){
   } else if(event === 'SIGNED_IN'){
     currentUser = session.user;
     _showApp();
-    loadEntries();
+    loadEntries(); /* loadEntries now calls refreshFingerprint internally */
     loadWatchlist();
   } else if(event === 'SIGNED_OUT'){
     currentUser = null;
@@ -1791,7 +1791,8 @@ async function loadEntries(){
   renderEntriesTable(entries);
   renderEntriesGrid(entries);
   updateCollectionStats(entries);
-  loadFingerprint(); /* refresh insights in background */
+  /* Compute fingerprint on every load so the row always exists */
+  refreshFingerprint();
   /* Update "Because You Loved…" tab with top-rated entry title */
   if(entries.length){
     var top = entries.slice().sort(function(a,b){ return b.rating - a.rating; })[0];
@@ -2773,8 +2774,18 @@ async function loadDiscovery(force){
   if(!force && _discRecs && Date.now() - _discFetchedAt < CACHE_MS){
     _renderDiscovery(_discRecs); return;
   }
+  /* If fingerprint not yet loaded but we have entries, compute it now */
+  if(!_fp && _allEntries.length >= 3){
+    _discState('loading');
+    await refreshFingerprint();
+  }
   if(!_fp || (_fp.total_entries || 0) < 3){
-    _discState('nofp'); return;
+    /* Check raw entry count as fallback in case fingerprint row is stale */
+    if(_allEntries.length >= 3){
+      _discState('loading');
+      await refreshFingerprint();
+    }
+    if(!_fp){ _discState('nofp'); return; }
   }
   _discState('loading');
   var entryTitles = _allEntries.map(function(e){ return e.title; });
