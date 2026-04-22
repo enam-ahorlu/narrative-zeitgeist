@@ -103,6 +103,7 @@ body, .main, .card, .sc, .strip, .strip-item, .wl-item, .rc, .rc-body,
 body{font-family:'Inter',sans-serif;background:var(--n-bg);color:var(--t-1);font-size:14px;line-height:1.5;height:100vh;overflow:hidden}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(14,68,88,.2);border-radius:4px}
 @keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 @keyframes shimmerSlide{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
 @keyframes growBar{from{width:0}to{width:var(--w)}}
@@ -889,58 +890,47 @@ textarea.fi{resize:vertical;min-height:64px}
       </div>
       <!-- D2: Format filter pills -->
       <div class="disc-format-pills">
-        <div class="pill active" onclick="setPill(this)">All</div>
-        <div class="pill" onclick="setPill(this)">Shows</div>
-        <div class="pill" onclick="setPill(this)">Books</div>
-        <div class="pill" onclick="setPill(this)">Matches</div>
-        <div class="pill" onclick="setPill(this)">Music</div>
+        <div class="pill active" onclick="setPill(this);_discPill='all';if(_discRecs)_renderDiscovery(_discRecs)">All</div>
+        <div class="pill" onclick="setPill(this);_discPill='shows';if(_discRecs)_renderDiscovery(_discRecs)">Shows</div>
+        <div class="pill" onclick="setPill(this);_discPill='books';if(_discRecs)_renderDiscovery(_discRecs)">Books</div>
+        <div class="pill" onclick="setPill(this);_discPill='matches';if(_discRecs)_renderDiscovery(_discRecs)">Matches</div>
+        <div class="pill" onclick="setPill(this);_discPill='music';if(_discRecs)_renderDiscovery(_discRecs)">Music</div>
       </div>
       <div class="disc-tabs">
         <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
-        <div class="dtab" onclick="setDiscTab(this,'because-loved')">Because You Loved Succession</div>
+        <div class="dtab" id="dtab-because" onclick="setDiscTab(this,'because-loved')">Because You Loved…</div>
         <div class="dtab" onclick="setDiscTab(this,'hidden')">Hidden Gems</div>
         <div class="dtab" onclick="setDiscTab(this,'trending')">Trending in Your Genres</div>
       </div>
-      <div class="disc-content">
-        <div class="disc-hero">
-          <div style="flex:1;position:relative;z-index:1">
-            <div class="disc-hero-badge">⭐ Top Pick This Week</div>
-            <div class="disc-hero-title">House of the Dragon</div>
-            <div class="disc-hero-meta">Show · Fantasy · HBO · 2022 · 2 seasons</div>
-            <div class="disc-hero-reasons">
-              <div class="disc-hero-reason"><div class="disc-hero-dot"></div>Antihero + political drama = your two highest-weighted themes</div>
-              <div class="disc-hero-reason"><div class="disc-hero-dot"></div>Moral complexity arc mirrors Succession's power structure</div>
-              <div class="disc-hero-reason"><div class="disc-hero-dot"></div>Character-driven ensemble with world-building depth</div>
-            </div>
-            <div class="disc-hero-tags"><span class="disc-hero-tag">antihero</span><span class="disc-hero-tag">political drama</span><span class="disc-hero-tag">world-building</span><span class="disc-hero-tag">moral complexity</span></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <button class="btn btn-p btn-sm" onclick="showToast('House of the Dragon saved to Watchlist')">+ Watchlist</button>
-              <button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px;" onclick="addFromDiscover('House of the Dragon','Show')">+ Collection</button>
-              <button class="btn btn-sm" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);font-size:12px;padding:6px 11px;">Details</button>
-            </div>
-          </div>
-          <div class="disc-hero-right" style="position:relative;z-index:1">
-            <div class="disc-hero-match">96%</div>
-            <div class="disc-hero-match-label">taste match</div>
-            <div class="disc-hero-actions"><div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">HotD</div></div>
-          </div>
+      <div class="disc-content" id="disc-content">
+        <!-- Loading -->
+        <div id="disc-loading" style="display:none;text-align:center;padding:64px 20px">
+          <div style="width:36px;height:36px;border:3px solid var(--n-border);border-top-color:var(--p-light);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
+          <div style="font-size:13px;color:var(--t-2);font-weight:500">Finding your next obsession…</div>
+          <div style="font-size:11.5px;color:var(--t-3);margin-top:4px">Claude is reading your taste fingerprint</div>
         </div>
-        <div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE PICKS</div>
-        <div class="disc-grid">
-          <div class="rc anim-fadeup anim-delay-1"><div class="rc-poster" style="background:linear-gradient(135deg,#2A4A6A,#4A7A9A)"><div class="rc-initials">BB</div><div class="rc-match mh">94%</div></div><div class="rc-body"><div class="rc-title">Breaking Bad</div><div class="rc-meta">Show · AMC · 2008</div><div class="rc-because">Because you love: <strong>antihero, moral complexity</strong></div><button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button><div class="rc-reasons"><div class="rc-reason"><div class="rc-dot"></div>Definitive antihero arc — your #1 theme</div><div class="rc-reason"><div class="rc-dot"></div>Moral decline rated 9.4+ across your similar picks</div></div><div class="rc-tags"><span class="tag">antihero</span><span class="tag">crime</span></div><div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="showToast('Saved to Watchlist')">+ Watchlist</button><button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)">+ Collect</button></div></div></div>
-          <div class="rc anim-fadeup anim-delay-2"><div class="rc-poster" style="background:linear-gradient(135deg,#3A5A7A,#5A8AAA)"><div class="rc-initials">PB</div><div class="rc-match mh">92%</div></div><div class="rc-body"><div class="rc-title">Peaky Blinders</div><div class="rc-meta">Show · BBC · 2013</div><div class="rc-because">Because you love: <strong>antihero, character-driven</strong></div><button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button><div class="rc-reasons"><div class="rc-reason"><div class="rc-dot"></div>Classic antihero in political criminal world</div><div class="rc-reason"><div class="rc-dot"></div>Character-driven like The Crown</div></div><div class="rc-tags"><span class="tag">antihero</span><span class="tag">crime</span></div><div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="showToast('Saved to Watchlist')">+ Watchlist</button><button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)">+ Collect</button></div></div></div>
-          <div class="rc anim-fadeup anim-delay-3"><div class="rc-poster" style="background:linear-gradient(135deg,#5A4A6A,#8A6A9A)"><div class="rc-initials">HoC</div><div class="rc-match mh">91%</div></div><div class="rc-body"><div class="rc-title">House of Cards</div><div class="rc-meta">Show · Netflix · 2013</div><div class="rc-because">Because you love: <strong>political drama, antihero</strong></div><button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button><div class="rc-reasons"><div class="rc-reason"><div class="rc-dot"></div>Political manipulation = Succession's DNA</div><div class="rc-reason"><div class="rc-dot"></div>Archetypal antihero protagonist</div></div><div class="rc-tags"><span class="tag">political</span><span class="tag">antihero</span></div><div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="showToast('Saved to Watchlist')">+ Watchlist</button><button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)">+ Collect</button></div></div></div>
-          <div class="rc anim-fadeup anim-delay-4"><div class="rc-poster" style="background:linear-gradient(135deg,#4A6A4A,#6A9A6A)"><div class="rc-initials">WoT</div><div class="rc-match mm">89%</div></div><div class="rc-body"><div class="rc-title">The Wheel of Time</div><div class="rc-meta">Book · Robert Jordan · 1990</div><div class="rc-because">Because you love: <strong>world-building, moral complexity</strong></div><button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button><div class="rc-reasons"><div class="rc-reason"><div class="rc-dot"></div>World-building matches Dune + Sanderson</div><div class="rc-reason"><div class="rc-dot"></div>Moral complexity across 14-book arc</div></div><div class="rc-tags"><span class="tag">world-building</span><span class="tag">epic</span></div><div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="showToast('Saved to Watchlist')">+ Watchlist</button><button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)">+ Collect</button></div></div></div>
-          <div class="rc anim-fadeup anim-delay-5"><div class="rc-poster" style="background:linear-gradient(135deg,#4A3A6A,#7A6A9A)"><div class="rc-initials">Blnd</div><div class="rc-match mm">87%</div></div><div class="rc-body"><div class="rc-title">Blonde on Blonde — Bob Dylan</div><div class="rc-meta">Music · Rock/Folk · 1966</div><div class="rc-because">Because you love: <strong>lyrical depth, introspective</strong></div><button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button><div class="rc-reasons"><div class="rc-reason"><div class="rc-dot"></div>Lyrical depth matches TPAB and Kind of Blue taste</div><div class="rc-reason"><div class="rc-dot"></div>Character-narrative through song, your cross-format pattern</div></div><div class="rc-tags"><span class="tag">lyrical depth</span><span class="tag">introspective</span></div><div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="showToast('Saved to Watchlist')">+ Watchlist</button><button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)">+ Collect</button></div></div></div>
-          <div class="rc anim-fadeup anim-delay-6"><div class="rc-poster" style="background:linear-gradient(135deg,#6A4A3A,#9A7A6A)"><div class="rc-initials">GT</div><div class="rc-match mm">85%</div></div><div class="rc-body"><div class="rc-title">The Girl with the Dragon Tattoo</div><div class="rc-meta">Book · Stieg Larsson · 2005</div><div class="rc-because">Because you love: <strong>thriller, mystery</strong></div><button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button><div class="rc-reasons"><div class="rc-reason"><div class="rc-dot"></div>Dark mystery aligns with your thriller picks</div><div class="rc-reason"><div class="rc-dot"></div>Complex protagonist, non-linear moral arc</div></div><div class="rc-tags"><span class="tag">mystery</span><span class="tag">thriller</span></div><div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="showToast('Saved to Watchlist')">+ Watchlist</button><button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)">+ Collect</button></div></div></div>
+        <!-- Not enough data -->
+        <div id="disc-nofp" style="display:none;text-align:center;padding:64px 20px">
+          <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="var(--t-3)" stroke-width="1.2" style="margin-bottom:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <div style="font-size:14px;font-weight:600;color:var(--t-1);margin-bottom:6px">Add more entries to unlock Discovery</div>
+          <div style="font-size:12.5px;color:var(--t-3);margin-bottom:16px">Claude needs at least 3 tagged entries to understand your taste.</div>
+          <button class="btn btn-p btn-sm" onclick="openModal('add')">+ Add Entry</button>
         </div>
+        <!-- Error -->
+        <div id="disc-err" style="display:none;text-align:center;padding:64px 20px">
+          <div style="font-size:13px;color:var(--t-2);margin-bottom:8px" id="disc-err-msg">Something went wrong.</div>
+          <button class="btn btn-glass btn-sm" onclick="loadDiscovery(true)">Try Again</button>
+        </div>
+        <!-- Hero + grid (populated by JS) -->
+        <div id="disc-hero-wrap"></div>
+        <div id="disc-grid-wrap"></div>
       </div>
     </div>
 
     <!-- WATCHLIST -->
     <div class="screen" id="s-watchlist">
       <div class="ph">
-        <div><div class="ph-title">Watchlist</div><div class="ph-sub">5 saved items</div></div>
+        <div><div class="ph-title">Watchlist</div><div class="ph-sub" id="wl-ph-sub">0 saved items</div></div>
         <div class="ph-actions"><button class="btn btn-glass btn-sm">Select All</button><button class="btn btn-ghost btn-sm btn-danger">Remove Selected</button></div>
       </div>
       <div class="wl-content">
@@ -966,14 +956,7 @@ textarea.fi{resize:vertical;min-height:64px}
           </div>
           <button class="btn btn-glass" onclick="document.querySelector('.ni[data-screen=discover]').click()">Open Discover</button>
         </div>
-        <div class="wl-section">SHOWS</div>
-        <div class="wl-item anim-fadeup"><input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0"><div class="wl-thumb" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"><span style="font-size:14px;color:rgba(255,255,255,.25);font-family:'Cormorant Garamond',serif">HotD</span></div><div class="wl-info"><div class="wl-title">House of the Dragon</div><div class="wl-meta">Show · HBO · Added 2 days ago</div><div class="wl-tags"><span class="tag">antihero</span><span class="tag">political</span></div></div><span class="wl-priority p-next">Up Next</span><div class="wl-match">96%</div><div class="wl-order-btns"><button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button><button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button></div><div class="wl-actions"><button class="btn btn-p btn-sm" style="white-space:nowrap">Move to Collection</button><button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button><div class="wl-remove-confirm"><span>Remove?</span><button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button><button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button></div><button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me — removes item and refines your fingerprint">✕</button></div></div>
-        <div class="wl-item anim-fadeup anim-delay-1"><input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0"><div class="wl-thumb" style="background:linear-gradient(135deg,#2A4A6A,#4A7A9A)"><span style="font-size:14px;color:rgba(255,255,255,.25);font-family:'Cormorant Garamond',serif">BB</span></div><div class="wl-info"><div class="wl-title">Breaking Bad</div><div class="wl-meta">Show · AMC · Added 1 week ago</div><div class="wl-tags"><span class="tag">antihero</span><span class="tag">moral complexity</span></div></div><span class="wl-priority p-next">Up Next</span><div class="wl-match">94%</div><div class="wl-order-btns"><button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button><button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button></div><div class="wl-actions"><button class="btn btn-p btn-sm" style="white-space:nowrap">Move to Collection</button><button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button><div class="wl-remove-confirm"><span>Remove?</span><button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button><button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button></div><button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me — removes item and refines your fingerprint">✕</button></div></div>
-        <div class="wl-item anim-fadeup anim-delay-2"><input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0"><div class="wl-thumb" style="background:linear-gradient(135deg,#5A4A6A,#8A6A9A)"><span style="font-size:14px;color:rgba(255,255,255,.25);font-family:'Cormorant Garamond',serif">HoC</span></div><div class="wl-info"><div class="wl-title">House of Cards</div><div class="wl-meta">Show · Netflix · Added 5 days ago</div><div class="wl-tags"><span class="tag">political</span><span class="tag">antihero</span></div></div><span class="wl-priority p-maybe">Maybe</span><div class="wl-match">91%</div><div class="wl-order-btns"><button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button><button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button></div><div class="wl-actions"><button class="btn btn-p btn-sm" style="white-space:nowrap">Move to Collection</button><button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button><div class="wl-remove-confirm"><span>Remove?</span><button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button><button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button></div><button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me — removes item and refines your fingerprint">✕</button></div></div>
-        <div class="wl-section" style="margin-top:18px">BOOKS</div>
-        <div class="wl-item anim-fadeup anim-delay-3"><input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0"><div class="wl-thumb" style="background:linear-gradient(135deg,#4A6A4A,#6A9A6A)"><span style="font-size:14px;color:rgba(255,255,255,.25);font-family:'Cormorant Garamond',serif">WoT</span></div><div class="wl-info"><div class="wl-title">The Wheel of Time</div><div class="wl-meta">Book · Robert Jordan · Added 3 days ago</div><div class="wl-tags"><span class="tag">world-building</span><span class="tag">epic</span></div></div><span class="wl-priority p-next">Up Next</span><div class="wl-match">89%</div><div class="wl-order-btns"><button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button><button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button></div><div class="wl-actions"><button class="btn btn-p btn-sm" style="white-space:nowrap">Move to Collection</button><button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button><div class="wl-remove-confirm"><span>Remove?</span><button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button><button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button></div><button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me — removes item and refines your fingerprint">✕</button></div></div>
-        <div class="wl-section" style="margin-top:18px">MUSIC</div>
-        <div class="wl-item anim-fadeup anim-delay-4"><input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0"><div class="wl-thumb" style="background:linear-gradient(135deg,#4A3A6A,#7A6A9A)"><span style="font-size:14px;color:rgba(255,255,255,.25);font-family:'Cormorant Garamond',serif">B·B</span></div><div class="wl-info"><div class="wl-title">Blonde on Blonde — Bob Dylan</div><div class="wl-meta">Music · Rock/Folk · Added today</div><div class="wl-tags"><span class="tag">lyrical depth</span><span class="tag">introspective</span></div></div><span class="wl-priority p-maybe">Maybe</span><div class="wl-match">87%</div><div class="wl-order-btns"><button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button><button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button></div><div class="wl-actions"><button class="btn btn-p btn-sm" style="white-space:nowrap">Move to Collection</button><button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button><div class="wl-remove-confirm"><span>Remove?</span><button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button><button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button></div><button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me — removes item and refines your fingerprint">✕</button></div></div>
+        <div id="wl-list"></div>
       </div>
     </div>
 
@@ -1356,6 +1339,11 @@ var currentUser  = null;
 var currentEntry = null; /* entry currently open in the detail modal */
 var _fp          = null; /* cached taste fingerprint JSON */
 var _charts      = {};   /* Chart.js instances keyed by name */
+var _allEntries  = [];   /* cached full entry list for Discovery */
+var _discRecs    = null; /* cached Discovery recommendations */
+var _discFetchedAt = 0;  /* timestamp of last Discovery fetch */
+var _discPill    = 'all';/* current format pill filter */
+var _discTabName = 'for-you'; /* current Discovery tab */
 
 /* ── Lookup tables ── */
 var FMT_LABEL = {show:'Show', book:'Book', sports_match:'Match', music:'Music'};
@@ -1374,6 +1362,7 @@ function escHtml(s){
     currentUser = res.data.session.user;
     _showApp();
     loadEntries();
+    loadWatchlist();
   }
 })();
 
@@ -1397,6 +1386,7 @@ SUPA.auth.onAuthStateChange(function(event, session){
     }
     _showApp();
     loadEntries();
+    loadWatchlist();
     /* Small delay so the app finishes rendering before the modal appears */
     setTimeout(function(){
       document.getElementById('m-newpass').style.display = 'flex';
@@ -1405,6 +1395,7 @@ SUPA.auth.onAuthStateChange(function(event, session){
     currentUser = session.user;
     _showApp();
     loadEntries();
+    loadWatchlist();
   } else if(event === 'SIGNED_OUT'){
     currentUser = null;
     _showAuthScreen();
@@ -1438,6 +1429,12 @@ async function loadEntries(){
   renderEntriesGrid(entries);
   updateCollectionStats(entries);
   loadFingerprint(); /* refresh insights in background */
+  /* Update "Because You Loved…" tab with top-rated entry title */
+  if(entries.length){
+    var top = entries.slice().sort(function(a,b){ return b.rating - a.rating; })[0];
+    var tab = document.getElementById('dtab-because');
+    if(tab && top) tab.textContent = 'Because You Loved ' + top.title.split(':')[0].trim();
+  }
 }
 
 function _entryDateStr(e){
@@ -1446,6 +1443,7 @@ function _entryDateStr(e){
 }
 
 function renderEntriesTable(entries){
+  _allEntries = entries; /* cache for Discovery */
   var tbody = document.querySelector('#s-collection .tbl-wrap tbody');
   if(!tbody) return;
   tbody.innerHTML = '';
@@ -1586,6 +1584,7 @@ document.querySelectorAll('.ni').forEach(function(item){
     var t=document.getElementById('s-'+scr);
     if(t){t.classList.add('active')}
     if(scr==='insights'){setTimeout(initCharts,80)}
+    if(scr==='discover'){loadDiscovery();}
     if(scr==='settings'){
       var isDark=document.documentElement.getAttribute('data-theme')==='dark';
       var tog=document.getElementById('dm-setting-toggle');
@@ -1741,7 +1740,13 @@ function closeModal(id){
 }
 document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
 function setPill(el){el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});el.classList.add('active')}
-function setDiscTab(el,name){document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active')});el.classList.add('active')}
+function setDiscTab(el,name){
+  document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active')});
+  el.classList.add('active');
+  _discTabName = name || 'for-you';
+  _discRecs = null; /* invalidate cache so tab change fetches fresh results */
+  loadDiscovery();
+}
 function setWlTab(el){document.querySelectorAll('.wl-stab').forEach(function(t){t.classList.remove('active')});el.classList.add('active')}
 function updateSportField(sel){document.getElementById('sport-field').style.display=sel.value==='Match'?'block':'none'}
 
@@ -1911,8 +1916,17 @@ async function saveEntry(){
   document.querySelectorAll('.tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
 
   showToast(wasEdit ? 'Entry updated' : 'Entry saved to your collection');
-  loadEntries();       /* Refresh table + grid + stats */
+  loadEntries();        /* Refresh table + grid + stats */
   refreshFingerprint(); /* Recompute taste profile in background */
+  /* If this save came from "Move to Collection", delete the watchlist item */
+  if(_wlMoveId){
+    var _moveId = _wlMoveId;
+    _wlMoveId = null;
+    SUPA.from('watchlist').update({ added_to_collection: true }).eq('id', _moveId).then(function(){
+      _wlItems = _wlItems.filter(function(it){ return it.id !== _moveId; });
+      renderWatchlist();
+    });
+  }
 }
 
 /* ── Open Add modal pre-filled for editing (E1) ── */
@@ -2344,11 +2358,180 @@ function toggleWhy(btn){
   }
 }
 
-/* ── Add directly from Discover (D4) ── */
-function addFromDiscover(titleOrBtn,format){
-  var title=typeof titleOrBtn==='string'?titleOrBtn:titleOrBtn.closest('.rc-body').querySelector('.rc-title').textContent;
-  showToast(title+' added to Collection');
+/* ── Discovery Engine ──────────────────────────────────────── */
+
+function _discState(state, msg){
+  document.getElementById('disc-loading').style.display  = state==='loading'  ? '' : 'none';
+  document.getElementById('disc-nofp').style.display     = state==='nofp'     ? '' : 'none';
+  document.getElementById('disc-err').style.display      = state==='error'    ? '' : 'none';
+  document.getElementById('disc-hero-wrap').style.display = state==='results'  ? '' : 'none';
+  document.getElementById('disc-grid-wrap').style.display = state==='results'  ? '' : 'none';
+  if(state==='error' && msg) document.getElementById('disc-err-msg').textContent = msg;
+}
+
+async function loadDiscovery(force){
+  var CACHE_MS = 30 * 60 * 1000; /* 30 min in-memory cache */
+  if(!force && _discRecs && Date.now() - _discFetchedAt < CACHE_MS){
+    _renderDiscovery(_discRecs); return;
+  }
+  if(!_fp || (_fp.total_entries || 0) < 3){
+    _discState('nofp'); return;
+  }
+  _discState('loading');
+  var entryTitles = _allEntries.map(function(e){ return e.title; });
+  try {
+    var resp = await fetch('/api/discover', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ fingerprint: _fp, entryTitles: entryTitles, tab: _discTabName })
+    });
+    var data = await resp.json();
+    if(!resp.ok) throw new Error(data.error || 'Server error '+resp.status);
+    _discRecs = data.recommendations;
+    _discFetchedAt = Date.now();
+    _renderDiscovery(_discRecs);
+  } catch(e){
+    _discState('error', e.message);
+  }
+}
+
+function _filterDisc(recs){
+  if(_discPill === 'all') return recs;
+  var map = {shows:'show', books:'book', matches:'sports_match', music:'music'};
+  var fmt = map[_discPill] || _discPill;
+  return recs.filter(function(r){ return r.format === fmt; });
+}
+
+function _renderDiscovery(recs){
+  if(!recs || !recs.length){ _discState('error','No recommendations returned.'); return; }
+  var filtered = _filterDisc(recs);
+  if(!filtered.length){ _discState('error','No results for this format filter.'); return; }
+  _discState('results');
+  /* Hero = first (highest match) */
+  _renderHero(filtered[0]);
+  /* Grid = rest */
+  _renderGrid(filtered.slice(1));
+}
+
+function _recInitials(title){
+  return title.split(' ').filter(Boolean).slice(0,3).map(function(w){ return w[0]; }).join('').toUpperCase().slice(0,4);
+}
+
+function _renderHero(rec){
+  var wrap = document.getElementById('disc-hero-wrap');
+  if(!wrap) return;
+  var bg = rec.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
+  var initials = _recInitials(rec.title);
+  var reasons = (rec.reasons||[]).map(function(r){
+    return '<div class="disc-hero-reason"><div class="disc-hero-dot"></div>'+escHtml(r)+'</div>';
+  }).join('');
+  var tags = (rec.tags||[]).map(function(t){
+    return '<span class="disc-hero-tag">'+escHtml(t)+'</span>';
+  }).join('');
+  var recJson = escHtml(JSON.stringify(rec));
+  wrap.innerHTML =
+    '<div class="disc-hero" style="background:'+bg+'">'
+    +'<div style="flex:1;position:relative;z-index:1">'
+    +'<div class="disc-hero-badge">⭐ Top Pick</div>'
+    +'<div class="disc-hero-title">'+escHtml(rec.title)+'</div>'
+    +'<div class="disc-hero-meta">'+escHtml(rec.meta||FMT_LABEL[rec.format]||rec.format)+'</div>'
+    +'<div class="disc-hero-reasons">'+reasons+'</div>'
+    +'<div class="disc-hero-tags">'+tags+'</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+    +'<button class="btn btn-p btn-sm" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
+    +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collection</button>'
+    +'</div></div>'
+    +'<div class="disc-hero-right" style="position:relative;z-index:1">'
+    +'<div class="disc-hero-match">'+rec.match_score+'%</div>'
+    +'<div class="disc-hero-match-label">taste match</div>'
+    +'<div class="disc-hero-actions"><div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(initials)+'</div></div>'
+    +'</div></div>';
+}
+
+function _renderGrid(recs){
+  var wrap = document.getElementById('disc-grid-wrap');
+  if(!wrap) return;
+  if(!recs.length){ wrap.innerHTML = ''; return; }
+  var html = '<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE PICKS</div>'
+           + '<div class="disc-grid">';
+  recs.forEach(function(rec, i){
+    var bg      = rec.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
+    var initials = _recInitials(rec.title);
+    var mCls    = rec.match_score >= 90 ? 'mh' : rec.match_score >= 80 ? 'mm' : '';
+    var reasons = (rec.reasons||[]).map(function(r){
+      return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';
+    }).join('');
+    var tags = (rec.tags||[]).map(function(t){
+      return '<span class="tag">'+escHtml(t)+'</span>';
+    }).join('');
+    var delay = i < 6 ? ' anim-delay-'+(i+1) : '';
+    var recJson = escHtml(JSON.stringify(rec));
+    html +=
+      '<div class="rc anim-fadeup'+delay+'">'
+      +'<div class="rc-poster" style="background:'+bg+'">'
+      +'<div class="rc-initials">'+escHtml(initials)+'</div>'
+      +'<div class="rc-match '+mCls+'">'+rec.match_score+'%</div>'
+      +'</div>'
+      +'<div class="rc-body">'
+      +'<div class="rc-title">'+escHtml(rec.title)+'</div>'
+      +'<div class="rc-meta">'+escHtml(rec.meta||FMT_LABEL[rec.format]||rec.format)+'</div>'
+      +'<div class="rc-because">'+escHtml(rec.match_hook||'')+'</div>'
+      +'<button class="rc-why-btn" onclick="toggleWhy(this)">'
+      +'<svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>'
+      +'Why this match?</button>'
+      +'<div class="rc-reasons">'+reasons+'</div>'
+      +'<div class="rc-tags">'+tags+'</div>'
+      +'<div class="rc-foot">'
+      +'<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
+      +'<button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collect</button>'
+      +'</div></div></div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+async function saveToWatchlist(btn){
+  var rec = JSON.parse(btn.getAttribute('data-rec'));
+  if(!currentUser){ showToast('Please sign in first'); return; }
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var res = await SUPA.from('watchlist').insert({
+    user_id:       currentUser.id,
+    title:         rec.title,
+    format:        rec.format,
+    source:        'claude_ai',
+    match_score:   rec.match_score,
+    match_reasons: rec.reasons || [],
+    cover_color:   rec.cover_color || null,
+    tags:          rec.tags || [],
+    priority:      'maybe'
+  });
+  if(res.error){
+    btn.disabled = false; btn.textContent = '+ Watchlist';
+    showToast('Could not save: '+res.error.message,'⚠  ');
+  } else {
+    btn.textContent = '✓ Saved';
+    showToast(rec.title+' saved to Watchlist','🔖  ');
+    loadWatchlist();
+  }
+}
+
+function addFromDiscover(btn){
+  var rec = JSON.parse(btn.getAttribute('data-rec'));
   openModal('add');
+  setTimeout(function(){
+    var titleInp = document.getElementById('add-title');
+    if(titleInp) titleInp.value = rec.title;
+    var fmtMap = {show:'Show', book:'Book', sports_match:'Match', music:'Music'};
+    var fmtLabel = fmtMap[rec.format] || 'Show';
+    document.querySelectorAll('#m-add .pill').forEach(function(p){
+      if(p.textContent.trim() === fmtLabel) p.click();
+    });
+    (rec.tags||[]).forEach(function(tag){
+      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
+        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
+      });
+    });
+  }, 80);
 }
 
 /* ── Watchlist "Move to Collection" triggers toast ── */
@@ -2360,46 +2543,194 @@ document.querySelectorAll('.wl-actions .btn-p').forEach(function(btn){
 });
 
 /* ── W1: Pass / Not for me ── */
-function passWlItem(btn){
-  var item=btn.closest('.wl-item');
-  var title=(item.querySelector('.wl-title')||{}).textContent||'Entry';
-  showToast('Passed on '+title+' — fingerprint updated','✗  ');
-  item.style.transition='opacity .3s,transform .3s';
-  item.style.opacity='0';
-  item.style.transform='translateX(-14px)';
-  setTimeout(function(){
-    item.remove();
-    var badge=document.getElementById('wl-count-badge');
-    if(badge){var n=parseInt(badge.textContent)-1;badge.textContent=n>0?n:'';}
-  },320);
+/* ── Watchlist: load, render, actions ──────────────────────── */
+var _wlItems  = [];  /* cached watchlist rows */
+var _wlTab    = 'all';
+var _wlMoveId = null; /* watchlist id being moved to collection */
+
+async function loadWatchlist(){
+  if(!currentUser) return;
+  var res = await SUPA
+    .from('watchlist')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('added_to_collection', false)
+    .order('saved_at', { ascending: false });
+  if(res.error){ console.error('loadWatchlist:', res.error); return; }
+  _wlItems = res.data || [];
+  renderWatchlist();
 }
 
-/* ── P2: Watchlist remove confirm ── */
+function renderWatchlist(){
+  var items = _wlItems.filter(function(it){
+    if(_wlTab === 'up_next') return it.priority === 'up_next';
+    if(_wlTab === 'maybe')   return it.priority === 'maybe';
+    return true;
+  });
+
+  var listEl  = document.getElementById('wl-list');
+  var emptyEl = document.getElementById('wl-empty');
+  var phSub   = document.getElementById('wl-ph-sub');
+  var badge   = document.getElementById('wl-count-badge');
+  var total   = _wlItems.length;
+
+  if(phSub)  phSub.textContent  = total + (total === 1 ? ' saved item' : ' saved items');
+  if(badge)  badge.textContent  = total > 0 ? total : '';
+
+  if(!listEl) return;
+
+  if(items.length === 0){
+    listEl.innerHTML = '';
+    if(emptyEl) emptyEl.style.display = '';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = 'none';
+
+  /* Group by format */
+  var FMT_SECTION = { show:'SHOWS', book:'BOOKS', sports_match:'MATCHES', music:'MUSIC' };
+  var groups = {};
+  var groupOrder = [];
+  items.forEach(function(it){
+    var f = it.format || 'show';
+    if(!groups[f]){ groups[f] = []; groupOrder.push(f); }
+    groups[f].push(it);
+  });
+
+  var html = '';
+  groupOrder.forEach(function(fmt, gi){
+    html += '<div class="wl-section"' + (gi > 0 ? ' style="margin-top:18px"' : '') + '>'
+          + (FMT_SECTION[fmt] || fmt.toUpperCase()) + '</div>';
+    groups[fmt].forEach(function(it, idx){
+      var bg      = it.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
+      var initials = it.title.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
+      var score   = it.match_score ? Math.round(it.match_score) + '%' : '—';
+      var priCls  = it.priority === 'up_next' ? 'p-next' : 'p-maybe';
+      var priLbl  = it.priority === 'up_next' ? 'Up Next' : 'Maybe';
+      var tags    = (it.tags || []).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
+      var savedAgo = _timeAgo(it.saved_at);
+      var delay   = idx < 5 ? ' anim-delay-' + idx : '';
+      html += '<div class="wl-item anim-fadeup'+delay+'" data-wl-id="'+it.id+'">'
+        + '<input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0">'
+        + '<div class="wl-thumb" style="background:'+escHtml(bg)+'">'
+        +   '<span style="font-size:14px;color:rgba(255,255,255,.25);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>'
+        + '</div>'
+        + '<div class="wl-info">'
+        +   '<div class="wl-title">'+escHtml(it.title)+'</div>'
+        +   '<div class="wl-meta">'+FMT_LABEL[it.format]||it.format+' · Added '+savedAgo+'</div>'
+        +   '<div class="wl-tags">'+tags+'</div>'
+        + '</div>'
+        + '<span class="wl-priority '+priCls+'">'+priLbl+'</span>'
+        + '<div class="wl-match">'+score+'</div>'
+        + '<div class="wl-order-btns">'
+        +   '<button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button>'
+        +   '<button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button>'
+        + '</div>'
+        + '<div class="wl-actions">'
+        +   '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlMoveToCollection(\''+it.id+'\')">Move to Collection</button>'
+        +   '<button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button>'
+        +   '<div class="wl-remove-confirm"><span>Remove?</span>'
+        +     '<button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button>'
+        +     '<button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button>'
+        +   '</div>'
+        +   '<button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me">✕</button>'
+        + '</div>'
+        + '</div>';
+    });
+  });
+  listEl.innerHTML = html;
+}
+
+function _timeAgo(iso){
+  var diff = Date.now() - new Date(iso).getTime();
+  var mins = Math.floor(diff / 60000);
+  if(mins < 1)   return 'just now';
+  if(mins < 60)  return mins + 'm ago';
+  var hrs = Math.floor(mins / 60);
+  if(hrs < 24)   return hrs + 'h ago';
+  var days = Math.floor(hrs / 24);
+  if(days === 1) return 'yesterday';
+  if(days < 30)  return days + ' days ago';
+  var mos = Math.floor(days / 30);
+  return mos + (mos === 1 ? ' month ago' : ' months ago');
+}
+
+function setWlTab(el){
+  document.querySelectorAll('.wl-stab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  var txt = el.textContent.trim().toLowerCase().replace(' ', '_');
+  _wlTab = txt === 'up_next' ? 'up_next' : txt === 'maybe' ? 'maybe' : 'all';
+  renderWatchlist();
+}
+
 function startWlRemove(btn){
-  var actions=btn.closest('.wl-actions');
-  btn.style.display='none';
-  var confirm=actions.querySelector('.wl-remove-confirm');
-  if(confirm)confirm.classList.add('open');
+  var actions = btn.closest('.wl-actions');
+  btn.style.display = 'none';
+  var confirmEl = actions.querySelector('.wl-remove-confirm');
+  if(confirmEl) confirmEl.classList.add('open');
 }
 function cancelWlRemove(btn){
-  var actions=btn.closest('.wl-actions');
-  var confirm=actions.querySelector('.wl-remove-confirm');
-  if(confirm)confirm.classList.remove('open');
-  var removeBtn=actions.querySelector('.wl-remove-btn');
-  if(removeBtn)removeBtn.style.display='';
+  var actions   = btn.closest('.wl-actions');
+  var confirmEl = actions.querySelector('.wl-remove-confirm');
+  if(confirmEl) confirmEl.classList.remove('open');
+  var removeBtn = actions.querySelector('.wl-remove-btn');
+  if(removeBtn) removeBtn.style.display = '';
 }
-function confirmWlRemove(btn){
-  var item=btn.closest('.wl-item');
-  var title=(item.querySelector('.wl-title')||{}).textContent||'Entry';
-  showToast(title+' removed from Watchlist');
-  item.style.transition='opacity .3s,transform .3s';
-  item.style.opacity='0';
-  item.style.transform='translateX(-14px)';
+async function confirmWlRemove(btn){
+  var item  = btn.closest('.wl-item');
+  var id    = item.dataset.wlId;
+  var title = (item.querySelector('.wl-title')||{}).textContent || 'Item';
+  if(id){
+    var res = await SUPA.from('watchlist').delete().eq('id', id);
+    if(res.error){ showToast('Could not remove: ' + res.error.message); return; }
+  }
+  _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
+  _animateRemove(item, function(){ renderWatchlist(); });
+  showToast(title + ' removed from Watchlist');
+}
+
+async function passWlItem(btn){
+  var item  = btn.closest('.wl-item');
+  var id    = item.dataset.wlId;
+  var title = (item.querySelector('.wl-title')||{}).textContent || 'Item';
+  if(id){
+    await SUPA.from('watchlist').delete().eq('id', id);
+    _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
+  }
+  _animateRemove(item, function(){ renderWatchlist(); });
+  showToast('Passed on ' + title, '✗  ');
+}
+
+function _animateRemove(el, cb){
+  el.style.transition = 'opacity .3s, transform .3s';
+  el.style.opacity    = '0';
+  el.style.transform  = 'translateX(-14px)';
+  setTimeout(cb, 320);
+}
+
+function wlMoveToCollection(id){
+  var it = _wlItems.find(function(x){ return x.id === id; });
+  if(!it) return;
+  _wlMoveId = id; /* remember so saveEntry() can clean up */
+  /* Pre-fill the Add Entry modal */
+  openModal('add');
   setTimeout(function(){
-    item.remove();
-    var badge=document.getElementById('wl-count-badge');
-    if(badge){var n=parseInt(badge.textContent)-1;badge.textContent=n>0?n:'';}
-  },320);
+    var titleInp = document.getElementById('add-title');
+    if(titleInp) titleInp.value = it.title;
+    /* Set format pill */
+    var fmtMap = { show:'Show', book:'Book', sports_match:'Match', music:'Music' };
+    var fmtLabel = fmtMap[it.format] || 'Show';
+    document.querySelectorAll('#m-add .pill').forEach(function(p){
+      if(p.textContent.trim() === fmtLabel){
+        p.click(); /* activates pill and triggers updateSportField */
+      }
+    });
+    /* Pre-select tags */
+    (it.tags || []).forEach(function(tag){
+      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
+        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
+      });
+    });
+  }, 80);
 }
 
 /* ── O2: Toggle fingerprint building/sparse state ── */
@@ -2446,25 +2777,4 @@ applyCoverColors();
 
 async function refreshFingerprint(){
   if(!currentUser) return;
-  /* Recompute the fingerprint in Supabase then reload it */
-  await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
-  await loadFingerprint();
-}
-
-async function loadFingerprint(){
-  if(!currentUser) return;
-  var res = await SUPA
-    .from('user_fingerprints')
-    .select('fingerprint_json')
-    .eq('user_id', currentUser.id)
-    .single();
-  if(res.error || !res.data) return;
-  _fp = res.data.fingerprint_json;
-  renderInsights(_fp);
-  loadTimelineData();
-}
-
-function renderInsights(fp){
-  if(!fp) return;
-  var total   = fp.total_entries   || 0;
-  var avgRat  = fp.overal
+  /* Recompute the fing
