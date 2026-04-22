@@ -1375,25 +1375,34 @@ function escHtml(s){
   }
 })();
 
+/* ── Detect password-recovery landing from URL hash ── */
+var _pendingPasswordRecovery = (function(){
+  var hash = {};
+  window.location.hash.slice(1).split('&').forEach(function(p){
+    var kv = p.split('='); if(kv[0]) hash[kv[0]] = kv[1];
+  });
+  return hash['type'] === 'recovery';
+})();
+
 /* ── React to login / logout events ── */
-var _pendingPasswordRecovery = false;
 SUPA.auth.onAuthStateChange(function(event, session){
-  if(event === 'PASSWORD_RECOVERY'){
-    /* User landed via reset link — show app first, then the new-password modal */
-    _pendingPasswordRecovery = true;
+  if(event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && _pendingPasswordRecovery)){
+    _pendingPasswordRecovery = false;
     currentUser = session.user;
+    /* Clear the token from the URL so a page refresh doesn't re-trigger this */
+    if(window.history && window.history.replaceState){
+      window.history.replaceState(null, '', window.location.pathname);
+    }
     _showApp();
     loadEntries();
-    document.getElementById('m-newpass').style.display = 'flex';
+    /* Small delay so the app finishes rendering before the modal appears */
+    setTimeout(function(){
+      document.getElementById('m-newpass').style.display = 'flex';
+    }, 150);
   } else if(event === 'SIGNED_IN'){
     currentUser = session.user;
     _showApp();
     loadEntries();
-    /* In some Supabase versions PASSWORD_RECOVERY fires then SIGNED_IN fires too */
-    if(_pendingPasswordRecovery){
-      _pendingPasswordRecovery = false;
-      document.getElementById('m-newpass').style.display = 'flex';
-    }
   } else if(event === 'SIGNED_OUT'){
     currentUser = null;
     _showAuthScreen();
@@ -2435,5 +2444,3 @@ function initCharts(){
   chartsReady=true;
   var rCtx=document.getElementById('radarChart');
   if(rCtx){new Chart(rCtx,{type:'radar',data:{labels:['Drama','World-Build','Moral Depth','Pace','Action','Character'],datasets:[{label:'Your Taste',data:[96,74,88,72,45,90],backgroundColor:'rgba(74,173,186,.12)',borderColor:'#4AADBA',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:5,pointHoverRadius:7,pointHoverBackgroundColor:'#4AADBA'}]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{title:function(items){return items[0].label},label:function(ctx){return'Score: '+ctx.raw+'/100'}}}},scales:{r:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},angleLines:{color:'rgba(0,0,0,.06)'},ticks:{display:false},pointLabels:{font:{family:'Inter',size:11},color:'#3F5A68'}}}}})}
-  var fCtx=document.getElementById('fmtChart');
-  if(fCtx){new Chart(fCtx,{type:'doughnut',data:{labels:['Shows','Books','Matches','Music'],datasets:[{data:[23,18,7,4],backgroundColor:['#E4F3F7','#E6F2E7','#F3EDD8','#EAE7F5'],borderColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],borderWidth:2}]},options:{responsive:true,maintainAspe
