@@ -2834,4 +2834,307 @@ async function passWlItem(btn){
     _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
   }
   _animateRemove(item, function(){ renderWatchlist(); });
-  showToast('Passed on ' + title
+  showToast('Passed on ' + title, '✗  ');
+}
+
+/* ── Password show/hide toggle ── */
+function togglePassVis(inputId, btn){
+  var inp = document.getElementById(inputId);
+  if(!inp) return;
+  var show = inp.type === 'password';
+  inp.type = show ? 'text' : 'password';
+  var icon = document.getElementById('eye-' + inputId);
+  if(icon){
+    icon.innerHTML = show
+      ? '<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21\"/>'
+      : '<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15 12a3 3 0 11-6 0 3 3 0 016 0z\"/><path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z\"/>';
+  }
+}
+
+/* ── Forgot password flow ── */
+var _resetCooldownUntil = 0;
+
+function forgotPassword(){
+  var h   = document.getElementById('auth-heading');
+  var s   = document.getElementById('auth-subheading');
+  var pwRow = document.querySelector('.fl:has(#auth-pass-inp)');
+  // fallback: hide second fl
+  var allFl = document.querySelectorAll('#auth .fl');
+  if(allFl[1]) allFl[1].style.display = 'none';
+  var remRow  = document.getElementById('auth-remember-row');
+  var btn     = document.getElementById('auth-submit-btn');
+  var foot    = document.getElementById('auth-foot-text');
+  if(h)      h.textContent = 'Reset password';
+  if(s)      s.textContent = 'Enter your email — we\u2019ll send a reset link';
+  if(remRow) remRow.style.display = 'none';
+  if(btn){   btn.textContent = 'Send reset link'; btn.onclick = function(){ sendPasswordReset(); }; }
+  if(foot)   foot.innerHTML = 'Remember it? <a href=\"#\" onclick=\"toggleAuthMode();return false;\">Back to sign in</a>';
+}
+
+async function sendPasswordReset(){
+  var now = Date.now();
+  if(now < _resetCooldownUntil){
+    var secs = Math.ceil((_resetCooldownUntil - now) / 1000);
+    _authErr('Please wait ' + secs + 's before requesting another email.');
+    return;
+  }
+  var emailInp = document.getElementById('auth-email-inp');
+  var email = emailInp ? emailInp.value.trim() : '';
+  if(!email){ _authErr('Enter your email address first.'); return; }
+  var btn = document.getElementById('auth-submit-btn');
+  if(btn){ btn.textContent = 'Sending\u2026'; btn.disabled = true; }
+  var res = await SUPA.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if(btn) btn.disabled = false;
+  if(res.error){
+    if(btn) btn.textContent = 'Send reset link';
+    _authErr(res.error.message || 'Could not send reset email.');
+    return;
+  }
+  _resetCooldownUntil = Date.now() + 60000;
+  _authErr('');
+  if(btn){
+    var countdown = 60;
+    btn.textContent = 'Email sent! Resend in 60s\u2026';
+    btn.disabled = true;
+    var timer = setInterval(function(){
+      countdown--;
+      if(countdown <= 0){
+        clearInterval(timer);
+        btn.textContent = 'Resend reset link';
+        btn.disabled = false;
+        return;
+      }
+      btn.textContent = 'Resend in ' + countdown + 's\u2026';
+    }, 1000);
+  }
+}
+
+/* ── Taste Fingerprint / Insights ── */
+async function loadFingerprint(){
+  if(!currentUser) return;
+  var res = await SUPA
+    .from('user_fingerprints')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .single();
+  if(res.error || !res.data){ renderInsights(null); return; }
+  _fp = res.data;
+  renderInsights(_fp);
+  loadTimelineData();
+}
+
+async function refreshFingerprint(){
+  if(!currentUser) return;
+  await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
+  await loadFingerprint();
+}
+
+function renderInsights(fp){
+  var scCards = document.querySelectorAll('#s-insights .stat-cards .sc .sc-v');
+  var sub     = document.querySelector('#s-insights .ph-sub');
+  var building= document.getElementById('fp-building');
+  var fpList  = document.getElementById('fp-list');
+
+  if(!fp || !(fp.primary_themes && fp.primary_themes.length)){
+    if(building) building.classList.add('show');
+    if(fpList)   fpList.style.display = 'none';
+    return;
+  }
+  if(building) building.classList.remove('show');
+  if(fpList)   fpList.style.display = '';
+
+  var total   = fp.total_entries || 0;
+  var avgRat  = fp.overall_avg_rating ? parseFloat(fp.overall_avg_rating).toFixed(1) : '\u2014';
+  var themes  = fp.primary_themes || [];
+  var topTag  = themes[0] ? themes[0].tag : '\u2014';
+
+  if(scCards[0]) scCards[0].textContent = total;
+  if(scCards[1]) scCards[1].textContent = avgRat;
+  if(scCards[2]) scCards[2].textContent = themes.length;
+  if(scCards[3]){ scCards[3].textContent = topTag; scCards[3].style.fontSize='14px'; }
+  if(sub) sub.textContent = 'Your taste fingerprint \u00b7 Based on ' + total + ' entries';
+
+  if(fpList){
+    var maxW = themes[0] ? (themes[0].weight || 1) : 1;
+    fpList.innerHTML = themes.slice(0,8).map(function(t){
+      var pct   = Math.round(((t.weight||0) / maxW) * 100);
+      var tag   = escHtml(t.tag);
+      var label = tag.charAt(0).toUpperCase() + tag.slice(1);
+      return '<div class=\"fp-item\" onclick=\"filterByTag(\'' + tag + '\')\" title=\"Filter by ' + tag + '\">'
+        + '<div class=\"fp-row\"><span class=\"fp-label\">' + label + '</span>'
+        + '<span class=\"fp-score\">' + parseFloat(t.avg_rating||0).toFixed(1) + ' avg \u00b7 ' + (t.frequency||0) + ' entries</span></div>'
+        + '<div class=\"fp-bg\"><div class=\"fp-fill\" style=\"--w:' + pct + '%;width:' + pct + '%\"></div></div>'
+        + '<div class=\"fp-item-hint\">\u2192 Filter Collection</div></div>';
+    }).join('');
+  }
+  _applyFpToCharts(fp);
+}
+
+function _applyFpToCharts(fp){
+  if(!fp) return;
+  var formats = fp.format_breakdown || {};
+  var themes  = fp.primary_themes  || [];
+  if(_charts.fmt){
+    var d = function(k){ return (formats[k] && formats[k].count) || 0; };
+    _charts.fmt.data.datasets[0].data = [d('show'),d('book'),d('sports_match'),d('music')];
+    _charts.fmt.update();
+  }
+  if(_charts.gen && themes.length){
+    var top6 = themes.slice(0,6).slice().reverse();
+    _charts.gen.data.labels = top6.map(function(t){ return t.tag.charAt(0).toUpperCase()+t.tag.slice(1); });
+    _charts.gen.data.datasets[0].data = top6.map(function(t){ return parseFloat(t.avg_rating||0); });
+    _charts.gen.update();
+  }
+  if(_charts.radar && themes.length >= 3){
+    var dims = ['character-driven','world-building','atmospheric','moral complexity','thriller','political drama'];
+    var tmap = {}; themes.forEach(function(t){ tmap[t.tag.toLowerCase()] = t.weight||0; });
+    var maxW = themes[0] ? (themes[0].weight||1) : 1;
+    _charts.radar.data.datasets[0].data = dims.map(function(d){ return Math.round(((tmap[d]||0)/maxW)*100); });
+    _charts.radar.update();
+  }
+}
+
+async function loadTimelineData(){
+  if(!currentUser || !_charts.timeline) return;
+  var res = await SUPA
+    .from('entries_with_tags')
+    .select('rating,created_at,date_completed')
+    .eq('user_id', currentUser.id)
+    .order('created_at',{ascending:true});
+  if(res.error) return;
+  var qmap = {};
+  (res.data||[]).forEach(function(e){
+    var d = new Date(e.date_completed || e.created_at);
+    var q = d.getUTCFullYear() + ' Q' + (Math.floor(d.getUTCMonth()/3)+1);
+    if(!qmap[q]) qmap[q] = [];
+    qmap[q].push(parseFloat(e.rating));
+  });
+  var labels = Object.keys(qmap).sort();
+  var data   = labels.map(function(q){
+    var arr = qmap[q];
+    return arr.length ? parseFloat((arr.reduce(function(s,v){return s+v;},0)/arr.length).toFixed(2)) : null;
+  });
+  _charts.timeline.data.labels = labels;
+  _charts.timeline.data.datasets[0].data = data;
+  _charts.timeline.update();
+}
+
+/* ── Chart initialisation ── */
+var chartsReady = false;
+function initCharts(){
+  if(typeof Chart === 'undefined') return;
+  if(chartsReady) return;
+  chartsReady = true;
+
+  var radarCtx = document.getElementById('radarChart');
+  if(radarCtx && !_charts.radar){
+    _charts.radar = new Chart(radarCtx, {
+      type:'radar',
+      data:{ labels:['Character','Plot','Atmosphere','Depth','Craft','Replay'],
+             datasets:[{label:'Your Taste',data:[0,0,0,0,0,0],
+               backgroundColor:'rgba(74,173,186,0.15)',borderColor:'#4AADBA',
+               pointBackgroundColor:'#4AADBA',pointRadius:3,borderWidth:2}] },
+      options:{ responsive:true,maintainAspectRatio:true,
+        scales:{ r:{ ticks:{display:false}, grid:{color:'rgba(0,0,0,0.08)'},
+          pointLabels:{font:{size:11,family:'Inter'},color:'#7A96A4'},
+          suggestedMin:0,suggestedMax:100 }},
+        plugins:{legend:{display:false}} }
+    });
+  }
+  var fmtCtx = document.getElementById('fmtChart');
+  if(fmtCtx && !_charts.fmt){
+    _charts.fmt = new Chart(fmtCtx, {
+      type:'doughnut',
+      data:{ labels:['Shows','Books','Matches','Music'],
+             datasets:[{data:[0,0,0,0],
+               backgroundColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],
+               borderWidth:0,hoverOffset:6}] },
+      options:{ responsive:true,maintainAspectRatio:true,cutout:'65%',
+        plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},padding:12,boxWidth:10}}} }
+    });
+  }
+  var genCtx = document.getElementById('genChart');
+  if(genCtx && !_charts.gen){
+    _charts.gen = new Chart(genCtx, {
+      type:'bar',
+      data:{ labels:[],datasets:[{label:'Avg Rating',data:[],
+               backgroundColor:'rgba(74,173,186,0.7)',borderRadius:4,borderSkipped:false}] },
+      options:{ responsive:true,maintainAspectRatio:true,indexAxis:'y',
+        scales:{ x:{min:0,max:10,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}}},
+                 y:{grid:{display:false},ticks:{font:{size:11,family:'Inter'}}} },
+        plugins:{legend:{display:false}} }
+    });
+  }
+  var timeCtx = document.getElementById('timelineChart');
+  if(timeCtx && !_charts.timeline){
+    _charts.timeline = new Chart(timeCtx, {
+      type:'line',
+      data:{ labels:[],datasets:[{label:'Avg Rating',data:[],
+               borderColor:'#4AADBA',backgroundColor:'rgba(74,173,186,0.08)',
+               fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#4AADBA'}] },
+      options:{ responsive:true,maintainAspectRatio:true,
+        scales:{ y:{min:0,max:10,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},
+                 x:{grid:{display:false},ticks:{font:{size:11}}} },
+        plugins:{legend:{display:false}} }
+    });
+  }
+  if(_fp) _applyFpToCharts(_fp);
+  loadTimelineData();
+}
+
+/* ── Watchlist helpers ── */
+function _animateRemove(el, cb){
+  el.style.transition = 'opacity .3s, transform .3s';
+  el.style.opacity    = '0';
+  el.style.transform  = 'translateX(-14px)';
+  setTimeout(cb, 320);
+}
+
+function wlMoveUp(btn){
+  var item = btn.closest('.wl-item');
+  var prev = item && item.previousElementSibling;
+  if(prev && prev.classList.contains('wl-item')) item.parentNode.insertBefore(item, prev);
+}
+
+function wlMoveDown(btn){
+  var item = btn.closest('.wl-item');
+  var next = item && item.nextElementSibling;
+  if(next && next.classList.contains('wl-item')) item.parentNode.insertBefore(next, item);
+}
+
+function wlMoveToCollection(id){
+  var it = _wlItems.find(function(x){ return x.id == id; });
+  if(!it) return;
+  _wlMoveId = id;
+  openModal('add');
+  setTimeout(function(){
+    var titleInp = document.getElementById('add-title');
+    if(titleInp) titleInp.value = it.title;
+    var fmtMap = {show:'Show',book:'Book',sports_match:'Match',music:'Music'};
+    var fmtLabel = fmtMap[it.format] || 'Show';
+    document.querySelectorAll('#m-add .pill').forEach(function(p){
+      if(p.textContent.trim() === fmtLabel) p.click();
+    });
+    (it.tags||[]).forEach(function(tag){
+      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
+        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
+      });
+    });
+  }, 80);
+}
+
+/* ── O2: Toggle fingerprint building/sparse state ── */
+function toggleFpState(){
+  var el  = document.getElementById('fp-building');
+  var btn = document.getElementById('fp-demo-btn');
+  if(!el) return;
+  var showing = el.classList.contains('show');
+  el.classList.toggle('show', !showing);
+  if(btn) btn.textContent = showing ? 'Demo: sparse state' : 'Demo: full state';
+}
+
+</script>
+</body>
+</html>
