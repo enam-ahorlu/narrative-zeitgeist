@@ -694,6 +694,17 @@ textarea.fi{resize:vertical;min-height:64px}
 
   /* Pills: allow wrapping */
   .pills{flex-wrap:wrap}
+
+  /* Settings: collapse left nav, stack sections */
+  .settings-layout{grid-template-columns:1fr;overflow:auto}
+  .settings-nav{display:none}
+  .settings-content{padding:16px 16px 80px;overflow:visible}
+
+  /* Mobile nav: 6 items — shrink text + icons slightly */
+  .mob-nav-item svg{width:18px;height:18px}
+  .mob-nav-item span{font-size:8.5px}
+  .mob-nav-add{width:38px;height:38px}
+  .mob-nav-add svg{width:18px;height:18px}
 }
 </style>
 </head>
@@ -802,6 +813,10 @@ textarea.fi{resize:vertical;min-height:64px}
     <button class="mob-nav-item" id="mni-insights" onclick="navigate('insights')" aria-label="Insights">
       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
       <span>Insights</span>
+    </button>
+    <button class="mob-nav-item" id="mni-settings" onclick="navigate('settings')" aria-label="Settings">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span>Settings</span>
     </button>
   </nav>
 
@@ -1247,6 +1262,7 @@ textarea.fi{resize:vertical;min-height:64px}
               <div class="sr"><div class="sr-left"><div class="sr-label">Display Name</div><div class="sr-sub">Shown in the sidebar and export headers</div></div><div class="sr-right"><input class="fi" style="width:190px;padding:6px 10px;font-size:12.5px" value="Enam Ahorlu"></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Email Address</div><div class="sr-sub">Used for sign-in and exports</div></div><div class="sr-right"><input class="fi" style="width:210px;padding:6px 10px;font-size:12.5px" value="enamahorlu@gmail.com"></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Password</div><div class="sr-sub" id="pass-sub">Last changed — never</div></div><div class="sr-right"><button class="btn btn-glass btn-sm" onclick="sendPasswordReset()">Change Password</button></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Sign Out</div><div class="sr-sub">Sign out of your account on this device</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label" style="color:var(--a-burg)">Delete Account</div><div class="sr-sub">Permanently removes all your data. This cannot be undone.</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm btn-danger">Delete Account</button></div></div>
             </div>
           </div>
@@ -1704,7 +1720,7 @@ function navigate(scr){
     n.classList.toggle('active', n.dataset.screen===scr);
   });
   // Update mobile bottom nav
-  var mobMap={collection:'mni-collection',watchlist:'mni-watchlist',discover:'mni-discover',insights:'mni-insights'};
+  var mobMap={collection:'mni-collection',watchlist:'mni-watchlist',discover:'mni-discover',insights:'mni-insights',settings:'mni-settings'};
   document.querySelectorAll('.mob-nav-item').forEach(function(b){b.classList.remove('active')});
   if(mobMap[scr]){var mb=document.getElementById(mobMap[scr]);if(mb)mb.classList.add('active');}
   // Switch screen
@@ -2818,52 +2834,4 @@ async function passWlItem(btn){
     _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
   }
   _animateRemove(item, function(){ renderWatchlist(); });
-  showToast('Passed on ' + title, '✗  ');
-}
-
-function _animateRemove(el, cb){
-  el.style.transition = 'opacity .3s, transform .3s';
-  el.style.opacity    = '0';
-  el.style.transform  = 'translateX(-14px)';
-  setTimeout(cb, 320);
-}
-
-function wlMoveToCollection(id){
-  var it = _wlItems.find(function(x){ return x.id === id; });
-  if(!it) return;
-  _wlMoveId = id; /* remember so saveEntry() can clean up */
-  /* Pre-fill the Add Entry modal */
-  openModal('add');
-  setTimeout(function(){
-    var titleInp = document.getElementById('add-title');
-    if(titleInp) titleInp.value = it.title;
-    /* Set format pill */
-    var fmtMap = { show:'Show', book:'Book', sports_match:'Match', music:'Music' };
-    var fmtLabel = fmtMap[it.format] || 'Show';
-    document.querySelectorAll('#m-add .pill').forEach(function(p){
-      if(p.textContent.trim() === fmtLabel){
-        p.click(); /* activates pill and triggers updateSportField */
-      }
-    });
-    /* Pre-select tags */
-    (it.tags || []).forEach(function(tag){
-      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
-        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
-      });
-    });
-  }, 80);
-}
-
-/* ── O2: Toggle fingerprint building/sparse state ── */
-function toggleFpState(){
-  var el = document.getElementById('fp-building');
-  var btn = document.getElementById('fp-demo-btn');
-  if(!el) return;
-  var showing = el.classList.contains('show');
-  el.classList.toggle('show', !showing);
-  if(btn) btn.textContent = showing ? 'Demo: sparse state' : 'Demo: full state';
-}
-
-</script>
-</body>
-</html>
+  showToast('Passed on ' + title
