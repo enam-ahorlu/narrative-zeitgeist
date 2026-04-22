@@ -598,13 +598,14 @@ textarea.fi{resize:vertical;min-height:64px}
 .del-confirm span{font-size:12px;color:var(--t-2);white-space:nowrap}
 
 /* ── Mobile bottom nav ── */
-.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--sb-bg);border-top:1px solid rgba(74,173,186,.25);z-index:250;align-items:stretch;justify-content:space-around;padding:0 4px;padding-bottom:env(safe-area-inset-bottom)}
+.mob-nav{display:none;position:fixed;bottom:0;left:0;right:0;height:62px;background:var(--sb-bg);border-top:1px solid rgba(74,173,186,.25);z-index:250;align-items:center;justify-content:space-around;padding:0 4px;padding-bottom:env(safe-area-inset-bottom);overflow:visible}
 .mob-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:1;cursor:pointer;color:var(--sb-text);transition:color .15s;padding:6px 2px;-webkit-tap-highlight-color:transparent;user-select:none;border:none;background:none;font-family:'Inter',sans-serif}
 .mob-nav-item svg{width:20px;height:20px;opacity:.55;transition:opacity .15s;flex-shrink:0}
 .mob-nav-item span{font-size:9.5px;font-weight:500;letter-spacing:.02em;line-height:1}
 .mob-nav-item.active{color:var(--sb-text-active)}
 .mob-nav-item.active svg{opacity:1}
-.mob-nav-add{background:linear-gradient(135deg,var(--p-rich),var(--p-light));border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 14px rgba(74,173,186,.45);margin-bottom:2px}
+#mni-add{transform:translateY(-20px);padding:0}
+.mob-nav-add{background:linear-gradient(135deg,var(--p-rich),var(--p-light));border-radius:50%;width:54px;height:54px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(74,173,186,.55),0 0 0 6px var(--sb-bg)}
 .mob-nav-add svg{opacity:1!important;color:#fff}
 
 /* ── Mobile responsive ── */
@@ -703,8 +704,9 @@ textarea.fi{resize:vertical;min-height:64px}
   /* Mobile nav: 6 items — shrink text + icons slightly */
   .mob-nav-item svg{width:18px;height:18px}
   .mob-nav-item span{font-size:8.5px}
-  .mob-nav-add{width:38px;height:38px}
-  .mob-nav-add svg{width:18px;height:18px}
+  .mob-nav-add{width:50px;height:50px}
+  .mob-nav-add svg{width:20px;height:20px}
+  #mni-add{transform:translateY(-18px)}
 }
 </style>
 </head>
