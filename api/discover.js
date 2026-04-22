@@ -18,11 +18,17 @@ module.exports = async function handler(req, res) {
 
   const { fingerprint, entryTitles = [], tab = 'for-you' } = req.body || {};
 
-  if (!fingerprint || !Array.isArray(fingerprint.primary_themes)) {
+  if (!fingerprint) {
     return res.status(400).json({ error: 'A valid taste fingerprint is required.' });
   }
-  if ((fingerprint.total_entries || 0) < 3) {
-    return res.status(400).json({ error: 'Add at least 3 entries with tags to unlock Discovery.' });
+  // primary_themes may be null/empty for users with untagged entries — default to []
+  if (!Array.isArray(fingerprint.primary_themes)) {
+    fingerprint = { ...fingerprint, primary_themes: [] };
+  }
+  // Use raw entry count (entryTitles) as fallback when tagged count is low
+  const effectiveCount = Math.max((fingerprint.total_entries || 0), entryTitles.length);
+  if (effectiveCount < 3) {
+    return res.status(400).json({ error: 'Add at least 3 entries to unlock Discovery.' });
   }
 
   const prompt = buildPrompt(fingerprint, entryTitles, tab);

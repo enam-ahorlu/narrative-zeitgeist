@@ -1084,7 +1084,7 @@ textarea.fi{resize:vertical;min-height:64px}
         <div id="disc-nofp" style="display:none;text-align:center;padding:64px 20px">
           <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="var(--t-3)" stroke-width="1.2" style="margin-bottom:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
           <div style="font-size:14px;font-weight:600;color:var(--t-1);margin-bottom:6px">Add more entries to unlock Discovery</div>
-          <div style="font-size:12.5px;color:var(--t-3);margin-bottom:16px">Claude needs at least 3 tagged entries to understand your taste.</div>
+          <div style="font-size:12.5px;color:var(--t-3);margin-bottom:16px">Add at least 3 entries to unlock Discovery.</div>
           <button class="btn btn-p btn-sm" onclick="openModal('add')">+ Add Entry</button>
         </div>
         <!-- Error -->
@@ -2774,18 +2774,13 @@ async function loadDiscovery(force){
   if(!force && _discRecs && Date.now() - _discFetchedAt < CACHE_MS){
     _renderDiscovery(_discRecs); return;
   }
-  /* If fingerprint not yet loaded but we have entries, compute it now */
-  if(!_fp && _allEntries.length >= 3){
-    _discState('loading');
-    await refreshFingerprint();
+  /* Gate on raw entry count — doesn't require tags */
+  if(_allEntries.length < 3){
+    _discState('nofp'); return;
   }
-  if(!_fp || (_fp.total_entries || 0) < 3){
-    /* Check raw entry count as fallback in case fingerprint row is stale */
-    if(_allEntries.length >= 3){
-      _discState('loading');
-      await refreshFingerprint();
-    }
-    if(!_fp){ _discState('nofp'); return; }
+  /* Best-effort: try to load fingerprint if not yet available */
+  if(!_fp){
+    try { await refreshFingerprint(); } catch(e){ console.warn('Fingerprint load failed:', e); }
   }
   _discState('loading');
   var entryTitles = _allEntries.map(function(e){ return e.title; });
@@ -3200,7 +3195,10 @@ async function loadFingerprint(){
 
 async function refreshFingerprint(){
   if(!currentUser) return;
-  await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
+  try {
+    var rpcRes = await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
+    if(rpcRes.error) console.warn('compute_fingerprint RPC error:', rpcRes.error);
+  } catch(e){ console.warn('compute_fingerprint exception:', e); }
   await loadFingerprint();
 }
 
