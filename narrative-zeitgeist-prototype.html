@@ -1062,6 +1062,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <!-- D2: Format filter pills -->
       <div class="disc-format-pills">
         <div class="pill active" onclick="setPill(this);_discPill='all';if(_discRecs)_renderDiscovery(_discRecs)">All</div>
+        <div class="pill" onclick="setPill(this);_discPill='films';if(_discRecs)_renderDiscovery(_discRecs)">Films</div>
         <div class="pill" onclick="setPill(this);_discPill='shows';if(_discRecs)_renderDiscovery(_discRecs)">Shows</div>
         <div class="pill" onclick="setPill(this);_discPill='books';if(_discRecs)_renderDiscovery(_discRecs)">Books</div>
         <div class="pill" onclick="setPill(this);_discPill='matches';if(_discRecs)_renderDiscovery(_discRecs)">Matches</div>
@@ -2784,11 +2785,22 @@ async function loadDiscovery(force){
   }
   _discState('loading');
   var entryTitles = _allEntries.map(function(e){ return e.title; });
+  /* Build a minimal synthetic fingerprint if the real one isn't available yet */
+  var fpToSend = _fp;
+  if(!fpToSend){
+    var sumRating = _allEntries.reduce(function(s,e){ return s + (parseFloat(e.rating)||0); }, 0);
+    fpToSend = {
+      total_entries: _allEntries.length,
+      primary_themes: [],
+      format_breakdown: {},
+      overall_avg_rating: _allEntries.length ? (sumRating / _allEntries.length).toFixed(1) : '0'
+    };
+  }
   try {
     var resp = await fetch('/api/discover', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ fingerprint: _fp, entryTitles: entryTitles, tab: _discTabName })
+      body: JSON.stringify({ fingerprint: fpToSend, entryTitles: entryTitles, tab: _discTabName })
     });
     var data = await resp.json();
     if(!resp.ok) throw new Error(data.error || 'Server error '+resp.status);
@@ -2802,7 +2814,7 @@ async function loadDiscovery(force){
 
 function _filterDisc(recs){
   if(_discPill === 'all') return recs;
-  var map = {shows:'show', books:'book', matches:'sports_match', music:'music'};
+  var map = {films:'film', shows:'show', books:'book', matches:'sports_match', music:'music'};
   var fmt = map[_discPill] || _discPill;
   return recs.filter(function(r){ return r.format === fmt; });
 }

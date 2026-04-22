@@ -84,8 +84,10 @@ module.exports = async function handler(req, res) {
 
 /* ── Prompt builder ── */
 function buildPrompt(fp, entryTitles, tab) {
-  const themes = (fp.primary_themes || []).slice(0, 10);
+  const themes  = (fp.primary_themes || []).slice(0, 10);
   const formats = fp.format_breakdown || {};
+  const totalEntries = fp.total_entries || entryTitles.length || 0;
+  const avgRating    = fp.overall_avg_rating != null ? parseFloat(fp.overall_avg_rating).toFixed(1) : 'varied';
 
   const themeLines = themes.map(t =>
     `  • "${t.tag}": avg rating ${t.avg_rating}, in ${t.frequency} entries, weight ${(t.weight * 100).toFixed(0)}/100`
@@ -119,7 +121,7 @@ function buildPrompt(fp, entryTitles, tab) {
 
   return `You are a taste-aware recommendation engine for Narrative & Zeitgeist, a personal entertainment curator app.
 
-The user has logged ${fp.total_entries} entries (avg rating: ${fp.overall_avg_rating}). Generate 12 highly personalised recommendations using their taste fingerprint below.
+The user has logged ${totalEntries} entries (avg rating: ${avgRating}). Generate 12 highly personalised recommendations using their taste fingerprint below.
 
 TOP THEMES (weighted by frequency × avg rating):
 ${themeLines}
@@ -156,6 +158,6 @@ Return ONLY a JSON array, no other text:
 ]
 \`\`\`
 
-format must be one of: show, book, sports_match, music
+format must be one of: film, show, book, sports_match, music
 reasons must be an array of exactly 3 strings, each citing a specific data point from their fingerprint.`;
 }
