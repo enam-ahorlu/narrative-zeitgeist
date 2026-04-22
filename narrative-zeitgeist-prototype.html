@@ -2461,19 +2461,37 @@ async function forgotPassword(){
 }
 
 /* ── Password reset (from Settings) ────────────────────────── */
+var _resetCooldownUntil = 0;
 async function sendPasswordReset(){
   if(!currentUser){ showToast('Not signed in','⚠  '); return; }
+  var now = Date.now();
+  if(now < _resetCooldownUntil){
+    var secsLeft = Math.ceil((_resetCooldownUntil - now) / 1000);
+    showToast('Please wait ' + secsLeft + 's before requesting another reset','⏳  ');
+    return;
+  }
   var btn = document.querySelector('[onclick="sendPasswordReset()"]');
   if(btn){ btn.disabled = true; btn.textContent = 'Sending…'; }
   var redirectTo = window.location.href.split('?')[0].split('#')[0];
   var _a = await SUPA.auth.resetPasswordForEmail(currentUser.email, { redirectTo: redirectTo });
-  if(btn){ btn.disabled = false; btn.textContent = 'Change Password'; }
   if(_a.error){
+    if(btn){ btn.disabled = false; btn.textContent = 'Change Password'; }
     showToast('Error: ' + _a.error.message, '⚠  ');
   } else {
+    _resetCooldownUntil = Date.now() + 60000; /* 60-second cooldown */
     var sub = document.getElementById('pass-sub');
     if(sub) sub.textContent = 'Reset email sent to ' + currentUser.email;
     showToast('Password reset email sent ✓','✉  ');
+    /* Keep button disabled and count down visually */
+    var countdown = 60;
+    var timer = setInterval(function(){
+      countdown--;
+      if(btn) btn.textContent = 'Resend in ' + countdown + 's';
+      if(countdown <= 0){
+        clearInterval(timer);
+        if(btn){ btn.disabled = false; btn.textContent = 'Change Password'; }
+      }
+    }, 1000);
   }
 }
 
