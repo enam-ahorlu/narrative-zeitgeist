@@ -724,6 +724,8 @@ textarea.fi{resize:vertical;min-height:64px}
 .cs-title-txt{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t-1)}
 .cs-meta-txt{font-size:11px;color:var(--t-3);margin-top:2px}
 .cs-searching{padding:14px;text-align:center;font-size:12px;color:var(--t-3)}
+.cs-divider{height:1px;background:var(--n-border);margin:4px 0}
+.cs-manual-row{opacity:.75}
 /* ── Poster preview in add modal ── */
 .cover-poster-wrap{display:none;gap:12px;align-items:flex-start;margin-bottom:10px}
 .cover-poster-wrap.visible{display:flex}
@@ -1349,7 +1351,7 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="modal-body">
       <div class="fgrid">
         <div class="fl ff"><label>TITLE</label><div class="cs-wrap"><input id="add-title" class="fi" type="text" placeholder="Type to search, or enter manually…" oninput="onTitleInput(this.value)" autocomplete="off"><div class="cs-drop" id="cs-drop"></div></div></div>
-        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="updateSportField(this)"><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
+        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="updateSportField(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
         <div class="fl" id="sport-field" style="display:none"><label>SPORT</label><select class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
         <div class="fl"><label>DATE COMPLETED</label><input id="add-date" class="fi" type="date"></div>
         <div class="fl ff"><label>RATING</label>
@@ -3241,6 +3243,8 @@ var _csResults  = [];
 var _FMT_ICONS  = {Film:'🎬', Show:'📺', Book:'📚', Music:'🎵', Match:'⚽'};
 
 function onTitleInput(val){
+  /* Clear stale poster whenever the user starts typing a new search */
+  clearPoster();
   var drop = document.getElementById('cs-drop');
   if(!val || val.length < 2){
     if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
@@ -3252,35 +3256,43 @@ function onTitleInput(val){
 }
 
 function _doContentSearch(q){
-  var fmtVal = (document.getElementById('add-format')||{}).value || 'Film';
-  var typeMap = {Film:'film', Show:'show', Book:'book', Music:'music', Match:'match'};
-  var type = typeMap[fmtVal] || '';
+  var fmtVal = (document.getElementById('add-format')||{}).value || '';
+  /* blank = search all formats; named format = search that type only */
+  var typeMap = {Film:'film', Show:'show', Book:'book', Music:'music', Match:'match', '':'all'};
+  var type = typeMap.hasOwnProperty(fmtVal) ? typeMap[fmtVal] : 'all';
   var drop = document.getElementById('cs-drop');
   if(!drop) return;
-  if(!type){ drop.classList.remove('open'); return; }
   drop.innerHTML = '<div class="cs-searching">Searching…</div>';
   drop.classList.add('open');
   fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type)
     .then(function(r){ return r.json(); })
     .then(function(list){
       _csResults = list || [];
+      var _TYPE_LABEL = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
+      var isAll = (type === 'all');
+      var manualRow = '<div class="cs-item cs-manual-row" onclick="_closeSearchDrop()">'
+        +'<div class="cs-poster-ph" style="font-size:14px">✏️</div>'
+        +'<div class="cs-info"><div class="cs-title-txt">Add "'+escHtml(q)+'" manually</div>'
+        +'<div class="cs-meta-txt">Fill in the details yourself below</div></div></div>';
       if(!_csResults.length){
-        drop.innerHTML = '<div class="cs-searching">No results found</div>';
+        drop.innerHTML = '<div class="cs-searching">No results found in any database</div>'+manualRow;
         return;
       }
-      var icon = _FMT_ICONS[fmtVal] || '🎬';
+      var icon = _FMT_ICONS[fmtVal] || '🔍';
       drop.innerHTML = _csResults.map(function(r, i){
+        var fmtIcon = _FMT_ICONS[({film:'Film',show:'Show',book:'Book',music:'Music',match:'Match'})[r._type]] || icon;
         var posterHtml = r.poster_url
           ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
-          : '<div class="cs-poster-ph">'+icon+'</div>';
-        var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,60):'');
+          : '<div class="cs-poster-ph">'+fmtIcon+'</div>';
+        var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+(_TYPE_LABEL[r._type]||'')+'</span>' : '';
+        var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,55):'');
         return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
           +posterHtml
           +'<div class="cs-info">'
-            +'<div class="cs-title-txt">'+escHtml(r.title)+'</div>'
+            +'<div class="cs-title-txt">'+typeLabel+escHtml(r.title)+'</div>'
             +'<div class="cs-meta-txt">'+escHtml(meta)+'</div>'
           +'</div></div>';
-      }).join('');
+      }).join('') + '<div class="cs-divider"></div>' + manualRow;
     })
     .catch(function(){
       drop.innerHTML = '<div class="cs-searching">Search unavailable</div>';
@@ -3290,8 +3302,17 @@ function _doContentSearch(q){
 function _pickSearchResult(idx){
   var r = _csResults[idx];
   if(!r) return;
+  /* Set title */
   var titleInp = document.getElementById('add-title');
   if(titleInp) titleInp.value = r.title;
+  /* Auto-set format from result type */
+  var _typeToFmt = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
+  if(r._type && _typeToFmt[r._type]){
+    var fmtSel = document.getElementById('add-format');
+    if(fmtSel){ fmtSel.value = _typeToFmt[r._type]; updateSportField(fmtSel); }
+  }
+  /* Clear old poster first, then apply new one */
+  clearPoster();
   _posterUrl = r.poster_url || null;
   var drop = document.getElementById('cs-drop');
   if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
@@ -3305,8 +3326,6 @@ function _pickSearchResult(idx){
       if(cpt) cpt.textContent = r.title;
       if(cpy) cpy.textContent = r.year ? r.year : '';
       cpw.classList.add('visible');
-    } else {
-      cpw.classList.remove('visible');
     }
   }
 }
@@ -3315,6 +3334,11 @@ function clearPoster(){
   _posterUrl = null;
   var cpw = document.getElementById('cover-poster-wrap');
   if(cpw) cpw.classList.remove('visible');
+}
+
+function _closeSearchDrop(){
+  var drop = document.getElementById('cs-drop');
+  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
 }
 
 /* Close search dropdown on outside click */
