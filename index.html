@@ -708,6 +708,31 @@ textarea.fi{resize:vertical;min-height:64px}
   .mob-nav-add svg{width:20px;height:20px}
   #mni-add{bottom:64px}
 }
+
+/* ── Film badge ── */
+.b-film{background:#F7E8E8;color:#A83232}
+[data-theme="dark"] .b-film{background:rgba(168,50,50,.28);color:#E88080}
+/* ── Content search dropdown ── */
+.cs-wrap{position:relative}
+.cs-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--card);border:1px solid rgba(74,173,186,.22);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.22);z-index:400;max-height:260px;overflow-y:auto;display:none}
+.cs-drop.open{display:block}
+.cs-item{display:flex;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;transition:background .12s}
+.cs-item:hover,.cs-item:active{background:rgba(74,173,186,.1)}
+.cs-poster{width:32px;height:48px;border-radius:4px;object-fit:cover;flex-shrink:0}
+.cs-poster-ph{width:32px;height:48px;border-radius:4px;background:var(--n-bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
+.cs-info{flex:1;min-width:0}
+.cs-title-txt{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--t-1)}
+.cs-meta-txt{font-size:11px;color:var(--t-3);margin-top:2px}
+.cs-searching{padding:14px;text-align:center;font-size:12px;color:var(--t-3)}
+/* ── Poster preview in add modal ── */
+.cover-poster-wrap{display:none;gap:12px;align-items:flex-start;margin-bottom:10px}
+.cover-poster-wrap.visible{display:flex}
+.cover-poster{width:54px;height:80px;border-radius:6px;object-fit:cover;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.cover-poster-clear{font-size:11px;color:var(--t-3);cursor:pointer;text-decoration:underline;margin-top:4px;display:inline-block}
+/* ── Poster thumbnail in table ── */
+.entry-thumb{width:20px;height:28px;border-radius:3px;object-fit:cover;flex-shrink:0;vertical-align:middle;margin-right:6px;display:inline-block}
+/* ── Poster image in grid card ── */
+.cg-poster{width:calc(100% + 28px);height:110px;object-fit:cover;border-radius:var(--r-sm) var(--r-sm) 0 0;margin:-14px -14px 8px;display:block}
 </style>
 </head>
 <body>
@@ -1319,8 +1344,8 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="modal-h"><div class="modal-title" id="add-modal-title">Add Entry</div><button class="modal-x" onclick="closeModal('add')">×</button></div>
     <div class="modal-body">
       <div class="fgrid">
-        <div class="fl ff"><label>TITLE</label><input id="add-title" class="fi" type="text" placeholder="e.g. Succession, Dune, Super Bowl LVIII, Kind of Blue…"></div>
-        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="updateSportField(this)"><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
+        <div class="fl ff"><label>TITLE</label><div class="cs-wrap"><input id="add-title" class="fi" type="text" placeholder="Type to search, or enter manually…" oninput="onTitleInput(this.value)" autocomplete="off"><div class="cs-drop" id="cs-drop"></div></div></div>
+        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="updateSportField(this)"><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
         <div class="fl" id="sport-field" style="display:none"><label>SPORT</label><select class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
         <div class="fl"><label>DATE COMPLETED</label><input id="add-date" class="fi" type="date"></div>
         <div class="fl ff"><label>RATING</label>
@@ -1334,6 +1359,7 @@ textarea.fi{resize:vertical;min-height:64px}
           </div>
         </div>
         <div class="fl ff"><label>COVER COLOR <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t-3)">(optional)</span></label>
+          <div class="cover-poster-wrap" id="cover-poster-wrap"><img class="cover-poster" id="cover-poster-img" src="" alt=""><div style="flex:1;min-width:0"><div id="cover-poster-title" style="font-size:13px;font-weight:500;color:var(--t-1);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div><div id="cover-poster-year" style="font-size:11px;color:var(--t-3)"></div><span class="cover-poster-clear" onclick="clearPoster()">Remove poster</span></div></div>
           <div class="cover-picker">
             <div class="cover-preview" id="cover-preview"></div>
             <div class="cover-swatches">
@@ -1487,9 +1513,9 @@ var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you'; /* current Discovery tab */
 
 /* ── Lookup tables ── */
-var FMT_LABEL = {show:'Show', book:'Book', sports_match:'Match', music:'Music'};
-var FMT_BADGE = {show:'b-show', book:'b-book', sports_match:'b-match', music:'b-music'};
-var FMT_TO_DB = {Show:'show', Book:'book', Match:'sports_match', Music:'music'};
+var FMT_LABEL = {show:'Show', film:'Film', book:'Book', sports_match:'Match', music:'Music'};
+var FMT_BADGE = {show:'b-show', film:'b-film', book:'b-book', sports_match:'b-match', music:'b-music'};
+var FMT_TO_DB = {Show:'show', Film:'film', Book:'book', Match:'sports_match', Music:'music'};
 var MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function escHtml(s){
@@ -1603,7 +1629,7 @@ function renderEntriesTable(entries){
     tr.dataset.id = e.id;
     (function(entry){ tr.onclick = function(){ openDetailModal(entry); }; })(e);
     tr.innerHTML =
-      '<td class="tc-title"><span class="entry-cover-dot" style="background:'+grad+'"></span>'+escHtml(e.title)+'</td>'+
+      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+'</td>'+
       '<td><span class="badge '+badge+'">'+fmt+'</span></td>'+
       '<td><div class="rating"><div class="rd '+rdCls+'"></div>'+rVal+'</div></td>'+
       '<td style="color:var(--t-3);font-size:12px">'+_entryDateStr(e)+'</td>'+
@@ -1629,7 +1655,7 @@ function renderEntriesGrid(entries){
     card.dataset.id = e.id;
     (function(entry){ card.onclick = function(){ openDetailModal(entry); }; })(e);
     card.innerHTML =
-      '<div class="cg-card-strip" style="background:'+grad+'"></div>'+
+      (e.poster_url?'<img class="cg-poster" src="'+escHtml(e.poster_url)+'" alt="">':"<div class='cg-card-strip' style='background:"+grad+"'></div>")+
       '<span class="badge '+badge+'">'+fmt+'</span>'+
       '<div class="cg-title">'+escHtml(e.title)+'</div>'+
       '<div class="cg-tags">'+cardTagHtml+'</div>'+
@@ -1680,7 +1706,19 @@ function openDetailModal(entry){
     '<div style="font-size:11px;color:var(--t-3)">Your rating</div>';
 
   var dc = document.getElementById('detail-cover');
-  if(dc){ dc.style.background = grad; dc.textContent = initials; }
+  if(dc){
+    if(entry.poster_url){
+      dc.style.backgroundImage='url('+entry.poster_url+')';
+      dc.style.backgroundSize='cover';
+      dc.style.backgroundPosition='center';
+      dc.style.background='';
+      dc.textContent='';
+    } else {
+      dc.style.backgroundImage='';
+      dc.style.background=grad;
+      dc.textContent=initials;
+    }
+  }
 
   var ts = document.getElementById('detail-tags-section');
   if(ts) ts.innerHTML =
@@ -2028,6 +2066,7 @@ async function saveEntry(){
     var upd = await SUPA.from('entries').update({
       title: title, format: format, rating: rating,
       notes: notes, cover_color: cover, date_completed: dateCompleted,
+      poster_url: _posterUrl !== undefined ? _posterUrl : (currentEntry.poster_url || null),
       updated_at: new Date().toISOString()
     }).eq('id', currentEntry.id);
     if(upd.error){ showToast('Save failed: ' + upd.error.message); if(saveBtn){ saveBtn.textContent='Update Entry'; saveBtn.disabled=false; } return; }
@@ -2038,7 +2077,8 @@ async function saveEntry(){
     /* INSERT */
     var ins = await SUPA.from('entries').insert({
       user_id: currentUser.id, title: title, format: format,
-      rating: rating, notes: notes, cover_color: cover, date_completed: dateCompleted
+      rating: rating, notes: notes, cover_color: cover, date_completed: dateCompleted,
+      poster_url: _posterUrl || null
     }).select().single();
     if(ins.error){ showToast('Save failed: ' + ins.error.message); if(saveBtn){ saveBtn.textContent='Save Entry'; saveBtn.disabled=false; } return; }
     await upsertEntryTags(ins.data.id, selectedTags);
@@ -2049,6 +2089,9 @@ async function saveEntry(){
   document.getElementById('add-modal-title').textContent = 'Add Entry';
   if(saveBtn){ saveBtn.textContent = 'Save Entry'; saveBtn.disabled = false; }
   document.getElementById('m-add').classList.remove('open');
+  _posterUrl = null;
+  var cpw = document.getElementById('cover-poster-wrap');
+  if(cpw) cpw.classList.remove('visible');
   var tpInp = document.getElementById('tp-search-inp');
   if(tpInp){ tpInp.value = ''; tagSearch(''); }
   /* Deselect all tags in picker */
@@ -3136,6 +3179,100 @@ function toggleFpState(){
   el.classList.toggle('show', !showing);
   if(btn) btn.textContent = showing ? 'Demo: sparse state' : 'Demo: full state';
 }
+
+/* ══════════════════════════════════════════════
+   Content search (TMDB / Open Library / MusicBrainz)
+   ══════════════════════════════════════════════ */
+var _posterUrl  = null;
+var _csTimer    = null;
+var _csResults  = [];
+var _FMT_ICONS  = {Film:'🎬', Show:'📺', Book:'📚', Music:'🎵', Match:'⚽'};
+
+function onTitleInput(val){
+  var drop = document.getElementById('cs-drop');
+  if(!val || val.length < 2){
+    if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
+    clearTimeout(_csTimer);
+    return;
+  }
+  clearTimeout(_csTimer);
+  _csTimer = setTimeout(function(){ _doContentSearch(val); }, 380);
+}
+
+function _doContentSearch(q){
+  var fmtVal = (document.getElementById('add-format')||{}).value || 'Film';
+  var typeMap = {Film:'film', Show:'show', Book:'book', Music:'music', Match:''};
+  var type = typeMap[fmtVal] || '';
+  var drop = document.getElementById('cs-drop');
+  if(!drop) return;
+  if(!type){ drop.classList.remove('open'); return; }
+  drop.innerHTML = '<div class="cs-searching">Searching…</div>';
+  drop.classList.add('open');
+  fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type)
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      _csResults = list || [];
+      if(!_csResults.length){
+        drop.innerHTML = '<div class="cs-searching">No results found</div>';
+        return;
+      }
+      var icon = _FMT_ICONS[fmtVal] || '🎬';
+      drop.innerHTML = _csResults.map(function(r, i){
+        var posterHtml = r.poster_url
+          ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
+          : '<div class="cs-poster-ph">'+icon+'</div>';
+        var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,60):'');
+        return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
+          +posterHtml
+          +'<div class="cs-info">'
+            +'<div class="cs-title-txt">'+escHtml(r.title)+'</div>'
+            +'<div class="cs-meta-txt">'+escHtml(meta)+'</div>'
+          +'</div></div>';
+      }).join('');
+    })
+    .catch(function(){
+      drop.innerHTML = '<div class="cs-searching">Search unavailable</div>';
+    });
+}
+
+function _pickSearchResult(idx){
+  var r = _csResults[idx];
+  if(!r) return;
+  var titleInp = document.getElementById('add-title');
+  if(titleInp) titleInp.value = r.title;
+  _posterUrl = r.poster_url || null;
+  var drop = document.getElementById('cs-drop');
+  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
+  var cpw = document.getElementById('cover-poster-wrap');
+  var cpi = document.getElementById('cover-poster-img');
+  var cpt = document.getElementById('cover-poster-title');
+  var cpy = document.getElementById('cover-poster-year');
+  if(cpw && cpi){
+    if(_posterUrl){
+      cpi.src = _posterUrl;
+      if(cpt) cpt.textContent = r.title;
+      if(cpy) cpy.textContent = r.year ? r.year : '';
+      cpw.classList.add('visible');
+    } else {
+      cpw.classList.remove('visible');
+    }
+  }
+}
+
+function clearPoster(){
+  _posterUrl = null;
+  var cpw = document.getElementById('cover-poster-wrap');
+  if(cpw) cpw.classList.remove('visible');
+}
+
+/* Close search dropdown on outside click */
+document.addEventListener('click', function(e){
+  var drop = document.getElementById('cs-drop');
+  var inp  = document.getElementById('add-title');
+  if(drop && !drop.contains(e.target) && e.target !== inp){
+    drop.classList.remove('open');
+  }
+});
 
 </script>
 </body>
