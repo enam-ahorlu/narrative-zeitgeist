@@ -1354,6 +1354,8 @@ var SUPA = supabase.createClient(
 /* ── App-level state ── */
 var currentUser  = null;
 var currentEntry = null; /* entry currently open in the detail modal */
+var _fp          = null; /* cached taste fingerprint JSON */
+var _charts      = {};   /* Chart.js instances keyed by name */
 
 /* ── Lookup tables ── */
 var FMT_LABEL = {show:'Show', book:'Book', sports_match:'Match', music:'Music'};
@@ -1435,6 +1437,7 @@ async function loadEntries(){
   renderEntriesTable(entries);
   renderEntriesGrid(entries);
   updateCollectionStats(entries);
+  loadFingerprint(); /* refresh insights in background */
 }
 
 function _entryDateStr(e){
@@ -1810,6 +1813,7 @@ async function confirmDelete(){
   showToast('Entry deleted');
   currentEntry = null;
   loadEntries();
+  refreshFingerprint();
 }
 
 /* ── Save entry with toast ── */
@@ -1907,7 +1911,8 @@ async function saveEntry(){
   document.querySelectorAll('.tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
 
   showToast(wasEdit ? 'Entry updated' : 'Entry saved to your collection');
-  loadEntries(); /* Refresh table + grid + stats */
+  loadEntries();       /* Refresh table + grid + stats */
+  refreshFingerprint(); /* Recompute taste profile in background */
 }
 
 /* ── Open Add modal pre-filled for editing (E1) ── */
@@ -2437,10 +2442,29 @@ function animateBars(){
 /* Apply cover colors to existing rows/cards immediately */
 applyCoverColors();
 
-var chartsReady=false;
-function initCharts(){
-  animateBars();
-  if(chartsReady)return;
-  chartsReady=true;
-  var rCtx=document.getElementById('radarChart');
-  if(rCtx){new Chart(rCtx,{type:'radar',data:{labels:['Drama','World-Build','Moral Depth','Pace','Action','Character'],datasets:[{label:'Your Taste',data:[96,74,88,72,45,90],backgroundColor:'rgba(74,173,186,.12)',borderColor:'#4AADBA',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:5,pointHoverRadius:7,pointHoverBackgroundColor:'#4AADBA'}]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{title:function(items){return items[0].label},label:function(ctx){return'Score: '+ctx.raw+'/100'}}}},scales:{r:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},angleLines:{color:'rgba(0,0,0,.06)'},ticks:{display:false},pointLabels:{font:{family:'Inter',size:11},color:'#3F5A68'}}}}})}
+/* ── Taste Fingerprint: fetch, compute, render ─────────────── */
+
+async function refreshFingerprint(){
+  if(!currentUser) return;
+  /* Recompute the fingerprint in Supabase then reload it */
+  await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
+  await loadFingerprint();
+}
+
+async function loadFingerprint(){
+  if(!currentUser) return;
+  var res = await SUPA
+    .from('user_fingerprints')
+    .select('fingerprint_json')
+    .eq('user_id', currentUser.id)
+    .single();
+  if(res.error || !res.data) return;
+  _fp = res.data.fingerprint_json;
+  renderInsights(_fp);
+  loadTimelineData();
+}
+
+function renderInsights(fp){
+  if(!fp) return;
+  var total   = fp.total_entries   || 0;
+  var avgRat  = fp.overal

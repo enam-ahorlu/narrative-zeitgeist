@@ -1354,6 +1354,8 @@ var SUPA = supabase.createClient(
 /* ── App-level state ── */
 var currentUser  = null;
 var currentEntry = null; /* entry currently open in the detail modal */
+var _fp          = null; /* cached taste fingerprint JSON */
+var _charts      = {};   /* Chart.js instances keyed by name */
 
 /* ── Lookup tables ── */
 var FMT_LABEL = {show:'Show', book:'Book', sports_match:'Match', music:'Music'};
@@ -1435,6 +1437,7 @@ async function loadEntries(){
   renderEntriesTable(entries);
   renderEntriesGrid(entries);
   updateCollectionStats(entries);
+  loadFingerprint(); /* refresh insights in background */
 }
 
 function _entryDateStr(e){
@@ -1810,6 +1813,7 @@ async function confirmDelete(){
   showToast('Entry deleted');
   currentEntry = null;
   loadEntries();
+  refreshFingerprint();
 }
 
 /* ── Save entry with toast ── */
@@ -1907,7 +1911,8 @@ async function saveEntry(){
   document.querySelectorAll('.tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
 
   showToast(wasEdit ? 'Entry updated' : 'Entry saved to your collection');
-  loadEntries(); /* Refresh table + grid + stats */
+  loadEntries();       /* Refresh table + grid + stats */
+  refreshFingerprint(); /* Recompute taste profile in background */
 }
 
 /* ── Open Add modal pre-filled for editing (E1) ── */
@@ -2437,21 +2442,176 @@ function animateBars(){
 /* Apply cover colors to existing rows/cards immediately */
 applyCoverColors();
 
-var chartsReady=false;
+/* ── Taste Fingerprint: fetch, compute, render ─────────────── */
+
+async function refreshFingerprint(){
+  if(!currentUser) return;
+  /* Recompute the fingerprint in Supabase then reload it */
+  await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
+  await loadFingerprint();
+}
+
+async function loadFingerprint(){
+  if(!currentUser) return;
+  var res = await SUPA
+    .from('user_fingerprints')
+    .select('fingerprint_json')
+    .eq('user_id', currentUser.id)
+    .single();
+  if(res.error || !res.data) return;
+  _fp = res.data.fingerprint_json;
+  renderInsights(_fp);
+  loadTimelineData();
+}
+
+function renderInsights(fp){
+  if(!fp) return;
+  var total   = fp.total_entries   || 0;
+  var avgRat  = fp.overall_avg_rating || 0;
+  var themes  = fp.primary_themes  || [];
+  var fmtBrk  = fp.format_breakdown || {};
+
+  /* ── Stat cards ── */
+  var scVals = document.querySelectorAll('#s-insights .sc-v');
+  if(scVals[0]) scVals[0].textContent = total;
+  if(scVals[1]) scVals[1].textContent = avgRat ? Number(avgRat).toFixed(1) : '—';
+  if(scVals[2]) scVals[2].textContent = themes.length;
+  if(scVals[3]){
+    var topTag = themes.length ? themes[0].tag : '—';
+    scVals[3].textContent = topTag.charAt(0).toUpperCase() + topTag.slice(1);
+    scVals[3].style.fontSize = themes.length ? '' : '18px';
+  }
+
+  /* ── Page subtitle ── */
+  var phSub = document.querySelector('#s-insights .ph-sub');
+  if(phSub) phSub.textContent = 'Your taste fingerprint · Based on ' + total + (total === 1 ? ' entry' : ' entries');
+
+  /* ── Building / sparse state ── */
+  var fpBuilding = document.getElementById('fp-building');
+  var fpList     = document.getElementById('fp-list');
+  if(total < 3 || themes.length === 0){
+    if(fpBuilding){
+      fpBuilding.style.display = '';
+      var fill = fpBuilding.querySelector('.fp-progress-fill');
+      var lbl  = fpBuilding.querySelector('.fp-progress-label');
+      if(fill) fill.style.width = Math.min(100, (total / 10) * 100) + '%';
+      if(lbl)  lbl.textContent  = total + ' of 10 entries logged';
+    }
+    if(fpList) fpList.style.display = 'none';
+  } else {
+    if(fpBuilding) fpBuilding.style.display = 'none';
+    if(fpList){
+      fpList.style.display = '';
+      var maxW = themes[0].weight || 1;
+      fpList.innerHTML = themes.slice(0, 8).map(function(t){
+        var pct   = maxW > 0 ? Math.round((t.weight / maxW) * 100) : 0;
+        var label = t.tag.charAt(0).toUpperCase() + t.tag.slice(1);
+        var tag   = escHtml(t.tag);
+        return '<div class="fp-item" onclick="filterByTag(\''+tag+'\')" title="Filter Collection by '+tag+'">'
+          +'<div class="fp-row"><span class="fp-label">'+escHtml(label)+'</span>'
+          +'<span class="fp-score">'+Number(t.avg_rating).toFixed(1)+' avg · '+t.frequency+(t.frequency===1?' entry':' entries')+'</span></div>'
+          +'<div class="fp-bg"><div class="fp-fill" style="--w:'+pct+'%;width:0"></div></div>'
+          +'<div class="fp-item-hint">→ Filter Collection</div></div>';
+      }).join('');
+      setTimeout(animateBars, 60);
+    }
+  }
+
+  /* ── Update charts if they exist ── */
+  _applyFpToCharts(fp);
+}
+
+function _applyFpToCharts(fp){
+  if(!fp) return;
+  var themes = fp.primary_themes  || [];
+  var fmtBrk = fp.format_breakdown || {};
+
+  /* Format doughnut */
+  var fmtData = ['show','book','sports_match','music'].map(function(k){
+    return (fmtBrk[k] && fmtBrk[k].count) || 0;
+  });
+  if(_charts.fmt){ _charts.fmt.data.datasets[0].data = fmtData; _charts.fmt.update(); }
+
+  /* Avg rating by tag bar chart */
+  var top7 = themes.slice(0, 7);
+  if(_charts.gen && top7.length){
+    _charts.gen.data.labels   = top7.map(function(t){ return t.tag.charAt(0).toUpperCase()+t.tag.slice(1); });
+    _charts.gen.data.datasets[0].data = top7.map(function(t){ return Number(t.avg_rating); });
+    var minY = Math.max(0, Math.floor(Math.min.apply(null, _charts.gen.data.datasets[0].data)) - 1);
+    _charts.gen.options.scales.y.min = minY;
+    _charts.gen.update();
+  }
+
+  /* Radar chart */
+  var top6 = themes.slice(0, 6);
+  if(_charts.radar && top6.length){
+    _charts.radar.data.labels = top6.map(function(t){ return t.tag.charAt(0).toUpperCase()+t.tag.slice(1); });
+    _charts.radar.data.datasets[0].data = top6.map(function(t){ return Math.round(t.weight * 100); });
+    _charts.radar.update();
+  }
+}
+
+async function loadTimelineData(){
+  if(!currentUser) return;
+  var res = await SUPA
+    .from('entries')
+    .select('date_completed, created_at, rating')
+    .eq('user_id', currentUser.id)
+    .order('created_at', { ascending: true });
+  if(res.error || !res.data || res.data.length < 2) return;
+
+  var quarters = {};
+  var qOrder   = [];
+  res.data.forEach(function(e){
+    var d = new Date(e.date_completed || e.created_at);
+    var q = 'Q' + (Math.floor(d.getMonth() / 3) + 1) + ' \'' + String(d.getFullYear()).slice(2);
+    if(!quarters[q]){ quarters[q] = { sum: 0, count: 0 }; qOrder.push(q); }
+    quarters[q].sum   += e.rating;
+    quarters[q].count += 1;
+  });
+
+  var labels = qOrder;
+  var data   = labels.map(function(q){ return Math.round(quarters[q].sum / quarters[q].count * 10) / 10; });
+  if(_charts.timeline && labels.length >= 2){
+    var minY = Math.max(0, Math.floor(Math.min.apply(null, data)) - 1);
+    _charts.timeline.data.labels = labels;
+    _charts.timeline.data.datasets[0].data = data;
+    _charts.timeline.options.scales.y.min  = minY;
+    _charts.timeline.update();
+  }
+}
+
+/* ── Chart initialisation (runs once per Insights visit) ─── */
 function initCharts(){
   animateBars();
-  if(chartsReady)return;
-  chartsReady=true;
-  var rCtx=document.getElementById('radarChart');
-  if(rCtx){new Chart(rCtx,{type:'radar',data:{labels:['Drama','World-Build','Moral Depth','Pace','Action','Character'],datasets:[{label:'Your Taste',data:[96,74,88,72,45,90],backgroundColor:'rgba(74,173,186,.12)',borderColor:'#4AADBA',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:5,pointHoverRadius:7,pointHoverBackgroundColor:'#4AADBA'}]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{title:function(items){return items[0].label},label:function(ctx){return'Score: '+ctx.raw+'/100'}}}},scales:{r:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},angleLines:{color:'rgba(0,0,0,.06)'},ticks:{display:false},pointLabels:{font:{family:'Inter',size:11},color:'#3F5A68'}}}}})}
-  var fCtx=document.getElementById('fmtChart');
-  if(fCtx){new Chart(fCtx,{type:'doughnut',data:{labels:['Shows','Books','Matches','Music'],datasets:[{data:[23,18,7,4],backgroundColor:['#E4F3F7','#E6F2E7','#F3EDD8','#EAE7F5'],borderColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:11},color:'#3F5A68',boxWidth:12,padding:12}}},cutout:'58%'}})}
-  var gCtx=document.getElementById('genChart');
-  if(gCtx){new Chart(gCtx,{type:'bar',data:{labels:['Political','Thriller','Crime','Mystery','Sci-Fi','Music','Action'],datasets:[{label:'Avg',data:[9.0,8.4,8.1,8.3,8.5,8.8,7.2],backgroundColor:['rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(122,107,174,.15)','rgba(46,125,158,.15)'],borderColor:['#2E7D9E','#2E7D9E','#2E7D9E','#2E7D9E','#2E7D9E','#7A6BAE','#2E7D9E'],borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{min:6,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:'DM Mono',size:10},color:'#7A96A4'}},x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#3F5A68'}}}}})}
+
+  var rCtx = document.getElementById('radarChart');
+  if(rCtx && !_charts.radar){
+    var radarLabels = ['Drama','World-Build','Moral Depth','Pace','Action','Character'];
+    var radarData   = [0,0,0,0,0,0];
+    _charts.radar = new Chart(rCtx,{type:'radar',data:{labels:radarLabels,datasets:[{label:'Your Taste',data:radarData,backgroundColor:'rgba(74,173,186,.12)',borderColor:'#4AADBA',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:5,pointHoverRadius:7,pointHoverBackgroundColor:'#4AADBA'}]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{title:function(items){return items[0].label},label:function(ctx){return'Score: '+ctx.raw+'/100'}}}},scales:{r:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},angleLines:{color:'rgba(0,0,0,.06)'},ticks:{display:false},pointLabels:{font:{family:'Inter',size:11},color:'#3F5A68'}}}}});
+  }
+
+  var fCtx = document.getElementById('fmtChart');
+  if(fCtx && !_charts.fmt){
+    _charts.fmt = new Chart(fCtx,{type:'doughnut',data:{labels:['Shows','Books','Matches','Music'],datasets:[{data:[0,0,0,0],backgroundColor:['#E4F3F7','#E6F2E7','#F3EDD8','#EAE7F5'],borderColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:11},color:'#3F5A68',boxWidth:12,padding:12}}},cutout:'58%'}});
+  }
+
+  var gCtx = document.getElementById('genChart');
+  if(gCtx && !_charts.gen){
+    _charts.gen = new Chart(gCtx,{type:'bar',data:{labels:[],datasets:[{label:'Avg',data:[],backgroundColor:'rgba(46,125,158,.15)',borderColor:'#2E7D9E',borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:'DM Mono',size:10},color:'#7A96A4'}},x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#3F5A68'}}}}});
+  }
+
+  var tCtx = document.getElementById('timelineChart');
+  if(tCtx && !_charts.timeline){
+    _charts.timeline = new Chart(tCtx,{type:'line',data:{labels:[],datasets:[{label:'Avg Rating',data:[],borderColor:'#4AADBA',backgroundColor:'rgba(74,173,186,.07)',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:4,pointHoverRadius:6,pointHoverBackgroundColor:'#4AADBA',tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{label:function(ctx){return'Avg rating: '+ctx.parsed.y.toFixed(1)}}}},scales:{y:{min:0,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:'DM Mono',size:10},color:'#7A96A4',stepSize:0.5}},x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#3F5A68'}}}}});
+  }
+
   applyCoverColors();
 
-  var tCtx=document.getElementById('timelineChart');
-  if(tCtx){new Chart(tCtx,{type:'line',data:{labels:['Q1 \'23','Q2 \'23','Q3 \'23','Q4 \'23','Q1 \'24','Q2 \'24','Q3 \'24','Q4 \'24'],datasets:[{label:'Avg Rating',data:[7.8,8.1,7.6,8.4,8.0,8.3,8.6,8.9],borderColor:'#4AADBA',backgroundColor:'rgba(74,173,186,.07)',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:4,pointHoverRadius:6,pointHoverBackgroundColor:'#4AADBA',tension:.35,fill:true}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{label:function(ctx){return'Avg rating: '+ctx.parsed.y.toFixed(1)}}}},scales:{y:{min:6,max:10,grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{family:'DM Mono',size:10},color:'#7A96A4',stepSize:0.5}},x:{grid:{display:false},ticks:{font:{family:'Inter',size:10},color:'#3F5A68'}}}}})}
+  /* Apply real data if fingerprint already loaded */
+  if(_fp) _applyFpToCharts(_fp);
+  loadTimelineData();
 }
 
 /* ── Password visibility toggle ────────────────────────────── */
