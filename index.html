@@ -614,12 +614,13 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="auth-sub" id="auth-subheading">Sign in to your collection</div>
     <!-- Name field — only shown during sign-up -->
     <div class="fl" id="auth-name-field" style="display:none"><label>YOUR NAME</label><input class="fi" id="auth-name-inp" type="text" placeholder="Enam Ahorlu" autocomplete="name"></div>
-    <div class="fl"><label>EMAIL</label><input class="fi" id="auth-email-inp" type="email" value="enamahorlu@gmail.com" placeholder="your@email.com"></div>
-    <div class="fl"><label>PASSWORD</label><div style="position:relative"><input class="fi" id="auth-pass-inp" type="password" placeholder="••••••••" style="padding-right:36px"><button type="button" onclick="togglePassVis('auth-pass-inp',this)" tabindex="-1" style="position:absolute;right:0;top:0;bottom:0;width:34px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t-3);padding:0" title="Show/hide password"><svg id="eye-auth-pass-inp" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button></div></div>
+    <div class="fl"><label>EMAIL</label><input class="fi" id="auth-email-inp" type="email" value="enamahorlu@gmail.com" placeholder="your@email.com" oninput="_authErr('')"></div>
+    <div class="fl"><label>PASSWORD</label><div style="position:relative"><input class="fi" id="auth-pass-inp" type="password" placeholder="••••••••" style="padding-right:36px" oninput="_authErr('')"><button type="button" onclick="togglePassVis('auth-pass-inp',this)" tabindex="-1" style="position:absolute;right:0;top:0;bottom:0;width:34px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t-3);padding:0" title="Show/hide password"><svg id="eye-auth-pass-inp" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button></div></div>
     <div class="auth-row" id="auth-remember-row">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked style="accent-color:#1B5E76"> Remember me</label>
       <a href="#" onclick="forgotPassword();return false;">Forgot password?</a>
     </div>
+    <div id="auth-err" style="display:none;font-size:12px;color:#B5474A;background:rgba(181,71,74,.08);border:1px solid rgba(181,71,74,.2);border-radius:8px;padding:9px 12px;margin-bottom:2px"></div>
     <button class="btn btn-p" id="auth-submit-btn" style="width:100%;justify-content:center;padding:11px 15px;font-size:14px" onclick="enterApp()">Sign in</button>
     <div class="auth-foot" id="auth-foot-text">Don't have an account? <a href="#" onclick="toggleAuthMode();return false;">Create one</a></div>
   </div>
@@ -1673,11 +1674,19 @@ function toggleAuthMode(){
   document.getElementById('auth-pass-inp').value = '';
 }
 
+function _authErr(msg){
+  var el = document.getElementById('auth-err');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
 async function enterApp(){
+  _authErr('');
   var email    = (document.getElementById('auth-email-inp')||{}).value.trim();
   var password = (document.getElementById('auth-pass-inp')||{}).value;
   var btn      = document.getElementById('auth-submit-btn');
-  if(!email || !password){ showToast('Please enter your email and password'); return; }
+  if(!email)    { _authErr('Please enter your email address.'); return; }
+  if(!password) { _authErr('Please enter your password.'); return; }
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Creating account…' : 'Signing in…'; btn.disabled = true; }
 
   if(_authMode === 'signup'){
@@ -1686,11 +1695,17 @@ async function enterApp(){
       email: email, password: password,
       options: { data: { display_name: name || email.split('@')[0] } }
     });
-    if(res.error){ showToast('Sign up failed: ' + res.error.message); }
+    if(res.error){ _authErr(res.error.message); }
     /* onAuthStateChange handles the transition to the app */
   } else {
     var res = await SUPA.auth.signInWithPassword({email: email, password: password});
-    if(res.error){ showToast('Sign in failed: ' + res.error.message); }
+    if(res.error){
+      var msg = res.error.message;
+      if(msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('credentials')){
+        msg = 'Incorrect email or password. Please try again.';
+      }
+      _authErr(msg);
+    }
   }
 
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Create account' : 'Sign in'; btn.disabled = false; }
@@ -2421,6 +2436,4 @@ function initCharts(){
   var rCtx=document.getElementById('radarChart');
   if(rCtx){new Chart(rCtx,{type:'radar',data:{labels:['Drama','World-Build','Moral Depth','Pace','Action','Character'],datasets:[{label:'Your Taste',data:[96,74,88,72,45,90],backgroundColor:'rgba(74,173,186,.12)',borderColor:'#4AADBA',borderWidth:2,pointBackgroundColor:'#1B5E76',pointRadius:5,pointHoverRadius:7,pointHoverBackgroundColor:'#4AADBA'}]},options:{responsive:true,maintainAspectRatio:true,interaction:{mode:'nearest',intersect:true},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(14,68,88,.92)',titleColor:'#7ADCD6',bodyColor:'#E2EEF8',padding:9,cornerRadius:6,callbacks:{title:function(items){return items[0].label},label:function(ctx){return'Score: '+ctx.raw+'/100'}}}},scales:{r:{min:0,max:100,grid:{color:'rgba(0,0,0,.06)'},angleLines:{color:'rgba(0,0,0,.06)'},ticks:{display:false},pointLabels:{font:{family:'Inter',size:11},color:'#3F5A68'}}}}})}
   var fCtx=document.getElementById('fmtChart');
-  if(fCtx){new Chart(fCtx,{type:'doughnut',data:{labels:['Shows','Books','Matches','Music'],datasets:[{data:[23,18,7,4],backgroundColor:['#E4F3F7','#E6F2E7','#F3EDD8','#EAE7F5'],borderColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{position:'right',labels:{font:{family:'Inter',size:11},color:'#3F5A68',boxWidth:12,padding:12}}},cutout:'58%'}})}
-  var gCtx=document.getElementById('genChart');
-  if(gCtx){new Chart(gCtx,{type:'bar',data:{labels:['Political','Thriller','Crime','Mystery','Sci-Fi','Music','Action'],datasets:[{label:'Avg',data:[9.0,8.4,8.1,8.3,8.5,8.8,7.2],backgroundColor:['rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(46,125,158,.15)','rgba(122,107,174,.15)','rgba(46,125,158,.15)'],borderColor:['#2E7D9E','#2E7D9E','#2E7D9E','#2E7D9E','#2E7D9E','#7A6BAE','#2E7D9E
+  if(fCtx){new Chart(fCtx,{type:'doughnut',data:{labels:['Shows','Books','Matches','Music'],datasets:[{data:[23,18,7,4],backgroundColor:['#E4F3F7','#E6F2E7','#F3EDD8','#EAE7F5'],borderColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],borderWidth:2}]},options:{responsive:true,maintainAspe
