@@ -758,7 +758,7 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="auth-sub" id="auth-subheading">Sign in to your collection</div>
     <!-- Name field — only shown during sign-up -->
     <div class="fl" id="auth-name-field" style="display:none"><label>YOUR NAME</label><input class="fi" id="auth-name-inp" type="text" placeholder="Enam Ahorlu" autocomplete="name"></div>
-    <div class="fl"><label>EMAIL</label><input class="fi" id="auth-email-inp" type="email" value="enamahorlu@gmail.com" placeholder="your@email.com" oninput="_authErr('')"></div>
+    <div class="fl"><label>EMAIL</label><input class="fi" id="auth-email-inp" type="email" value="" placeholder="your@email.com" oninput="_authErr('')"></div>
     <div class="fl"><label>PASSWORD</label><div style="position:relative"><input class="fi" id="auth-pass-inp" type="password" placeholder="••••••••" style="padding-right:36px" oninput="_authErr('')"><button type="button" onclick="togglePassVis('auth-pass-inp',this)" tabindex="-1" style="position:absolute;right:0;top:0;bottom:0;width:34px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t-3);padding:0" title="Show/hide password"><svg id="eye-auth-pass-inp" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button></div></div>
     <div class="auth-row" id="auth-remember-row">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked style="accent-color:#1B5E76"> Remember me</label>
@@ -777,7 +777,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="sb-monogram">Z</div>
       <div class="sb-name-label">NARRATIVE</div>
       <div class="sb-name-main">Zeitgeist</div>
-      <div class="sb-tagline" id="sb-stats">52 entries · 18 themes</div>
+      <div class="sb-tagline" id="sb-stats"></div>
     </div>
     <nav class="sb-nav">
       <div class="sb-section">Library</div>
@@ -812,7 +812,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="sb-foot-row">
         <div class="user-chip" onclick="signOut()">
           <div class="ua">EA</div>
-          <div><div class="un">Enam Ahorlu</div><div class="ue">enamahorlu@gmail.com</div></div>
+          <div><div class="un" id="sb-user-name"></div><div class="ue" id="sb-user-email"></div></div>
         </div>
         <div class="sb-icon-stack">
           <div class="sb-icon-btn" title="Global search  ⌘K" onclick="openCmdPalette()">
@@ -858,7 +858,7 @@ textarea.fi{resize:vertical;min-height:64px}
     <!-- COLLECTION -->
     <div class="screen active" id="s-collection">
       <div class="ph">
-        <div><div class="ph-title">Collection</div><div class="ph-sub">52 entries · Last updated today</div></div>
+        <div><div class="ph-title">Collection</div><div class="ph-sub" id="col-ph-sub">Your collection</div></div>
         <div class="ph-actions">
           <button class="btn btn-glass btn-sm" id="col-filter-btn" onclick="toggleFilterPanel()"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>Filter</button>
           <button class="btn btn-glass btn-sm" id="view-toggle" onclick="toggleCollectionView()" title="Toggle view"><svg id="view-icon" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/></svg></button>
@@ -876,17 +876,18 @@ textarea.fi{resize:vertical;min-height:64px}
         <button class="welcome-card-x" onclick="document.getElementById('welcome-card').style.display='none'" title="Dismiss">×</button>
       </div>
       <div class="strip">
-        <div class="strip-item"><div class="sv">52</div><div class="sl">Total</div></div>
-        <div class="strip-item"><div class="sv">8.1</div><div class="sl">Avg Rating</div></div>
-        <div class="strip-item"><div class="sv">23</div><div class="sl">Shows</div></div>
-        <div class="strip-item"><div class="sv">18</div><div class="sl">Books</div></div>
-        <div class="strip-item"><div class="sv">7</div><div class="sl">Matches</div></div>
-        <div class="strip-item"><div class="sv">4</div><div class="sl">Music</div></div>
+        <div class="strip-item"><div class="sv" id="sv-total">—</div><div class="sl">Total</div></div>
+        <div class="strip-item"><div class="sv" id="sv-avg">—</div><div class="sl">Avg Rating</div></div>
+        <div class="strip-item"><div class="sv" id="sv-shows">—</div><div class="sl">Shows</div></div>
+        <div class="strip-item"><div class="sv" id="sv-books">—</div><div class="sl">Books</div></div>
+        <div class="strip-item"><div class="sv" id="sv-matches">—</div><div class="sl">Matches</div></div>
+        <div class="strip-item"><div class="sv" id="sv-music">—</div><div class="sl">Music</div></div>
       </div>
       <div class="filters">
         <div class="fsearch"><svg class="fsearch-icon" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input type="text" id="col-search-inp" placeholder="Search titles, tags…" oninput="colSearch(this.value)"></div>
         <div class="pills">
           <div class="pill active" onclick="setColPill(this)">All</div>
+          <div class="pill" onclick="setColPill(this)">Films</div>
           <div class="pill" onclick="setColPill(this)">Shows</div>
           <div class="pill" onclick="setColPill(this)">Books</div>
           <div class="pill" onclick="setColPill(this)">Matches</div>
@@ -915,23 +916,7 @@ textarea.fi{resize:vertical;min-height:64px}
         </div>
         <div class="col-adv-row" style="align-items:flex-start">
           <span class="col-adv-label" style="padding-top:5px">Tags</span>
-          <div class="col-tag-pills" id="col-tag-pills">
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'antihero')">antihero</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'political')">political</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'moral complexity')">moral complexity</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'world-building')">world-building</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'character-driven')">character-driven</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'thriller')">thriller</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'atmospheric')">atmospheric</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'introspective')">introspective</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'lyrical depth')">lyrical depth</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'jazz')">jazz</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'sci-fi epic')">sci-fi epic</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'clutch')">clutch</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'tactical')">tactical</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'underdog')">underdog</div>
-            <div class="col-tag-pill" onclick="toggleTagFilter(this,'slow burn')">slow burn</div>
-          </div>
+          <div class="col-tag-pills" id="col-tag-pills"><span style="font-size:11.5px;color:var(--t-3)">No tags yet</span></div>
         </div>
         <div class="col-adv-actions">
           <button class="btn btn-ghost btn-sm" onclick="clearColFilters()">Clear all filters</button>
@@ -943,36 +928,14 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>TITLE ↕</th><th>FORMAT</th><th>RATING ↕</th><th>DATE ↕</th><th class="col-tags">TAGS</th><th></th></tr></thead>
-          <tbody>
-            <tr onclick="openModal('detail')" class="anim-fadeup"><td class="tc-title">Succession</td><td><span class="badge b-show">Show</span></td><td><div class="rating"><div class="rd rd-hi"></div>9.5</div></td><td style="color:var(--t-3);font-size:12px">Mar 2024</td><td><div class="tags-cell"><span class="tag">antihero</span><span class="tag">political</span><span class="tag">moral complexity</span><span class="tag-more">+2</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-1"><td class="tc-title">The Name of the Wind</td><td><span class="badge b-book">Book</span></td><td><div class="rating"><div class="rd rd-hi"></div>9.0</div></td><td style="color:var(--t-3);font-size:12px">Feb 2024</td><td><div class="tags-cell"><span class="tag">world-building</span><span class="tag">character-driven</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-2"><td class="tc-title">The Crown</td><td><span class="badge b-show">Show</span></td><td><div class="rating"><div class="rd rd-hi"></div>9.0</div></td><td style="color:var(--t-3);font-size:12px">Jan 2024</td><td><div class="tags-cell"><span class="tag">political drama</span><span class="tag">character-driven</span><span class="tag-more">+2</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-2"><td class="tc-title">Super Bowl LVIII — Chiefs vs 49ers</td><td><span class="badge b-match">NFL Match</span></td><td><div class="rating"><div class="rd rd-hi"></div>9.0</div></td><td style="color:var(--t-3);font-size:12px">Feb 2024</td><td><div class="tags-cell"><span class="tag">underdog</span><span class="tag">clutch</span><span class="tag">tactical</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-3"><td class="tc-title">Kind of Blue — Miles Davis</td><td><span class="badge b-music">Music</span></td><td><div class="rating"><div class="rd rd-hi"></div>9.0</div></td><td style="color:var(--t-3);font-size:12px">Dec 2023</td><td><div class="tags-cell"><span class="tag">atmospheric</span><span class="tag">jazz</span><span class="tag">introspective</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-3"><td class="tc-title">The Bourne Identity</td><td><span class="badge b-book">Book</span></td><td><div class="rating"><div class="rd rd-hi"></div>8.5</div></td><td style="color:var(--t-3);font-size:12px">Dec 2023</td><td><div class="tags-cell"><span class="tag">thriller</span><span class="tag">action-heavy</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-4"><td class="tc-title">Monaco GP 2023 — Alonso vs Verstappen</td><td><span class="badge b-match">F1 Match</span></td><td><div class="rating"><div class="rd rd-hi"></div>8.5</div></td><td style="color:var(--t-3);font-size:12px">May 2023</td><td><div class="tags-cell"><span class="tag">tactical</span><span class="tag">precision</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-4"><td class="tc-title">To Pimp a Butterfly — Kendrick Lamar</td><td><span class="badge b-music">Music</span></td><td><div class="rating"><div class="rd rd-hi"></div>8.5</div></td><td style="color:var(--t-3);font-size:12px">Nov 2023</td><td><div class="tags-cell"><span class="tag">lyrical depth</span><span class="tag">political</span><span class="tag">character-driven</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-5"><td class="tc-title">Dune</td><td><span class="badge b-book">Book</span></td><td><div class="rating"><div class="rd rd-mid"></div>8.0</div></td><td style="color:var(--t-3);font-size:12px">Oct 2023</td><td><div class="tags-cell"><span class="tag">sci-fi epic</span><span class="tag">world-building</span><span class="tag-more">+2</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-            <tr class="anim-fadeup anim-delay-5"><td class="tc-title">Lakers vs Nuggets — 2023 Playoffs G4</td><td><span class="badge b-match">NBA Match</span></td><td><div class="rating"><div class="rd rd-mid"></div>8.0</div></td><td style="color:var(--t-3);font-size:12px">May 2023</td><td><div class="tags-cell"><span class="tag">clutch</span><span class="tag">underdog</span></div></td><td style="text-align:right;color:var(--t-3)">›</td></tr>
-          </tbody>
+          <tbody></tbody>
         </table>
       </div>
       <!-- Card grid view (hidden until toggled) -->
-      <div class="cg-grid" id="cg-grid">
-        <div class="cg-card" onclick="openModal('detail')"><span class="badge b-show">Show</span><div class="cg-title">Succession</div><div class="cg-tags"><span class="tag">antihero</span><span class="tag">moral complexity</span></div><div class="cg-bottom"><div class="cg-rating">9.5</div><div class="cg-date">Mar 2024</div></div></div>
-        <div class="cg-card"><span class="badge b-book">Book</span><div class="cg-title">The Name of the Wind</div><div class="cg-tags"><span class="tag">world-building</span><span class="tag">character-driven</span></div><div class="cg-bottom"><div class="cg-rating">9.0</div><div class="cg-date">Feb 2024</div></div></div>
-        <div class="cg-card"><span class="badge b-show">Show</span><div class="cg-title">The Crown</div><div class="cg-tags"><span class="tag">political drama</span><span class="tag">character-driven</span></div><div class="cg-bottom"><div class="cg-rating">9.0</div><div class="cg-date">Jan 2024</div></div></div>
-        <div class="cg-card"><span class="badge b-match">NFL Match</span><div class="cg-title">Super Bowl LVIII — Chiefs vs 49ers</div><div class="cg-tags"><span class="tag">underdog</span><span class="tag">clutch</span></div><div class="cg-bottom"><div class="cg-rating">9.0</div><div class="cg-date">Feb 2024</div></div></div>
-        <div class="cg-card"><span class="badge b-music">Music</span><div class="cg-title">Kind of Blue — Miles Davis</div><div class="cg-tags"><span class="tag">atmospheric</span><span class="tag">jazz</span></div><div class="cg-bottom"><div class="cg-rating">9.0</div><div class="cg-date">Dec 2023</div></div></div>
-        <div class="cg-card"><span class="badge b-book">Book</span><div class="cg-title">The Bourne Identity</div><div class="cg-tags"><span class="tag">thriller</span><span class="tag">action-heavy</span></div><div class="cg-bottom"><div class="cg-rating">8.5</div><div class="cg-date">Dec 2023</div></div></div>
-        <div class="cg-card"><span class="badge b-match">F1 Match</span><div class="cg-title">Monaco GP 2023</div><div class="cg-tags"><span class="tag">tactical</span><span class="tag">precision</span></div><div class="cg-bottom"><div class="cg-rating">8.5</div><div class="cg-date">May 2023</div></div></div>
-        <div class="cg-card"><span class="badge b-music">Music</span><div class="cg-title">To Pimp a Butterfly — Kendrick Lamar</div><div class="cg-tags"><span class="tag">lyrical depth</span><span class="tag">political</span></div><div class="cg-bottom"><div class="cg-rating">8.5</div><div class="cg-date">Nov 2023</div></div></div>
-        <div class="cg-card"><span class="badge b-book">Book</span><div class="cg-title">Dune</div><div class="cg-tags"><span class="tag">sci-fi epic</span><span class="tag">world-building</span></div><div class="cg-bottom"><div class="cg-rating">8.0</div><div class="cg-date">Oct 2023</div></div></div>
-        <div class="cg-card"><span class="badge b-match">NBA Match</span><div class="cg-title">Lakers vs Nuggets — 2023 Playoffs G4</div><div class="cg-tags"><span class="tag">clutch</span><span class="tag">underdog</span></div><div class="cg-bottom"><div class="cg-rating">8.0</div><div class="cg-date">May 2023</div></div></div>
-      </div>
+      <div class="cg-grid" id="cg-grid"></div>
       <!-- C4: Pagination bar -->
       <div class="col-pagination" id="col-pagination">
-        <div class="col-pag-info" id="col-pag-info">Showing <b>1–10</b> of <b>52</b> entries</div>
+        <div class="col-pag-info" id="col-pag-info"></div>
         <div class="col-pag-btns">
           <button class="col-pag-btn" disabled title="Previous">‹</button>
           <button class="col-pag-btn pg-active">1</button>
@@ -996,18 +959,18 @@ textarea.fi{resize:vertical;min-height:64px}
     <!-- INSIGHTS -->
     <div class="screen" id="s-insights">
       <div class="ph">
-        <div><div class="ph-title">Insights</div><div class="ph-sub">Your taste fingerprint · Based on 52 entries</div></div>
+        <div><div class="ph-title">Insights</div><div class="ph-sub" id="insights-ph-sub">Your taste fingerprint</div></div>
         <div class="ph-actions"><button class="btn btn-glass btn-sm" onclick="showToast('Insights report exported — file will download shortly','↓  ')"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Export</button></div>
       </div>
       <div class="stat-cards">
-        <div class="sc anim-fadeup"><div class="sc-v">52</div><div class="sc-l">Total Entries</div></div>
-        <div class="sc anim-fadeup anim-delay-1"><div class="sc-v">8.1</div><div class="sc-l">Average Rating</div></div>
-        <div class="sc anim-fadeup anim-delay-2"><div class="sc-v">14</div><div class="sc-l">Unique Themes</div></div>
-        <div class="sc anim-fadeup anim-delay-3"><div class="sc-v" style="font-size:14px;padding-top:4px">antihero</div><div class="sc-l">Top Theme</div></div>
+        <div class="sc anim-fadeup"><div class="sc-v" id="sc-total">—</div><div class="sc-l">Total Entries</div></div>
+        <div class="sc anim-fadeup anim-delay-1"><div class="sc-v" id="sc-avg">—</div><div class="sc-l">Average Rating</div></div>
+        <div class="sc anim-fadeup anim-delay-2"><div class="sc-v" id="sc-themes">—</div><div class="sc-l">Unique Themes</div></div>
+        <div class="sc anim-fadeup anim-delay-3"><div class="sc-v" id="sc-top" style="font-size:14px;padding-top:4px">—</div><div class="sc-l">Top Theme</div></div>
       </div>
       <div class="ig">
         <div class="card anim-fadeup">
-          <div class="ct" style="display:flex;align-items:center;justify-content:space-between">Taste Fingerprint<button class="btn btn-ghost btn-sm" style="font-size:10.5px;padding:3px 8px" onclick="toggleFpState()" id="fp-demo-btn">Demo: sparse state</button></div>
+          <div class="ct">Taste Fingerprint</div>
           <div class="cs">Weighted: theme frequency × avg rating</div>
           <!-- O2: Building/sparse placeholder (hidden by default) -->
           <div class="fp-building" id="fp-building">
@@ -1015,27 +978,15 @@ textarea.fi{resize:vertical;min-height:64px}
             <div class="fp-building-title">Your fingerprint is taking shape</div>
             <div class="fp-building-sub">Add at least 10 entries across different formats to unlock your full taste profile.</div>
             <div class="fp-progress-track"><div class="fp-progress-fill"></div></div>
-            <div class="fp-progress-label">4 of 10 entries logged</div>
+            <div class="fp-progress-label" id="fp-progress-label">0 of 10 entries logged</div>
             <button class="btn btn-p btn-sm" style="margin-top:4px" onclick="openModal('add')">Add Entry</button>
           </div>
-          <div class="fp-list" id="fp-list">
-            <div class="fp-item" onclick="filterByTag('antihero')" title="Filter Collection by antihero"><div class="fp-row"><span class="fp-label">Antihero</span><span class="fp-score">9.2 avg · 14 entries</span></div><div class="fp-bg"><div class="fp-fill" style="--w:94%;width:0"></div></div><div class="fp-item-hint">→ Filter Collection</div></div>
-            <div class="fp-item" onclick="filterByTag('political drama')" title="Filter Collection by political drama"><div class="fp-row"><span class="fp-label">Political Drama</span><span class="fp-score">9.0 avg · 11 entries</span></div><div class="fp-bg"><div class="fp-fill" style="--w:86%;width:0"></div></div><div class="fp-item-hint">→ Filter Collection</div></div>
-            <div class="fp-item" onclick="filterByTag('character-driven')" title="Filter Collection by character-driven"><div class="fp-row"><span class="fp-label">Character-Driven</span><span class="fp-score">8.8 avg · 16 entries</span></div><div class="fp-bg"><div class="fp-fill" style="--w:82%;width:0"></div></div><div class="fp-item-hint">→ Filter Collection</div></div>
-            <div class="fp-item" onclick="filterByTag('world-building')" title="Filter Collection by world-building"><div class="fp-row"><span class="fp-label">World-Building</span><span class="fp-score">8.5 avg · 10 entries</span></div><div class="fp-bg"><div class="fp-fill" style="--w:74%;width:0"></div></div><div class="fp-item-hint">→ Filter Collection</div></div>
-            <div class="fp-item" onclick="filterByTag('moral complexity')" title="Filter Collection by moral complexity"><div class="fp-row"><span class="fp-label">Moral Complexity</span><span class="fp-score">8.7 avg · 9 entries</span></div><div class="fp-bg"><div class="fp-fill" style="--w:70%;width:0"></div></div><div class="fp-item-hint">→ Filter Collection</div></div>
-            <div class="fp-item" onclick="filterByTag('thriller')" title="Filter Collection by thriller"><div class="fp-row"><span class="fp-label">Thriller</span><span class="fp-score">8.2 avg · 12 entries</span></div><div class="fp-bg"><div class="fp-fill" style="--w:63%;width:0"></div></div><div class="fp-item-hint">→ Filter Collection</div></div>
-          </div>
+          <div class="fp-list" id="fp-list"></div>
         </div>
         <div class="card anim-fadeup anim-delay-1"><div class="ct">Taste DNA</div><div class="cs">Your profile across 6 dimensions</div><canvas id="radarChart" style="max-height:200px"></canvas></div>
         <div class="card card-full anim-fadeup anim-delay-2">
           <div class="ct">Patterns Discovered</div><div class="cs">Things about your taste you might not have noticed</div>
-          <div class="patterns-grid">
-            <div class="pat" onclick="filterByTag('moral complexity')" title="See entries tagged moral complexity"><div class="pat-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 21h8"/><path d="M4 8l4 9H4m0 0a4 4 0 008 0M12 8L8 17M12 8l4 9h4m0 0a4 4 0 01-8 0M12 8l4 9"/><line x1="4" y1="8" x2="20" y2="8"/></svg></div><div class="pat-title">You're drawn to moral decline</div><div class="pat-text">Your 3 highest-rated entries all feature protagonists who compromise their ethics for power. You rate moral complexity 1.3× higher than you rate action or spectacle.</div><div class="pat-stat">+1.3× rating multiplier</div><div class="pat-cta">→ See all moral complexity entries</div></div>
-            <div class="pat" onclick="filterByTag('world-building')" title="See entries tagged world-building"><div class="pat-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/><path d="M12 13V9m-2 2l2-2 2 2"/></svg></div><div class="pat-title">Books age better for you</div><div class="pat-text">Books you re-encounter or revisit tend to score 0.4 pts higher than shows. Your reading taste skews toward long-arc world-building — epics over standalones.</div><div class="pat-stat">+0.4 pts vs shows avg</div><div class="pat-cta">→ See world-building entries</div></div>
-            <div class="pat" onclick="goToScreen('collection')" title="Browse your full collection"><div class="pat-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-5M12 20v-9M18 20V6"/></svg></div><div class="pat-title">You finish what you start</div><div class="pat-text">Only 4 entries out of 52 sit below 7.0. You rarely add content you didn't genuinely enjoy — your collection floor is high, which pushes your fingerprint signal quality up.</div><div class="pat-stat">92% entries rated ≥ 7.5</div><div class="pat-cta">→ Browse your collection</div></div>
-            <div class="pat" onclick="filterByTag('atmospheric')" title="See entries tagged atmospheric"><div class="pat-emoji"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg></div><div class="pat-title">Music mirrors your book taste</div><div class="pat-text">Your top-rated music (Kind of Blue, TPAB) shares tags with your top books — atmospheric, lyrical depth, introspective. Your taste is coherent across formats.</div><div class="pat-stat">78% cross-format tag overlap</div><div class="pat-cta">→ See atmospheric entries</div></div>
-          </div>
+          <div class="patterns-grid" id="patterns-grid"></div>
         </div>
         <div class="card anim-fadeup anim-delay-3"><div class="ct">Format Breakdown</div><div class="cs">Entries by type</div><canvas id="fmtChart" style="max-height:190px"></canvas></div>
         <div class="card anim-fadeup anim-delay-4"><div class="ct">Avg Rating by Genre</div><div class="cs">How taste scores vary across categories</div><canvas id="genChart" style="max-height:190px"></canvas></div>
@@ -1263,28 +1214,9 @@ textarea.fi{resize:vertical;min-height:64px}
 
           <!-- Tags -->
           <div class="ss" id="s-tags">
-            <div class="ss-head"><div><div class="ss-title">Tag Management</div><div class="ss-sub">18 tags · Used across your collection</div></div><button class="btn btn-glass btn-sm">Merge Tags</button></div>
+            <div class="ss-head"><div><div class="ss-title">Tag Management</div><div class="ss-sub" id="tag-mgmt-sub">Loading tags…</div></div><button class="btn btn-glass btn-sm">Merge Tags</button></div>
             <div class="ss-body">
-              <div class="tag-mgmt">
-                <div class="tag-edit">antihero<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">political drama<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">character-driven<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">moral complexity<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">world-building<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">thriller<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">crime<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">mystery<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">sci-fi epic<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">underdog<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">slow burn<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">twist ending<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">lyrical depth<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">atmospheric<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">introspective<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">jazz<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">clutch<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-                <div class="tag-edit">tactical<span class="tag-x" onclick="this.parentElement.remove()">×</span></div>
-              </div>
+              <div class="tag-mgmt" id="tag-mgmt-list"><div style="color:var(--t-3);font-size:12.5px;padding:8px 0">No tags yet — add tags when logging entries.</div></div>
               <div class="tag-add-row"><input type="text" placeholder="New tag name…" id="new-tag-input" onkeydown="addTagOnEnter(event)"><button class="btn btn-p btn-sm" onclick="addTag()">Add Tag</button></div>
             </div>
           </div>
@@ -1293,8 +1225,8 @@ textarea.fi{resize:vertical;min-height:64px}
           <div class="ss" id="s-account">
             <div class="ss-head"><div><div class="ss-title">Account</div><div class="ss-sub">Manage your identity and credentials</div></div></div>
             <div class="ss-body">
-              <div class="sr"><div class="sr-left"><div class="sr-label">Display Name</div><div class="sr-sub">Shown in the sidebar and export headers</div></div><div class="sr-right"><input class="fi" style="width:190px;padding:6px 10px;font-size:12.5px" value="Enam Ahorlu"></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Email Address</div><div class="sr-sub">Used for sign-in and exports</div></div><div class="sr-right"><input class="fi" style="width:210px;padding:6px 10px;font-size:12.5px" value="enamahorlu@gmail.com"></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Display Name</div><div class="sr-sub">Shown in the sidebar and export headers</div></div><div class="sr-right" style="gap:6px"><input class="fi" id="settings-display-name" style="width:160px;padding:6px 10px;font-size:12.5px" value="" placeholder="Your name"><button class="btn btn-p btn-sm" onclick="saveDisplayName()">Save</button></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Email Address</div><div class="sr-sub">Used for sign-in and exports</div></div><div class="sr-right"><input class="fi" id="settings-email" style="width:210px;padding:6px 10px;font-size:12.5px" value="" readonly></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Password</div><div class="sr-sub" id="pass-sub">Last changed — never</div></div><div class="sr-right"><button class="btn btn-glass btn-sm" onclick="sendPasswordReset()">Change Password</button></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Sign Out</div><div class="sr-sub">Sign out of your account on this device</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label" style="color:var(--a-burg)">Delete Account</div><div class="sr-sub">Permanently removes all your data. This cannot be undone.</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm btn-danger">Delete Account</button></div></div>
@@ -1326,8 +1258,8 @@ textarea.fi{resize:vertical;min-height:64px}
             <div class="ss-body">
               <div class="sr"><div class="sr-left"><div class="about-logo" style="margin-bottom:0">Z</div></div><div class="sr-right" style="flex-direction:column;align-items:flex-end;gap:3px"><div style="font-size:12.5px;font-weight:500;color:var(--t-1)">Narrative &amp; Zeitgeist</div><div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--t-3)">Prototype v1.1 · April 2026</div></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Version</div></div><div class="sr-right"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--t-3)">1.1.0-prototype</span></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Entries in Collection</div></div><div class="sr-right"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--p-rich);font-weight:500">52</span></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Tags</div></div><div class="sr-right"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--t-3)">18</span></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Entries in Collection</div></div><div class="sr-right"><span id="about-entry-count" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--p-rich);font-weight:500">—</span></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Tags</div></div><div class="sr-right"><span id="about-tag-count" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--t-3)">—</span></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Fingerprint Model</div><div class="sr-sub">Weighted theme frequency × avg rating, normalized</div></div><div class="sr-right"><span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--t-3)">v0.9-alpha</span></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Acknowledgments</div><div class="sr-sub">Built with Cormorant Garamond, Inter, DM Mono · Chart.js 4.5</div></div></div>
             </div>
@@ -1611,15 +1543,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <input class="cmd-input" id="cmd-input" type="text" placeholder="Search entries, tags, screens…" oninput="cmdSearch(this.value)" autocomplete="off">
       <span class="cmd-esc" onclick="closeCmdPalette()">esc</span>
     </div>
-    <div class="cmd-results" id="cmd-results">
-      <div class="cmd-group-label">Screens</div>
-      <div class="cmd-item" onclick="goToScreen('collection');closeCmdPalette()"><div class="cmd-item-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2"/></svg></div><div><div class="cmd-item-title">Collection</div><div class="cmd-item-sub">52 entries · your full library</div></div></div>
-      <div class="cmd-item" onclick="goToScreen('watchlist');closeCmdPalette()"><div class="cmd-item-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg></div><div><div class="cmd-item-title">Watchlist</div><div class="cmd-item-sub">5 saved items</div></div></div>
-      <div class="cmd-item" onclick="goToScreen('discover');closeCmdPalette()"><div class="cmd-item-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35"/></svg></div><div><div class="cmd-item-title">Discover</div><div class="cmd-item-sub">Personalized recommendations</div></div></div>
-      <div class="cmd-item" onclick="goToScreen('insights');closeCmdPalette()"><div class="cmd-item-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div><div><div class="cmd-item-title">Taste Fingerprint</div><div class="cmd-item-sub">Your insights and patterns</div></div></div>
-      <div class="cmd-item" onclick="goToScreen('settings');closeCmdPalette()"><div class="cmd-item-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg></div><div><div class="cmd-item-title">Settings</div><div class="cmd-item-sub">Preferences & display</div></div></div>
-      <div class="cmd-item" onclick="openModal('add');closeCmdPalette()"><div class="cmd-item-icon" style="background:var(--p-rich);color:#fff"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg></div><div><div class="cmd-item-title">Add Entry</div><div class="cmd-item-sub">Log something to your collection</div></div></div>
-    </div>
+    <div class="cmd-results" id="cmd-results"></div>
     <div class="cmd-foot"><kbd>↑↓</kbd> navigate &nbsp;<kbd>↵</kbd> select &nbsp;<kbd>esc</kbd> close &nbsp;<span style="margin-left:auto"><kbd>⌘K</kbd> open anywhere</span></div>
   </div>
 </div>
@@ -1772,6 +1696,8 @@ function _showApp(){
   var un = document.querySelector('.un');
   var ue = document.querySelector('.ue');
   if(currentUser && un) un.textContent = (currentUser.user_metadata && currentUser.user_metadata.display_name) || currentUser.email.split('@')[0];
+  var sbEmail = document.getElementById('sb-user-email'); if(sbEmail && currentUser) sbEmail.textContent = currentUser.email||'';
+  populateSettings();
   if(currentUser && ue) ue.textContent = currentUser.email;
 }
 function _showAuthScreen(){
@@ -1809,6 +1735,8 @@ function _entryDateStr(e){
 
 function renderEntriesTable(entries){
   _allEntries = entries; /* cache for Discovery */
+  buildCmdIndex(); /* refresh cmd palette with real entries */
+  renderColTagPills(entries); /* refresh filter tag pills */
   var tbody = document.querySelector('#s-collection .tbl-wrap tbody');
   if(!tbody) return;
   tbody.innerHTML = '';
@@ -1865,12 +1793,15 @@ function renderEntriesGrid(entries){
 function updateCollectionStats(entries){
   var total  = entries.length;
   var avg    = total > 0 ? (entries.reduce(function(s,e){ return s+parseFloat(e.rating); }, 0) / total).toFixed(1) : '0.0';
-  var counts = {show:0, book:0, sports_match:0, music:0};
+  var counts = {film:0, show:0, book:0, sports_match:0, music:0};
   entries.forEach(function(e){ if(counts[e.format] !== undefined) counts[e.format]++; });
-  var sv = document.querySelectorAll('#s-collection .strip .sv');
-  if(sv.length >= 6){ sv[0].textContent=total; sv[1].textContent=avg; sv[2].textContent=counts.show; sv[3].textContent=counts.book; sv[4].textContent=counts.sports_match; sv[5].textContent=counts.music; }
-  var phSub = document.querySelector('#s-collection .ph-sub');
-  if(phSub) phSub.textContent = total + ' entries · Last updated today';
+  /* update strip stats by ID — robust to any order */
+  var _sv = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val; };
+  _sv('sv-total', total); _sv('sv-avg', avg);
+  _sv('sv-shows', counts.show); _sv('sv-books', counts.book);
+  _sv('sv-matches', counts.sports_match); _sv('sv-music', counts.music);
+  var phSub = document.getElementById('col-ph-sub');
+  if(phSub) phSub.textContent = total + ' entr'+(total===1?'y':'ies')+' · Last updated today';
   var allTags = new Set();
   entries.forEach(function(e){ (e.tags||[]).forEach(function(t){ allTags.add(t); }); });
   var sbStats = document.getElementById('sb-stats');
@@ -1988,6 +1919,7 @@ function navigate(scr){
   if(t){t.classList.add('active')}
   if(scr==='insights'){setTimeout(initCharts,80)}
   if(scr==='discover'){loadDiscovery();}
+  if(scr==='settings'){populateSettings();}
   if(scr==='settings'){
     var isDark=document.documentElement.getAttribute('data-theme')==='dark';
     var tog=document.getElementById('dm-setting-toggle');
@@ -2049,18 +1981,19 @@ function setAccentFromSettings(el,light,deep){
 
 function setDensityFromSelect(sel){}
 
-function addTag(){
-  var input=document.getElementById('new-tag-input');
-  var val=input.value.trim().toLowerCase();
-  if(!val)return;
-  var mgmt=document.querySelector('.tag-mgmt');
-  var el=document.createElement('div');
-  el.className='tag-edit';
-  el.innerHTML=val+'<span class="tag-x" onclick="this.parentElement.remove()">×</span>';
-  mgmt.appendChild(el);
-  input.value='';
+async function addTag(){
+  var input = document.getElementById('new-tag-input');
+  var val   = input.value.trim().toLowerCase();
+  if(!val) return;
+  if(!currentUser){ showToast('Please sign in first'); return; }
+  /* Save to Supabase */
+  var res = await SUPA.from('tags')
+    .upsert({user_id: currentUser.id, name: val}, {onConflict: 'user_id,name'});
+  if(res.error){ showToast('Could not save tag: '+res.error.message, '⚠  '); return; }
+  input.value = '';
   input.focus();
   showToast('"'+val+'" added to your tag vocabulary');
+  loadSettingsTags(); /* refresh the tag management list */
 }
 function addTagOnEnter(e){if(e.key==='Enter')addTag()}
 
@@ -2358,14 +2291,20 @@ function openEditModal(){
   var rVal=parseFloat(ratingText)||8;
   if(ratingInp){ratingInp.value=rVal;if(rv)rv.textContent=rVal;}
 
-  /* Pre-fill notes */
+  /* Pre-fill notes from currentEntry */
   var notesInp=document.getElementById('add-notes');
-  if(notesInp)notesInp.value=notes;
+  if(notesInp) notesInp.value = (currentEntry && currentEntry.notes) ? currentEntry.notes : notes;
+  /* Pre-fill date from currentEntry */
+  var dateInp=document.getElementById('add-date');
+  if(dateInp && currentEntry && currentEntry.date_completed) dateInp.value = currentEntry.date_completed.slice(0,10);
+  /* Pre-fill poster from currentEntry */
+  _posterUrl = currentEntry ? (currentEntry.poster_url || null) : null;
+  if(_posterUrl){ var cpw=document.getElementById('cover-poster-wrap'); var cpi=document.getElementById('cover-poster-img'); if(cpw&&cpi){ cpi.src=_posterUrl; cpw.classList.add('visible'); } }
 
-  /* Pre-select matching tags */
-  var detailTags=Array.from(document.querySelectorAll('#m-detail .tag')).map(function(t){return t.textContent.trim().toLowerCase()});
+  /* Pre-select matching tags — read from currentEntry for accuracy (detail view may truncate) */
+  var detailTags = currentEntry && Array.isArray(currentEntry.tags) ? currentEntry.tags.map(function(t){ return t.toLowerCase(); }) : [];
   document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
-    tp.classList.toggle('sel',detailTags.indexOf(tp.textContent.trim().toLowerCase())>=0);
+    tp.classList.toggle('sel', detailTags.indexOf(tp.textContent.trim().toLowerCase()) >= 0);
   });
 
   /* Pre-select the cover swatch that matches the entry's current cover */
@@ -2470,27 +2409,27 @@ function updateRatingRef(val){
 }
 
 /* ── N3: Command palette ── */
-var cmdSearchData=[
-  /* entries */
-  {type:'entry',title:'Succession',sub:'Show · 9.5 · Mar 2024',tags:'antihero political drama moral complexity',bg:'linear-gradient(135deg,#1B3A5A,#2E6A8A)',screen:'collection'},
-  {type:'entry',title:'Breaking Bad',sub:'Show · 9.8',tags:'antihero moral complexity crime',bg:'linear-gradient(135deg,#1A3A5A,#2E6A8A)',screen:'collection'},
-  {type:'entry',title:'Kind of Blue',sub:'Music · 9.0',tags:'jazz atmospheric lyrical depth',bg:'linear-gradient(135deg,#2A1A4A,#5A3A8A)',screen:'collection'},
-  {type:'entry',title:'Dune',sub:'Book · 8.7',tags:'sci-fi epic world-building',bg:'linear-gradient(135deg,#3A2A1A,#6A4A2A)',screen:'collection'},
-  {type:'entry',title:'The Wire',sub:'Show · 9.1',tags:'crime antihero political drama',bg:'linear-gradient(135deg,#1A3A5A,#2A5A8A)',screen:'collection'},
-  {type:'entry',title:'TPAB — Kendrick Lamar',sub:'Music · 9.3',tags:'lyrical depth introspective atmospheric',bg:'linear-gradient(135deg,#1A0A2A,#4A2A7A)',screen:'collection'},
-  {type:'entry',title:'No Country for Old Men',sub:'Book · 8.9',tags:'thriller moral complexity',bg:'linear-gradient(135deg,#3A2A1A,#5A3A2A)',screen:'collection'},
-  /* watchlist */
-  {type:'watchlist',title:'House of the Dragon',sub:'Watchlist · Up Next · 96% match',tags:'antihero political',bg:'linear-gradient(135deg,#1B5E76,#4AADBA)',screen:'watchlist'},
-  {type:'watchlist',title:'The Wheel of Time',sub:'Watchlist · Up Next · 89% match',tags:'world-building epic',bg:'linear-gradient(135deg,#4A6A4A,#6A9A6A)',screen:'watchlist'},
-  /* tags */
-  {type:'tag',title:'antihero',sub:'14 entries',tags:'antihero',screen:'collection'},
-  {type:'tag',title:'political drama',sub:'11 entries',tags:'political drama',screen:'collection'},
-  {type:'tag',title:'moral complexity',sub:'9 entries',tags:'moral complexity',screen:'collection'},
-  {type:'tag',title:'character-driven',sub:'16 entries',tags:'character-driven',screen:'collection'},
-  {type:'tag',title:'world-building',sub:'10 entries',tags:'world-building',screen:'collection'},
-  {type:'tag',title:'atmospheric',sub:'7 entries',tags:'atmospheric',screen:'collection'},
-  {type:'tag',title:'thriller',sub:'12 entries',tags:'thriller',screen:'collection'},
-];
+/* cmdSearchData is built dynamically in buildCmdIndex() from real entries */
+var cmdSearchData = [];
+function buildCmdIndex(){
+  /* entries from collection */
+  var entryItems = _allEntries.slice(0,30).map(function(e){
+    var fmtLabel = FMT_LABEL[e.format] || e.format || '';
+    var tags = (e.tags||[]).join(' ');
+    return {type:'entry',title:e.title,sub:fmtLabel+' · '+e.rating,tags:tags,bg:e.cover_color||'linear-gradient(135deg,#1B5E76,#4AADBA)',screen:'collection',_entry:e};
+  });
+  /* tags from all entries */
+  var tagCount = {};
+  _allEntries.forEach(function(e){ (e.tags||[]).forEach(function(t){ tagCount[t]=(tagCount[t]||0)+1; }); });
+  var tagItems = Object.keys(tagCount).sort(function(a,b){ return tagCount[b]-tagCount[a]; }).slice(0,10).map(function(t){
+    return {type:'tag',title:t,sub:tagCount[t]+' entr'+(tagCount[t]===1?'y':'ies'),tags:t,screen:'collection'};
+  });
+  /* watchlist items */
+  var wlItems = (_wlItems||[]).slice(0,5).map(function(it){
+    return {type:'watchlist',title:it.title,sub:'Watchlist · '+((it.format)||''),tags:(it.tags||[]).join(' '),bg:'linear-gradient(135deg,#1B5E76,#4AADBA)',screen:'watchlist'};
+  });
+  cmdSearchData = entryItems.concat(tagItems).concat(wlItems);
+}
 
 function openCmdPalette(){
   var ov=document.getElementById('m-cmd');
@@ -2516,7 +2455,9 @@ function cmdSearch(val){
     res.innerHTML=
       '<div class="cmd-group-label">Screens</div>'+
       ['collection','watchlist','discover','insights','settings'].map(function(s){
-        var labels={collection:['Collection','52 entries · your full library'],watchlist:['Watchlist','5 saved items'],discover:['Discover','Personalized recommendations'],insights:['Taste Fingerprint','Your insights and patterns'],settings:['Settings','Preferences & display']};
+        var entryCount = _allEntries.length;
+        var wlCount = (_wlItems||[]).length;
+        var labels={collection:['Collection',entryCount+' entr'+(entryCount===1?'y':'ies')+' · your full library'],watchlist:['Watchlist',wlCount+' saved item'+(wlCount===1?'':'s')],discover:['Discover','Personalized recommendations'],insights:['Taste Fingerprint','Your insights and patterns'],settings:['Settings','Preferences & display']};
         var l=labels[s];
         return '<div class="cmd-item" onclick="goToScreen(\''+s+'\');closeCmdPalette()">'+
           '<div class="cmd-item-icon"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/></svg></div>'+
@@ -2588,7 +2529,7 @@ function applyCollectionFilter(){
 
     var ok=true;
     if(q&&fullText.indexOf(q)<0)ok=false;
-    if(fmt!=='All'){var fk=fmt==='Matches'?'match':fmt.toLowerCase().slice(0,-1);if(badge.indexOf(fk)<0)ok=false;}
+    if(fmt!=='All'){var _fmtMap={'Films':'film','Shows':'show','Books':'book','Matches':'sports_match','Music':'music'};var fk=_fmtMap[fmt]||fmt.toLowerCase();if(badge.indexOf(fk)<0)ok=false;}
     if(activeTags.length&&!activeTags.every(function(at){return tagTexts.some(function(tt){return tt.indexOf(at)>=0});}))ok=false;
     if(!isNaN(rating)&&(rating<minR||rating>maxR))ok=false;
     if(yFrom&&year<yFrom)ok=false;
@@ -2611,7 +2552,7 @@ function applyCollectionFilter(){
 
     var ok=true;
     if(q&&fullText.indexOf(q)<0)ok=false;
-    if(fmt!=='All'){var fk=fmt==='Matches'?'match':fmt.toLowerCase().slice(0,-1);if(badge.indexOf(fk)<0)ok=false;}
+    if(fmt!=='All'){var _fmtMap={'Films':'film','Shows':'show','Books':'book','Matches':'sports_match','Music':'music'};var fk=_fmtMap[fmt]||fmt.toLowerCase();if(badge.indexOf(fk)<0)ok=false;}
     if(activeTags.length&&!activeTags.every(function(at){return tagTexts.some(function(tt){return tt.indexOf(at)>=0});}))ok=false;
     if(!isNaN(rating)&&(rating<minR||rating>maxR))ok=false;
     if(yFrom&&year<yFrom)ok=false;
@@ -2627,6 +2568,29 @@ function applyCollectionFilter(){
 
 /* ── Individual filter setters ── */
 function colSearch(val){colFilter.search=val.trim();applyCollectionFilter();}
+
+/* ── Render tag filter pills from real entry tags ── */
+function renderColTagPills(entries){
+  var container=document.getElementById('col-tag-pills');
+  if(!container)return;
+  // Collect tag frequency from entries
+  var freq={};
+  (entries||[]).forEach(function(e){
+    (e.tags||[]).forEach(function(t){
+      var tag=(t.name||t||'').toLowerCase();
+      if(tag)freq[tag]=(freq[tag]||0)+1;
+    });
+  });
+  var tags=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a];}).slice(0,30);
+  if(!tags.length){
+    container.innerHTML='<span style="font-size:11.5px;color:var(--t-3)">No tags yet</span>';
+    return;
+  }
+  container.innerHTML=tags.map(function(tag){
+    var active=colFilter.tags.indexOf(tag)>=0;
+    return '<span class="col-tag-pill'+(active?' active':'')+'" onclick="toggleTagFilter(this,''+tag.replace(/'/g,"\'")+'')">#'+tag+'</span>';
+  }).join('');
+}
 function setColPill(el){
   el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});
   el.classList.add('active');
@@ -2697,7 +2661,7 @@ function updateColPagination(shown){
     info.innerHTML='<b>'+shown+'</b> matching '+(shown===1?'result':'results');
     pgBtns.style.display='none';
   } else {
-    info.innerHTML='Showing <b>1–10</b> of <b>52</b> entries';
+    info.innerHTML='Showing <b>1–10</b> of <b>'+_allEntries.length+'</b> entries';
     pgBtns.style.display='';
   }
   var fcount=document.getElementById('col-filter-count');
@@ -2712,39 +2676,38 @@ function updateColFilterBtn(){
   btn.classList.toggle('col-filter-on',!!hasFilter);
 }
 
-/* ── Discover: search with match scoring ── */
-var discoverIndex=[
-  {title:'The Wire',meta:'Show · HBO · 2002',pct:97,cls:'mh',thumb:'TWre',bg:'linear-gradient(135deg,#1A3A5A,#2A5A8A)',because:'crime, antihero, political drama'},
-  {title:'Ozark',meta:'Show · Netflix · 2017',pct:93,cls:'mh',thumb:'Ozrk',bg:'linear-gradient(135deg,#0A2A1A,#1A5A3A)',because:'moral complexity, antihero, thriller'},
-  {title:'No Country for Old Men',meta:'Book · Cormac McCarthy · 2005',pct:91,cls:'mh',thumb:'NCo',bg:'linear-gradient(135deg,#3A2A1A,#6A4A2A)',because:'thriller, moral complexity'},
-  {title:'Succession (rewatch)',meta:'Show · HBO · 2018',pct:98,cls:'mh',thumb:'Suc',bg:'linear-gradient(135deg,#1B3A5A,#2E6A8A)',because:'antihero, political drama, moral complexity'},
-  {title:'A Love Supreme',meta:'Music · John Coltrane · 1965',pct:88,cls:'mm',thumb:'ALS',bg:'linear-gradient(135deg,#2A1A4A,#5A3A8A)',because:'atmospheric, jazz, lyrical depth'},
-  {title:'Shuggie Bain',meta:'Book · Douglas Stuart · 2020',pct:85,cls:'mm',thumb:'ShB',bg:'linear-gradient(135deg,#3A1A2A,#7A3A5A)',because:'character-driven, slow burn'},
-  {title:'Mad Men',meta:'Show · AMC · 2007',pct:89,cls:'mm',thumb:'MM',bg:'linear-gradient(135deg,#2A1A0A,#5A3A1A)',because:'antihero, character-driven, slow burn'},
-  {title:'Watchmen',meta:'Book · Alan Moore · 1986',pct:82,cls:'mm',thumb:'Wch',bg:'linear-gradient(135deg,#0A0A2A,#2A1A4A)',because:'moral complexity, political drama'},
-];
+/* ── Discover: search within real _discRecs ── */
 function discSearch(val){
   var res=document.getElementById('disc-search-res');
   val=val.trim().toLowerCase();
   if(!val){res.classList.remove('open');res.innerHTML='';return;}
-  var matches=discoverIndex.filter(function(d){return d.title.toLowerCase().includes(val)||d.because.toLowerCase().includes(val)});
-  if(!matches.length){
-    res.innerHTML='<div class="disc-no-result">No results for "'+val+'" — try a different title or genre</div>';
+  var pool=_discRecs||[];
+  if(!pool.length){
+    res.innerHTML='<div class="disc-no-result">Load recommendations first, then search within them</div>';
     res.classList.add('open');return;
   }
+  var matches=pool.filter(function(d){
+    return d.title.toLowerCase().includes(val)
+      ||(d.match_hook||'').toLowerCase().includes(val)
+      ||(d.tags||[]).some(function(t){return t.toLowerCase().includes(val);});
+  });
+  if(!matches.length){
+    res.innerHTML='<div class="disc-no-result">No results for "'+val+'" in your recommendations</div>';
+    res.classList.add('open');return;
+  }
+  var scoreClass=function(s){return s>=90?'mh':s>=75?'mm':'ml';};
   res.innerHTML=matches.slice(0,5).map(function(d){
+    var bg=d.cover_color||'linear-gradient(135deg,#1A1A2E,#2A2A4E)';
+    var initials=(d.title||'').split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+    var sc=d.match_score||0;
     return '<div class="disc-result-item">'+
-      '<div class="disc-result-thumb" style="background:'+d.bg+'">'+d.thumb+'</div>'+
+      '<div class="disc-result-thumb" style="background:'+bg+'">'+initials+'</div>'+
       '<div class="disc-result-info">'+
         '<div class="disc-result-title">'+d.title+'</div>'+
-        '<div class="disc-result-meta">'+d.meta+'</div>'+
-        '<div class="disc-result-because">Because: <span>'+d.because+'</span></div>'+
+        '<div class="disc-result-meta">'+(d.meta||d.format||'')+'</div>'+
+        '<div class="disc-result-because">'+(d.match_hook||'')+'</div>'+
       '</div>'+
-      '<div class="disc-result-score"><div class="disc-result-pct '+d.cls+'">'+d.pct+'%</div><div class="disc-result-label">match</div></div>'+
-      '<div class="disc-result-acts">'+
-        '<button class="btn btn-p btn-sm" onclick="showToast(\''+d.title+' saved to Watchlist\');event.stopPropagation()">+ Wlist</button>'+
-        '<button class="btn btn-glass btn-sm" onclick="showToast(\''+d.title+' added to Collection\');event.stopPropagation()">+ Coll</button>'+
-      '</div>'+
+      '<div class="disc-result-score"><div class="disc-result-pct '+scoreClass(sc)+'">'+sc+'%</div><div class="disc-result-label">match</div></div>'+
     '</div>';
   }).join('');
   res.classList.add('open');
@@ -2938,7 +2901,7 @@ function addFromDiscover(btn){
   setTimeout(function(){
     var titleInp = document.getElementById('add-title');
     if(titleInp) titleInp.value = rec.title;
-    var fmtMap = {show:'Show', book:'Book', sports_match:'Match', music:'Music'};
+    var fmtMap = {film:'Film', show:'Show', book:'Book', sports_match:'Match', music:'Music'};
     var fmtLabel = fmtMap[rec.format] || 'Show';
     document.querySelectorAll('#m-add .pill').forEach(function(p){
       if(p.textContent.trim() === fmtLabel) p.click();
@@ -3214,30 +3177,192 @@ async function refreshFingerprint(){
   await loadFingerprint();
 }
 
+/* ── Dynamic Patterns Discovered ─────────────────────────────────────────── */
+function renderPatterns(fp){
+  var grid = document.getElementById('patterns-grid');
+  if(!grid) return;
+  var themes  = (fp && fp.primary_themes)  || [];
+  var formats = (fp && fp.format_breakdown) || {};
+  var total   = (fp && fp.total_entries) || _allEntries.length || 0;
+  var avgRat  = fp ? parseFloat(fp.overall_avg_rating || 0) : 0;
+
+  if(!themes.length){
+    grid.innerHTML = '<div style="padding:20px 0;color:var(--t-3);font-size:13px;line-height:1.6">Add entries and tag them to reveal patterns in your taste — your top themes, format preferences, and listening/reading habits will appear here.</div>';
+    return;
+  }
+
+  var svgChart = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-5M12 20v-9M18 20V6"/></svg>';
+  var svgScale = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 21h8"/><path d="M4 8l4 9H4m0 0a4 4 0 008 0M12 8L8 17M12 8l4 9h4m0 0a4 4 0 01-8 0M12 8l4 9"/><line x1="4" y1="8" x2="20" y2="8"/></svg>';
+  var svgBook  = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>';
+  var svgLink  = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>';
+
+  function makeCard(icon, title, text, stat, tag){
+    var clickAttr = tag ? ' onclick="filterByTag(\''+tag+'\')" title="See entries tagged '+tag+'"' : '';
+    return '<div class="pat"'+clickAttr+'>'
+      +'<div class="pat-emoji">'+icon+'</div>'
+      +'<div class="pat-title">'+title+'</div>'
+      +'<div class="pat-text">'+text+'</div>'
+      +'<div class="pat-stat">'+stat+'</div>'
+      +(tag?'<div class="pat-cta">\u2192 See all '+tag+' entries</div>':'')
+      +'</div>';
+  }
+
+  var cards = [];
+  var t0 = themes[0];
+
+  /* Card 1: Top theme */
+  if(t0){
+    var freq = t0.frequency || 0;
+    var avg0 = parseFloat(t0.avg_rating||0).toFixed(1);
+    cards.push(makeCard(svgChart,
+      'Your strongest signal: ' + escHtml(t0.tag),
+      '"'+escHtml(t0.tag)+'" is your most prominent theme — it appears in '+freq+' entries with an average rating of '+avg0+'. This is the clearest lens through which you engage with content.',
+      freq + ' entries \u00b7 ' + avg0 + ' avg rating',
+      t0.tag
+    ));
+  }
+
+  /* Card 2: Best-rated format */
+  var fmtEntries = Object.keys(formats).filter(function(k){ return (formats[k].count||0) > 0; });
+  if(fmtEntries.length >= 2){
+    var best = fmtEntries.reduce(function(a,b){ return (parseFloat(formats[b].avg_rating||0) > parseFloat(formats[a].avg_rating||0)) ? b : a; });
+    var fmtLabel = {show:'Shows',book:'Books',film:'Films',sports_match:'Matches',music:'Music'}[best] || best;
+    var bestAvg = parseFloat(formats[best].avg_rating||0).toFixed(1);
+    var bestCnt = formats[best].count;
+    cards.push(makeCard(svgScale,
+      fmtLabel + ' hit hardest for you',
+      'Of all the formats you log, '+fmtLabel.toLowerCase()+' earn your highest average rating at '+bestAvg+'/10 across '+bestCnt+' entries. Your standards are clear — and '+fmtLabel.toLowerCase()+' consistently clear them.',
+      bestAvg + ' avg across ' + bestCnt + ' ' + fmtLabel.toLowerCase(),
+      null
+    ));
+  }
+
+  /* Card 3: Theme depth — top 2 combined coverage */
+  if(themes.length >= 2){
+    var t1 = themes[1];
+    var combined = (t0.frequency||0) + (t1.frequency||0);
+    var pct = total > 0 ? Math.round((combined/total)*100) : 0;
+    cards.push(makeCard(svgBook,
+      'Consistent taste, not scattered',
+      '"'+escHtml(t0.tag)+'" and "'+escHtml(t1.tag)+'" together cover '+pct+'% of your collection. Your taste is coherent — not scattered across genres, but anchored around a few strong aesthetic preferences.',
+      combined + ' of ' + total + ' entries share your top 2 themes',
+      t1.tag
+    ));
+  }
+
+  /* Card 4: Rating floor / overall signal quality */
+  if(avgRat > 0){
+    var qualifier = avgRat >= 8.5 ? 'exceptionally high' : avgRat >= 7.5 ? 'above average' : 'broad-ranging';
+    var insight = avgRat >= 8.0
+      ? 'You set a high bar. Content that makes your collection has genuinely earned its place — this keeps your taste signal clean and your recommendations sharper.'
+      : 'You log across a wide range of quality, capturing highlights and disappointments. This gives a more complete picture of your actual taste landscape.';
+    cards.push(makeCard(svgLink,
+      'Your collection floor is ' + qualifier,
+      insight,
+      avgRat.toFixed(1) + ' overall avg \u00b7 ' + total + ' entries',
+      null
+    ));
+  }
+
+  grid.innerHTML = cards.join('');
+}
+
+/* ── Populate settings from live auth data ────────────────────────────────── */
+function saveDisplayName(){
+  var val=document.getElementById('settings-display-name').value.trim();
+  if(!val){showToast('Please enter a display name');return;}
+  var user=_sb&&_sb.auth&&_sb.auth.getUser&&_sb.auth.getUser();
+  // Update Supabase user metadata
+  if(_sb){
+    _sb.auth.updateUser({data:{display_name:val}}).then(function(res){
+      if(res.error){showToast('Error saving name: '+res.error.message);return;}
+      // Update sidebar name
+      var sbn=document.getElementById('sb-user-name');
+      if(sbn)sbn.textContent=val;
+      showToast('Display name saved');
+    });
+  }
+}
+
+function populateSettings(){
+  if(!currentUser) return;
+  var name  = (currentUser.user_metadata && currentUser.user_metadata.display_name) || currentUser.email.split('@')[0];
+  var email = currentUser.email || '';
+  var dnInp = document.getElementById('settings-display-name');
+  var emInp = document.getElementById('settings-email');
+  if(dnInp && !dnInp.value) dnInp.value = name;
+  if(emInp) emInp.value = email;
+  /* Update About counts */
+  var ec = document.getElementById('about-entry-count'); if(ec) ec.textContent = _allEntries.length || '—';
+  var allTags = new Set(); _allEntries.forEach(function(e){ (e.tags||[]).forEach(function(t){ allTags.add(t); }); });
+  var tc = document.getElementById('about-tag-count'); if(tc) tc.textContent = allTags.size || '—';
+  loadSettingsTags();
+}
+
+async function loadSettingsTags(){
+  if(!currentUser) return;
+  var res = await SUPA.from('tags').select('name').eq('user_id', currentUser.id).order('name');
+  var list = document.getElementById('tag-mgmt-list');
+  var sub  = document.getElementById('tag-mgmt-sub');
+  if(res.error || !res.data){ return; }
+  var tags = res.data.map(function(r){ return r.name; });
+  if(sub) sub.textContent = tags.length + ' tag' + (tags.length===1?'':'s') + ' \u00b7 Used across your collection';
+  if(list){
+    if(!tags.length){
+      list.innerHTML = '<div style="color:var(--t-3);font-size:12.5px;padding:8px 0">No tags yet — add tags when logging entries.</div>';
+    } else {
+      list.innerHTML = tags.map(function(t){
+        return '<div class="tag-edit">'+escHtml(t)+'<span class="tag-x" onclick="deleteTag(\''+escHtml(t)+'\',this)">×</span></div>';
+      }).join('');
+    }
+  }
+}
+
+async function deleteTag(name, el){
+  if(!currentUser) return;
+  var res = await SUPA.from('tags').delete().eq('user_id', currentUser.id).eq('name', name);
+  if(!res.error && el) el.parentElement.remove();
+  loadSettingsTags();
+}
+/* ─────────────────────────────────────────────────────────────────────────── */
+
 function renderInsights(fp){
-  var scCards = document.querySelectorAll('#s-insights .stat-cards .sc .sc-v');
-  var sub     = document.querySelector('#s-insights .ph-sub');
+  var sub     = document.getElementById('insights-ph-sub');
   var building= document.getElementById('fp-building');
   var fpList  = document.getElementById('fp-list');
+
+  var total   = (fp && fp.total_entries) ? fp.total_entries : _allEntries.length;
+  /* Update fp building progress bar */
+  var progLabel = document.getElementById('fp-progress-label');
+  var progFill  = document.querySelector('.fp-progress-fill');
+  if(progLabel) progLabel.textContent = Math.min(total,10) + ' of 10 entries logged';
+  if(progFill)  progFill.style.width = Math.min(100, Math.round((total/10)*100)) + '%';
 
   if(!fp || !(fp.primary_themes && fp.primary_themes.length)){
     if(building) building.classList.add('show');
     if(fpList)   fpList.style.display = 'none';
+    /* Still update stats with raw entry count */
+    var sc0=document.getElementById('sc-total'); if(sc0) sc0.textContent = total||'—';
+    var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = '—';
+    var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = '0';
+    var sc3=document.getElementById('sc-top');   if(sc3) sc3.textContent = '—';
+    if(sub) sub.textContent = 'Your taste fingerprint · ' + total + ' entr'+(total===1?'y':'ies')+' logged';
+    renderPatterns(null);
     return;
   }
   if(building) building.classList.remove('show');
   if(fpList)   fpList.style.display = '';
 
-  var total   = fp.total_entries || 0;
-  var avgRat  = fp.overall_avg_rating ? parseFloat(fp.overall_avg_rating).toFixed(1) : '\u2014';
+  var avgRat  = fp.overall_avg_rating ? parseFloat(fp.overall_avg_rating).toFixed(1) : '—';
   var themes  = fp.primary_themes || [];
-  var topTag  = themes[0] ? themes[0].tag : '\u2014';
+  var topTag  = themes[0] ? themes[0].tag : '—';
 
-  if(scCards[0]) scCards[0].textContent = total;
-  if(scCards[1]) scCards[1].textContent = avgRat;
-  if(scCards[2]) scCards[2].textContent = themes.length;
-  if(scCards[3]){ scCards[3].textContent = topTag; scCards[3].style.fontSize='14px'; }
-  if(sub) sub.textContent = 'Your taste fingerprint \u00b7 Based on ' + total + ' entries';
+  var sc0=document.getElementById('sc-total'); if(sc0) sc0.textContent = total;
+  var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = avgRat;
+  var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = themes.length;
+  var sc3=document.getElementById('sc-top');   if(sc3){ sc3.textContent = topTag; sc3.style.fontSize='14px'; }
+  if(sub) sub.textContent = 'Your taste fingerprint · Based on ' + total + ' entries';
+  renderPatterns(fp);
 
   if(fpList){
     var maxW = themes[0] ? (themes[0].weight || 1) : 1;
@@ -3261,7 +3386,7 @@ function _applyFpToCharts(fp){
   var themes  = fp.primary_themes  || [];
   if(_charts.fmt){
     var d = function(k){ return (formats[k] && formats[k].count) || 0; };
-    _charts.fmt.data.datasets[0].data = [d('show'),d('book'),d('sports_match'),d('music')];
+    _charts.fmt.data.datasets[0].data = [d('film'),d('show'),d('book'),d('sports_match'),d('music')];
     _charts.fmt.update();
   }
   if(_charts.gen && themes.length){
@@ -3315,7 +3440,7 @@ function initCharts(){
   if(radarCtx && !_charts.radar){
     _charts.radar = new Chart(radarCtx, {
       type:'radar',
-      data:{ labels:['Character','Plot','Atmosphere','Depth','Craft','Replay'],
+      data:{ labels:['Character-Driven','World-Building','Atmospheric','Moral Complexity','Thriller','Political Drama'],
              datasets:[{label:'Your Taste',data:[0,0,0,0,0,0],
                backgroundColor:'rgba(74,173,186,0.15)',borderColor:'#4AADBA',
                pointBackgroundColor:'#4AADBA',pointRadius:3,borderWidth:2}] },
@@ -3330,9 +3455,9 @@ function initCharts(){
   if(fmtCtx && !_charts.fmt){
     _charts.fmt = new Chart(fmtCtx, {
       type:'doughnut',
-      data:{ labels:['Shows','Books','Matches','Music'],
-             datasets:[{data:[0,0,0,0],
-               backgroundColor:['#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],
+      data:{ labels:['Films','Shows','Books','Matches','Music'],
+             datasets:[{data:[0,0,0,0,0],
+               backgroundColor:['#C06060','#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],
                borderWidth:0,hoverOffset:6}] },
       options:{ responsive:true,maintainAspectRatio:true,cutout:'65%',
         plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},padding:12,boxWidth:10}}} }
@@ -3395,7 +3520,7 @@ function wlMoveToCollection(id){
   setTimeout(function(){
     var titleInp = document.getElementById('add-title');
     if(titleInp) titleInp.value = it.title;
-    var fmtMap = {show:'Show',book:'Book',sports_match:'Match',music:'Music'};
+    var fmtMap = {film:'Film',show:'Show',book:'Book',sports_match:'Match',music:'Music'};
     var fmtLabel = fmtMap[it.format] || 'Show';
     document.querySelectorAll('#m-add .pill').forEach(function(p){
       if(p.textContent.trim() === fmtLabel) p.click();
