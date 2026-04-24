@@ -1917,7 +1917,12 @@ function navigate(scr){
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   var t=document.getElementById('s-'+scr);
   if(t){t.classList.add('active')}
-  if(scr==='insights'){setTimeout(initCharts,80)}
+  if(scr==='insights'){
+    setTimeout(function(){
+      initCharts();
+      if(!_fp) loadFingerprint(); else { renderInsights(_fp); _applyFpToCharts(_fp); }
+    }, 80);
+  }
   if(scr==='discover'){loadDiscovery();}
   if(scr==='settings'){populateSettings();}
   if(scr==='settings'){
@@ -2767,7 +2772,7 @@ async function loadDiscovery(force){
       body: JSON.stringify({ fingerprint: fpToSend, entryTitles: entryTitles, tab: _discTabName })
     });
     var data = await resp.json();
-    if(!resp.ok) throw new Error(data.error || 'Server error '+resp.status);
+    if(!resp.ok) throw new Error((data.error || 'Server error '+resp.status) + (data.claude_said ? ' — Claude said: '+data.claude_said : ''));
     _discRecs = data.recommendations;
     _discFetchedAt = Date.now();
     _renderDiscovery(_discRecs);
@@ -3342,11 +3347,34 @@ function renderInsights(fp){
   if(!fp || !(fp.primary_themes && fp.primary_themes.length)){
     if(building) building.classList.add('show');
     if(fpList)   fpList.style.display = 'none';
-    /* Still update stats with raw entry count */
+    /* Derive basic stats from raw _allEntries even without a computed fingerprint */
+    var derivedAvg = '—';
+    var derivedThemes = 0;
+    var derivedTop = '—';
+    if(_allEntries && _allEntries.length){
+      var rated = _allEntries.filter(function(e){ return e.rating != null && !isNaN(parseFloat(e.rating)); });
+      if(rated.length){
+        var sum = rated.reduce(function(s,e){ return s + parseFloat(e.rating); }, 0);
+        derivedAvg = (sum / rated.length).toFixed(1);
+      }
+      /* Count unique tags across entries */
+      var tagSet = {};
+      _allEntries.forEach(function(e){
+        (e.tags||[]).forEach(function(t){ var n=(t.name||t||'').toLowerCase(); if(n) tagSet[n]=true; });
+      });
+      derivedThemes = Object.keys(tagSet).length;
+      /* Top theme by frequency */
+      var tagFreq = {};
+      _allEntries.forEach(function(e){
+        (e.tags||[]).forEach(function(t){ var n=(t.name||t||'').toLowerCase(); if(n) tagFreq[n]=(tagFreq[n]||0)+1; });
+      });
+      var topKeys = Object.keys(tagFreq).sort(function(a,b){ return tagFreq[b]-tagFreq[a]; });
+      if(topKeys.length) derivedTop = topKeys[0];
+    }
     var sc0=document.getElementById('sc-total'); if(sc0) sc0.textContent = total||'—';
-    var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = '—';
-    var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = '0';
-    var sc3=document.getElementById('sc-top');   if(sc3) sc3.textContent = '—';
+    var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = derivedAvg;
+    var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = derivedThemes||'—';
+    var sc3=document.getElementById('sc-top');   if(sc3){ sc3.textContent = derivedTop; sc3.style.fontSize='13px'; }
     if(sub) sub.textContent = 'Your taste fingerprint · ' + total + ' entr'+(total===1?'y':'ies')+' logged';
     renderPatterns(null);
     return;

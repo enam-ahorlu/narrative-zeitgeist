@@ -68,8 +68,12 @@ module.exports = async function handler(req, res) {
     text.match(/(\[[\s\S]*\])/);
 
   if (!jsonMatch) {
-    console.error('No JSON found in Claude response:', text.slice(0, 400));
-    return res.status(500).json({ error: 'Could not parse recommendations from Claude.' });
+    const preview = text.slice(0, 300);
+    console.error('No JSON found in Claude response:', preview);
+    return res.status(500).json({
+      error: 'Could not parse recommendations from Claude.',
+      claude_said: preview || '(empty response)'
+    });
   }
 
   let recommendations;
