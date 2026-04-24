@@ -781,10 +781,14 @@ textarea.fi{resize:vertical;min-height:64px}
 .ext-rb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--r-full);font-size:11px;font-weight:500;background:var(--n-bg);border:1px solid var(--n-border);color:var(--t-2)}
 .ext-rb-src{font-weight:700;color:var(--t-3);font-size:10px;letter-spacing:.03em}
 /* ── Back navigation button ── */
-#nav-back-btn{display:none;position:fixed;top:14px;left:72px;z-index:200;background:var(--n-surface);border:1px solid var(--n-border);border-radius:var(--r-full);padding:6px 14px 6px 10px;font-size:13px;font-weight:500;color:var(--t-2);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:background .15s,color .15s;display:none;align-items:center;gap:5px;}
-#nav-back-btn:hover{background:var(--p-ghost);color:var(--p-rich);}
-[data-theme="dark"] #nav-back-btn{background:var(--n-surface);border-color:var(--n-border);color:var(--t-2);}
-@media(max-width:768px){#nav-back-btn{left:12px;top:12px;}}
+/* Desktop: lives in sidebar nav */
+#nav-back-btn{display:none;align-items:center;gap:7px;width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-sm);padding:8px 14px;margin-bottom:10px;color:var(--sb-text-active);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.01em;transition:background .15s,color .15s;text-align:left;}
+#nav-back-btn:hover{background:rgba(255,255,255,.14);color:#fff;}
+/* Mobile: fixed bar at top of content area */
+@media(max-width:768px){
+  #nav-back-btn{position:fixed;top:0;left:0;right:0;width:100%;background:var(--n-surface);border:none;border-bottom:1px solid var(--n-border);border-radius:0;padding:11px 16px;color:var(--p-mid);font-size:13.5px;font-weight:500;margin:0;z-index:150;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+  [data-theme="dark"] #nav-back-btn{background:#1a2a35;border-color:var(--n-border);}
+}
 </style>
 </head>
 <body>
@@ -826,6 +830,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="sb-tagline" id="sb-stats"></div>
     </div>
     <nav class="sb-nav">
+      <button id="nav-back-btn" onclick="navigateBack()" aria-label="Go back">← Back</button>
       <div class="sb-section">Library</div>
       <div class="ni active" data-screen="collection">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
@@ -900,7 +905,6 @@ textarea.fi{resize:vertical;min-height:64px}
   </nav>
 
   <main class="main">
-    <button id="nav-back-btn" onclick="navigateBack()" aria-label="Go back">← Back</button>
 
     <!-- COLLECTION -->
     <div class="screen active" id="s-collection">
@@ -1065,7 +1069,6 @@ textarea.fi{resize:vertical;min-height:64px}
         <div class="pill" onclick="setDiscPill(this,'books')">Books</div>
         <div class="pill" onclick="setDiscPill(this,'matches')">Matches</div>
         <div class="pill" onclick="setDiscPill(this,'music')">Music</div>
-      </div>
       </div>
       <div class="disc-tabs">
         <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
@@ -2143,13 +2146,16 @@ function navigateBack(){
 }
 
 function _updateBackBtn(){
-  var btn = document.getElementById('nav-back-btn');
+  var btn    = document.getElementById('nav-back-btn');
+  var mainEl = document.querySelector('.main');
   if(!btn) return;
-  // Show back button only when there's a previous screen to return to
   if(_navHistory.length > 1){
     btn.style.display = 'flex';
+    /* On mobile the button is fixed at top — push main content down so nothing hides under it */
+    if(window.innerWidth <= 768 && mainEl) mainEl.style.paddingTop = '44px';
   } else {
     btn.style.display = 'none';
+    if(mainEl) mainEl.style.paddingTop = '';
   }
 }
 
@@ -3233,9 +3239,10 @@ document.querySelectorAll('.wl-actions .btn-p').forEach(function(btn){
 
 /* ── W1: Pass / Not for me ── */
 /* ── Watchlist: load, render, actions ──────────────────────── */
-var _wlItems  = [];  /* cached watchlist rows */
-var _wlTab    = 'all';
-var _wlMoveId = null; /* watchlist id being moved to collection */
+var _wlItems       = [];    /* cached watchlist rows */
+var _wlTab         = 'all';
+var _wlMoveId      = null;  /* watchlist id being moved to collection */
+var _wlAllSelected = false; /* select-all toggle state */
 
 async function loadWatchlist(){
   if(!currentUser) return;
@@ -3305,7 +3312,7 @@ function renderWatchlist(){
         + '</div>'
         + '<div class="wl-info">'
         +   '<div class="wl-title">'+escHtml(it.title)+'</div>'
-        +   '<div class="wl-meta">'+FMT_LABEL[it.format]||it.format+' · Added '+savedAgo+'</div>'
+        +   '<div class="wl-meta">'+(FMT_LABEL[it.format]||it.format)+' · Added '+savedAgo+'</div>'
         +   '<div class="wl-tags">'+tags+'</div>'
         + '</div>'
         + '<span class="wl-priority '+priCls+'">'+priLbl+'</span>'
