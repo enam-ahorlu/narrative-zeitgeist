@@ -93,6 +93,47 @@
 [data-theme="dark"] .auth-card { background: #172130; border-color: rgba(74,173,186,.25); }
 [data-theme="dark"] .auth-brand-name { color: var(--p-cyan); }
 [data-theme="dark"] .auth-h { color: var(--t-1); }
+
+/* ── Dark mode extras for contrast ── */
+/* Tag chips in picker — make them clearly legible */
+[data-theme="dark"] .tp { background: rgba(255,255,255,.08); color: var(--t-1); border-color: rgba(200,225,245,.12); }
+[data-theme="dark"] .tp:hover:not(.sel) { background: rgba(255,255,255,.13); }
+[data-theme="dark"] .tp.sel { background: rgba(74,173,186,.22); color: var(--p-cyan); border-color: var(--p-subtle); }
+/* Collection filter tag pills */
+[data-theme="dark"] .col-tag-pill { background: transparent; color: var(--t-2); border-color: rgba(200,225,245,.14); }
+[data-theme="dark"] .col-tag-pill:hover { border-color: var(--p-cyan); color: var(--p-cyan); }
+[data-theme="dark"] .col-tag-pill.active { background: rgba(74,173,186,.2); border-color: var(--p-subtle); color: var(--p-cyan); }
+/* Watchlist section headers */
+[data-theme="dark"] .wl-section { color: var(--t-3); }
+/* Recommendation card footer buttons */
+[data-theme="dark"] .rc { background: #172130; border-color: rgba(200,225,245,.09); }
+[data-theme="dark"] .rc:hover { background: #1E2D3E; }
+/* Fingerprint list items */
+[data-theme="dark"] .fp-bg { background: rgba(255,255,255,.07); }
+[data-theme="dark"] .fp-fill { background: linear-gradient(90deg, var(--p-deep), var(--p-light)); }
+/* Discovery tabs */
+[data-theme="dark"] .disc-tabs { border-bottom-color: rgba(200,225,245,.1); }
+[data-theme="dark"] .dtab { color: var(--t-3); }
+[data-theme="dark"] .dtab.active { color: var(--p-cyan); border-bottom-color: var(--p-cyan); }
+/* Pills */
+[data-theme="dark"] .pill { background: rgba(255,255,255,.07); border-color: rgba(200,225,245,.12); color: var(--t-2); }
+[data-theme="dark"] .pill:hover:not(.active) { background: rgba(255,255,255,.12); }
+[data-theme="dark"] .pill.active { background: rgba(74,173,186,.2); border-color: var(--p-subtle); color: var(--p-cyan); }
+/* Table */
+[data-theme="dark"] thead th { background: #172130; color: var(--t-3); border-bottom-color: rgba(200,225,245,.1); }
+[data-theme="dark"] tbody tr:hover td { background: rgba(255,255,255,.03); }
+/* Insight stat cards */
+[data-theme="dark"] .sc { background: #172130; }
+/* Sidebar nav items */
+[data-theme="dark"] .ni:hover { background: rgba(255,255,255,.06); }
+[data-theme="dark"] .ni.active { background: rgba(74,173,186,.15); }
+/* Watchlist tabs */
+[data-theme="dark"] .wl-stab { background: rgba(255,255,255,.06); border-color: rgba(200,225,245,.12); color: var(--t-2); }
+[data-theme="dark"] .wl-stab.active { background: rgba(74,173,186,.2); border-color: var(--p-subtle); color: var(--p-cyan); }
+/* Settings rows */
+[data-theme="dark"] .sr { border-bottom-color: rgba(200,225,245,.08); }
+/* Search input in collection */
+[data-theme="dark"] .fsearch input { background: rgba(255,255,255,.07); color: var(--t-1); border-color: rgba(200,225,245,.12); }
 body, .main, .card, .sc, .strip, .strip-item, .wl-item, .rc, .rc-body,
 .modal, .pat, .theme-option, .density-opt, .pill, .fsel, .fi, .btn-g,
 .tbl-wrap, thead th, tbody td, .tag, .auth-card, .fp-bg, .detail-influence,
@@ -1012,12 +1053,13 @@ textarea.fi{resize:vertical;min-height:64px}
       </div>
       <!-- D2: Format filter pills -->
       <div class="disc-format-pills">
-        <div class="pill active" onclick="setPill(this);_discPill='all';if(_discRecs)_renderDiscovery(_discRecs)">All</div>
-        <div class="pill" onclick="setPill(this);_discPill='films';if(_discRecs)_renderDiscovery(_discRecs)">Films</div>
-        <div class="pill" onclick="setPill(this);_discPill='shows';if(_discRecs)_renderDiscovery(_discRecs)">Shows</div>
-        <div class="pill" onclick="setPill(this);_discPill='books';if(_discRecs)_renderDiscovery(_discRecs)">Books</div>
-        <div class="pill" onclick="setPill(this);_discPill='matches';if(_discRecs)_renderDiscovery(_discRecs)">Matches</div>
-        <div class="pill" onclick="setPill(this);_discPill='music';if(_discRecs)_renderDiscovery(_discRecs)">Music</div>
+        <div class="pill active" onclick="setDiscPill(this,'all')">All</div>
+        <div class="pill" onclick="setDiscPill(this,'films')">Films</div>
+        <div class="pill" onclick="setDiscPill(this,'shows')">Shows</div>
+        <div class="pill" onclick="setDiscPill(this,'books')">Books</div>
+        <div class="pill" onclick="setDiscPill(this,'matches')">Matches</div>
+        <div class="pill" onclick="setDiscPill(this,'music')">Music</div>
+      </div>
       </div>
       <div class="disc-tabs">
         <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
@@ -1054,7 +1096,10 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="screen" id="s-watchlist">
       <div class="ph">
         <div><div class="ph-title">Watchlist</div><div class="ph-sub" id="wl-ph-sub">0 saved items</div></div>
-        <div class="ph-actions"><button class="btn btn-glass btn-sm">Select All</button><button class="btn btn-ghost btn-sm btn-danger">Remove Selected</button></div>
+        <div class="ph-actions">
+          <button class="btn btn-glass btn-sm" id="wl-sel-all-btn" onclick="wlToggleSelectAll()">Select All</button>
+          <button class="btn btn-ghost btn-sm btn-danger" onclick="wlRemoveSelected()">Remove Selected</button>
+        </div>
       </div>
       <div class="wl-content">
         <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
@@ -1063,7 +1108,11 @@ textarea.fi{resize:vertical;min-height:64px}
             <div class="wl-stab" onclick="setWlTab(this)">Up Next</div>
             <div class="wl-stab" onclick="setWlTab(this)">Maybe</div>
           </div>
-          <select class="fsel" style="margin-left:auto"><option>Sort: Date Added</option><option>Sort: Match %</option></select>
+          <select class="fsel" style="margin-left:auto" onchange="wlSort(this.value)">
+            <option value="date">Sort: Date Added</option>
+            <option value="match">Sort: Match %</option>
+            <option value="alpha">Sort: A → Z</option>
+          </select>
         </div>
         <!-- Watchlist empty state (hidden while items exist) -->
         <div class="empty-state" id="wl-empty" style="display:none">
@@ -2204,6 +2253,48 @@ function closeModal(id){
 }
 document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
 function setPill(el){el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});el.classList.add('active')}
+
+/* ── Discovery format pill (container class is disc-format-pills, not .pills) ── */
+function setDiscPill(el, pill){
+  el.closest('.disc-format-pills').querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
+  el.classList.add('active');
+  _discPill = pill;
+  if(_discRecs) _renderDiscovery(_discRecs);
+}
+
+/* ── Watchlist: select all / remove selected / sort ── */
+var _wlAllSelected = false;
+function wlToggleSelectAll(){
+  _wlAllSelected = !_wlAllSelected;
+  var btn = document.getElementById('wl-sel-all-btn');
+  if(btn) btn.textContent = _wlAllSelected ? 'Deselect All' : 'Select All';
+  document.querySelectorAll('#wl-list input[type="checkbox"]').forEach(function(cb){ cb.checked = _wlAllSelected; });
+}
+function wlRemoveSelected(){
+  var checked = Array.from(document.querySelectorAll('#wl-list input[type="checkbox"]:checked'));
+  if(!checked.length){ showToast('Select items to remove first'); return; }
+  var ids = checked.map(function(cb){ return cb.closest('.wl-item').dataset.wlId; }).filter(Boolean);
+  Promise.all(ids.map(function(id){
+    return SUPA.from('watchlist').delete().eq('id', id);
+  })).then(function(){
+    _wlItems = _wlItems.filter(function(it){ return ids.indexOf(it.id) < 0; });
+    _wlAllSelected = false;
+    var btn = document.getElementById('wl-sel-all-btn');
+    if(btn) btn.textContent = 'Select All';
+    renderWatchlist();
+    showToast(ids.length + ' item' + (ids.length > 1 ? 's' : '') + ' removed');
+  });
+}
+function wlSort(val){
+  if(val === 'match'){
+    _wlItems.sort(function(a,b){ return (b.match_score||0) - (a.match_score||0); });
+  } else if(val === 'alpha'){
+    _wlItems.sort(function(a,b){ return (a.title||'').localeCompare(b.title||''); });
+  } else {
+    _wlItems.sort(function(a,b){ return new Date(b.saved_at||0) - new Date(a.saved_at||0); });
+  }
+  renderWatchlist();
+}
 function setDiscTab(el,name){
   document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active')});
   el.classList.add('active');
@@ -2211,7 +2302,7 @@ function setDiscTab(el,name){
   _discRecs = null; /* invalidate cache so tab change fetches fresh results */
   loadDiscovery();
 }
-function setWlTab(el){document.querySelectorAll('.wl-stab').forEach(function(t){t.classList.remove('active')});el.classList.add('active')}
+/* setWlTab defined below with full _wlTab logic */
 function updateSportField(sel){document.getElementById('sport-field').style.display=sel.value==='Match'?'block':'none'}
 
 function applyTheme(el,deep,light,sbDeep){
@@ -3134,7 +3225,7 @@ function renderWatchlist(){
   if(emptyEl) emptyEl.style.display = 'none';
 
   /* Group by format */
-  var FMT_SECTION = { show:'SHOWS', book:'BOOKS', sports_match:'MATCHES', music:'MUSIC' };
+  var FMT_SECTION = { film:'FILMS', show:'SHOWS', book:'BOOKS', sports_match:'MATCHES', music:'MUSIC' };
   var groups = {};
   var groupOrder = [];
   items.forEach(function(it){
