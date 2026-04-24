@@ -2588,7 +2588,8 @@ function renderColTagPills(entries){
   }
   container.innerHTML=tags.map(function(tag){
     var active=colFilter.tags.indexOf(tag)>=0;
-    return '<span class="col-tag-pill'+(active?' active':'')+'" onclick="toggleTagFilter(this,''+tag.replace(/'/g,"\'")+'')">#'+tag+'</span>';
+    var safeTag=tag.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    return '<span class="col-tag-pill'+(active?' active':'')+'" data-tag="'+safeTag+'" onclick="toggleTagFilter(this,this.dataset.tag)">#'+tag+'</span>';
   }).join('');
 }
 function setColPill(el){
