@@ -1926,12 +1926,96 @@ async function loadTagPicker(preselected){
     .eq('user_id', currentUser.id).order('name');
   var userTags = (res.data || []).map(function(r){ return r.name; });
   /* Merge with preset tags so new users see something useful */
-  var presets = ['antihero','moral complexity','character-driven','world-building',
+  var presets = [
+    /* ── Narrative Themes & Storytelling ── */
+    'antihero','moral complexity','character-driven','world-building',
     'ensemble cast','slow burn','twist ending','political drama','psychological',
     'redemption','identity','power & corruption','survival','love & loss',
-    'family','betrayal','justice','grief','trauma','isolation','atmospheric',
-    'satire','coming-of-age','dark comedy','mystery','sci-fi','fantasy',
-    'based on true events','cinematic','lyrical'];
+    'family','betrayal','justice','grief','trauma','isolation',
+    'coming-of-age','satire','dark comedy','based on true events',
+    'unreliable narrator','nonlinear narrative','dual timeline','epistolary',
+    'mythology','folklore','magical realism','dystopia','utopia',
+    'revenge','obsession','forbidden love','second chances','found family',
+    'class struggle','race & identity','gender & sexuality','religion & faith',
+    'war & conflict','colonialism','immigration','addiction',
+    'memory & nostalgia','time','death & dying','rebirth','legacy',
+
+    /* ── Vibes & Atmosphere ── */
+    'atmospheric','cinematic','lyrical','immersive','meditative',
+    'dark & gritty','cozy','melancholic','euphoric','tense',
+    'haunting','hopeful','bleak','whimsical','surreal',
+    'minimalist','maximalist','dreamlike','unsettling','warm',
+    'cold & clinical','chaotic','quiet','intense','playful',
+
+    /* ── Emotional Responses ── */
+    'made me cry','made me think','felt seen','disturbing',
+    'laugh-out-loud','cathartic','inspiring','infuriating','heartwarming',
+    'devastating','uplifting','comforting','challenging','nostalgic',
+    'exhilarating','anxious','hopeful','bitter','bittersweet',
+
+    /* ── Film Genres ── */
+    'action','adventure','thriller','horror','psychological horror',
+    'slasher','crime','film noir','heist','spy','neo-noir',
+    'drama','romance','rom-com','comedy','animation','documentary',
+    'biopic','historical','period piece','war film','western',
+    'sci-fi','fantasy','superhero','martial arts','body horror',
+    'found footage','mockumentary','arthouse','experimental',
+
+    /* ── TV Show Genres ── */
+    'prestige drama','limited series','procedural','legal drama',
+    'medical drama','police procedural','true crime','docuseries',
+    'reality tv','talk show','sitcom','animated series',
+    'soap opera','mini-series','anthology','telenovela',
+
+    /* ── Book Genres ── */
+    'literary fiction','contemporary fiction','historical fiction',
+    'short stories','novella','poetry','essay collection',
+    'memoir','autobiography','biography','narrative nonfiction',
+    'self-help','philosophy','psychology','sociology','economics',
+    'science','nature writing','travel writing','food writing',
+    'graphic novel','manga','young adult','middle grade','children',
+    'hard sci-fi','space opera','cli-fi','weird fiction',
+    'gothic','horror fiction','cozy mystery','police procedural fiction',
+    'legal thriller','medical thriller','techno-thriller',
+    'romance fiction','paranormal romance','epic fantasy',
+    'urban fantasy','high fantasy','low fantasy','grimdark',
+
+    /* ── Music Genres ── */
+    'hip-hop','rap','trap','drill','boom bap','conscious rap',
+    'r&b','neo soul','soul','funk','gospel','blues',
+    'pop','indie pop','synth-pop','electropop','k-pop','j-pop',
+    'rock','indie rock','alternative','grunge','punk','post-punk',
+    'metal','heavy metal','death metal','black metal','doom metal',
+    'jazz','bebop','free jazz','fusion jazz','smooth jazz','big band',
+    'classical','orchestral','chamber music','opera','choral',
+    'electronic','house','techno','ambient','drone','edm',
+    'drum & bass','jungle','garage','grime','dubstep',
+    'folk','singer-songwriter','country','americana','bluegrass',
+    'reggae','dancehall','afrobeats','afropop','highlife','amapiano',
+    'latin','salsa','bossa nova','cumbia','reggaeton',
+    'world music','experimental','noise','lo-fi','vaporwave',
+
+    /* ── Sports & Match Terms ── */
+    'final','semifinal','quarterfinal','derby','rivalry','upset',
+    'comeback','dominant performance','title decider','group stage',
+    'knockout stage','playoff','championship','league match','cup tie',
+    'el clasico','local derby','international','friendly',
+    'individual sport','team sport','combat sport','endurance',
+    'record-breaking','hat trick','shutout','overtime','penalty shootout',
+    'tactics','pressing','possession','counter-attack','set piece',
+    'relegation battle','title race','historic','iconic',
+    'football','soccer','basketball','tennis','cricket',
+    'rugby','american football','baseball','golf','formula 1',
+    'athletics','swimming','cycling','boxing','mma','wrestling',
+    'olympic','world cup','champions league','grand slam',
+
+    /* ── Quality & Craft ── */
+    'masterpiece','underrated','overrated','cult classic','hidden gem',
+    'awards bait','crowd pleaser','slow starter','strong finish',
+    'great performances','weak ending','uneven','consistent',
+    'visually stunning','great soundtrack','poor pacing','tight writing',
+    'quotable','re-watchable','re-readable','long but worth it'
+  ];
   var all = userTags.slice();
   presets.forEach(function(p){
     if(all.indexOf(p) < 0) all.push(p);
