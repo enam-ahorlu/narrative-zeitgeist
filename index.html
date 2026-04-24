@@ -3926,4 +3926,72 @@ function _doContentSearch(q){
         var posterHtml = r.poster_url
           ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
           : '<div class="cs-poster-ph">'+fmtIcon+'</div>';
-        var typeLabel = isAll && r._type ? '<span style="
+        var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+(_TYPE_LABEL[r._type]||'')+'</span>' : '';
+        var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,55):'');
+        return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
+          +posterHtml
+          +'<div class="cs-info">'
+            +'<div class="cs-title-txt">'+typeLabel+escHtml(r.title)+'</div>'
+            +'<div class="cs-meta-txt">'+escHtml(meta)+'</div>'
+          +'</div></div>';
+      }).join('') + '<div class="cs-divider"></div>' + manualRow;
+    })
+    .catch(function(){
+      drop.innerHTML = '<div class="cs-searching">Search unavailable</div>';
+    });
+}
+
+function _pickSearchResult(idx){
+  var r = _csResults[idx];
+  if(!r) return;
+  /* Set title */
+  var titleInp = document.getElementById('add-title');
+  if(titleInp) titleInp.value = r.title;
+  /* Auto-set format from result type */
+  var _typeToFmt = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
+  if(r._type && _typeToFmt[r._type]){
+    var fmtSel = document.getElementById('add-format');
+    if(fmtSel){ fmtSel.value = _typeToFmt[r._type]; updateSportField(fmtSel); }
+  }
+  /* Clear old poster first, then apply new one */
+  clearPoster();
+  _posterUrl = r.poster_url || null;
+  var drop = document.getElementById('cs-drop');
+  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
+  var cpw = document.getElementById('cover-poster-wrap');
+  var cpi = document.getElementById('cover-poster-img');
+  var cpt = document.getElementById('cover-poster-title');
+  var cpy = document.getElementById('cover-poster-year');
+  if(cpw && cpi){
+    if(_posterUrl){
+      cpi.src = _posterUrl;
+      if(cpt) cpt.textContent = r.title;
+      if(cpy) cpy.textContent = r.year ? r.year : '';
+      cpw.classList.add('visible');
+    }
+  }
+}
+
+function clearPoster(){
+  _posterUrl = null;
+  var cpw = document.getElementById('cover-poster-wrap');
+  if(cpw) cpw.classList.remove('visible');
+}
+
+function _closeSearchDrop(){
+  var drop = document.getElementById('cs-drop');
+  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
+}
+
+/* Close search dropdown on outside click */
+document.addEventListener('click', function(e){
+  var drop = document.getElementById('cs-drop');
+  var inp  = document.getElementById('add-title');
+  if(drop && !drop.contains(e.target) && e.target !== inp){
+    drop.classList.remove('open');
+  }
+});
+
+</script>
+</body>
+</html>
