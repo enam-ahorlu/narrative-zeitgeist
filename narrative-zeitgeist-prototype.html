@@ -1894,15 +1894,58 @@ async function upsertEntryTags(entryId, tagNames){
   for(var i = 0; i < tagNames.length; i++){
     var name = tagNames[i].toLowerCase().trim();
     if(!name) continue;
-    var tagRes = await SUPA.from('tags')
-      .upsert({user_id: currentUser.id, name: name}, {onConflict: 'user_id,name'})
-      .select('id').single();
-    if(tagRes.error || !tagRes.data) continue;
+    /* Step 1: try to find existing tag first — upsert's .select() returns
+       nothing when no update is made (tag already exists), so we select first */
+    var existing = await SUPA.from('tags')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('name', name)
+      .maybeSingle();
+    var tagId = existing.data ? existing.data.id : null;
+    /* Step 2: if not found, insert it */
+    if(!tagId){
+      var ins = await SUPA.from('tags')
+        .insert({user_id: currentUser.id, name: name})
+        .select('id').single();
+      if(ins.error || !ins.data){ console.warn('Tag insert failed:', name, ins.error); continue; }
+      tagId = ins.data.id;
+    }
+    /* Step 3: link tag to entry */
     await SUPA.from('entry_tags')
-      .upsert({entry_id: entryId, tag_id: tagRes.data.id}, {ignoreDuplicates: true});
+      .upsert({entry_id: entryId, tag_id: tagId}, {ignoreDuplicates: true});
   }
 }
 /* ══════════════════════════════════════════════ */
+
+/* Load user's real tags from Supabase into the Add Entry tag picker */
+async function loadTagPicker(preselected){
+  if(!currentUser) return;
+  var picker = document.getElementById('tag-picker');
+  if(!picker) return;
+  var res = await SUPA.from('tags').select('name')
+    .eq('user_id', currentUser.id).order('name');
+  var userTags = (res.data || []).map(function(r){ return r.name; });
+  /* Merge with preset tags so new users see something useful */
+  var presets = ['antihero','moral complexity','character-driven','world-building',
+    'ensemble cast','slow burn','twist ending','political drama','psychological',
+    'redemption','identity','power & corruption','survival','love & loss',
+    'family','betrayal','justice','grief','trauma','isolation','atmospheric',
+    'satire','coming-of-age','dark comedy','mystery','sci-fi','fantasy',
+    'based on true events','cinematic','lyrical'];
+  var all = userTags.slice();
+  presets.forEach(function(p){
+    if(all.indexOf(p) < 0) all.push(p);
+  });
+  var sel = (preselected || []).map(function(t){ return t.toLowerCase(); });
+  var html = '';
+  all.forEach(function(tag){
+    var isSelected = sel.indexOf(tag.toLowerCase()) >= 0;
+    var cls = isSelected ? 'tp sel' : 'tp';
+    var safeTag = tag.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+    html += '<div class="'+cls+'" onclick="this.classList.toggle(\x27sel\x27)">'+safeTag+'</div>';
+  });
+  picker.innerHTML = html;
+}
 
 function navigate(scr){
   // Update desktop sidebar
@@ -2058,7 +2101,10 @@ async function enterApp(){
 async function signOut(){ await SUPA.auth.signOut(); }
 function openModal(id){
   document.getElementById('m-'+id).classList.add('open');
-  if(id==='add'){updateRatingRef(document.getElementById('add-rating').value);}
+  if(id==='add'){
+    updateRatingRef(document.getElementById('add-rating').value);
+    loadTagPicker([]); /* always load fresh tags from Supabase */
+  }
 }
 function closeModal(id){
   document.getElementById('m-'+id).classList.remove('open');
@@ -2306,11 +2352,11 @@ function openEditModal(){
   _posterUrl = currentEntry ? (currentEntry.poster_url || null) : null;
   if(_posterUrl){ var cpw=document.getElementById('cover-poster-wrap'); var cpi=document.getElementById('cover-poster-img'); if(cpw&&cpi){ cpi.src=_posterUrl; cpw.classList.add('visible'); } }
 
-  /* Pre-select matching tags — read from currentEntry for accuracy (detail view may truncate) */
-  var detailTags = currentEntry && Array.isArray(currentEntry.tags) ? currentEntry.tags.map(function(t){ return t.toLowerCase(); }) : [];
-  document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
-    tp.classList.toggle('sel', detailTags.indexOf(tp.textContent.trim().toLowerCase()) >= 0);
-  });
+  /* Load picker with user's real tags, pre-selecting this entry's tags */
+  var detailTags = currentEntry && Array.isArray(currentEntry.tags)
+    ? currentEntry.tags.map(function(t){ return (t.name || t || '').toLowerCase(); })
+    : [];
+  loadTagPicker(detailTags);
 
   /* Pre-select the cover swatch that matches the entry's current cover */
   var detailCoverEl=document.getElementById('detail-cover');
