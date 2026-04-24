@@ -780,6 +780,11 @@ textarea.fi{resize:vertical;min-height:64px}
 /* ── External ratings badges (OMDb) ── */
 .ext-rb{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:var(--r-full);font-size:11px;font-weight:500;background:var(--n-bg);border:1px solid var(--n-border);color:var(--t-2)}
 .ext-rb-src{font-weight:700;color:var(--t-3);font-size:10px;letter-spacing:.03em}
+/* ── Back navigation button ── */
+#nav-back-btn{display:none;position:fixed;top:14px;left:72px;z-index:200;background:var(--n-surface);border:1px solid var(--n-border);border-radius:var(--r-full);padding:6px 14px 6px 10px;font-size:13px;font-weight:500;color:var(--t-2);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.08);transition:background .15s,color .15s;display:none;align-items:center;gap:5px;}
+#nav-back-btn:hover{background:var(--p-ghost);color:var(--p-rich);}
+[data-theme="dark"] #nav-back-btn{background:var(--n-surface);border-color:var(--n-border);color:var(--t-2);}
+@media(max-width:768px){#nav-back-btn{left:12px;top:12px;}}
 </style>
 </head>
 <body>
@@ -895,6 +900,7 @@ textarea.fi{resize:vertical;min-height:64px}
   </nav>
 
   <main class="main">
+    <button id="nav-back-btn" onclick="navigateBack()" aria-label="Go back">← Back</button>
 
     <!-- COLLECTION -->
     <div class="screen active" id="s-collection">
@@ -1746,8 +1752,11 @@ function _showApp(){
   var ue = document.querySelector('.ue');
   if(currentUser && un) un.textContent = (currentUser.user_metadata && currentUser.user_metadata.display_name) || currentUser.email.split('@')[0];
   var sbEmail = document.getElementById('sb-user-email'); if(sbEmail && currentUser) sbEmail.textContent = currentUser.email||'';
-  populateSettings();
   if(currentUser && ue) ue.textContent = currentUser.email;
+  // Restore the screen the user was on before a reload, or default to collection
+  var hashScr = location.hash.replace('#','');
+  var startScr = (_validScreens && _validScreens.indexOf(hashScr) >= 0) ? hashScr : 'collection';
+  navigate(startScr, {pushHash: false});
 }
 function _showAuthScreen(){
   document.getElementById('app').classList.remove('show');
@@ -2080,7 +2089,22 @@ async function loadTagPicker(preselected){
   picker.innerHTML = html;
 }
 
-function navigate(scr){
+var _validScreens = ['collection','watchlist','discover','insights','settings','designsystem'];
+var _navHistory = [];
+
+function navigate(scr, opts){
+  opts = opts || {};
+  var pushHash    = opts.pushHash    !== false;
+  var pushHistory = opts.pushHistory !== false;
+  // Validate screen name — fall back to collection if unknown
+  if(_validScreens.indexOf(scr) < 0) scr = 'collection';
+  // Push to internal history stack (avoid duplicating current screen)
+  var prev = _navHistory[_navHistory.length - 1];
+  if(pushHistory && prev !== scr) _navHistory.push(scr);
+  // Sync URL hash without triggering a popstate
+  if(pushHash && location.hash !== '#' + scr){
+    history.pushState({screen: scr}, '', '#' + scr);
+  }
   // Update desktop sidebar
   document.querySelectorAll('.ni').forEach(function(n){
     n.classList.toggle('active', n.dataset.screen===scr);
@@ -2092,21 +2116,48 @@ function navigate(scr){
   // Switch screen
   document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
   var t=document.getElementById('s-'+scr);
-  if(t){t.classList.add('active')}
+  if(t){t.classList.add('active');}
+  // Per-screen data loading
+  if(scr==='watchlist'){loadWatchlist();}
+  if(scr==='discover'){loadDiscovery();}
   if(scr==='insights'){
     setTimeout(function(){
       initCharts();
       if(!_fp) loadFingerprint(); else { renderInsights(_fp); _applyFpToCharts(_fp); }
     }, 80);
   }
-  if(scr==='discover'){loadDiscovery();}
-  if(scr==='settings'){populateSettings();}
   if(scr==='settings'){
+    populateSettings();
     var isDark=document.documentElement.getAttribute('data-theme')==='dark';
     var tog=document.getElementById('dm-setting-toggle');
-    if(tog){isDark?tog.classList.add('on'):tog.classList.remove('on')}
+    if(tog){isDark?tog.classList.add('on'):tog.classList.remove('on');}
+  }
+  _updateBackBtn();
+}
+
+function navigateBack(){
+  // Pop the current screen off the stack
+  _navHistory.pop();
+  var prev = _navHistory[_navHistory.length - 1] || 'collection';
+  navigate(prev, {pushHistory: false});
+}
+
+function _updateBackBtn(){
+  var btn = document.getElementById('nav-back-btn');
+  if(!btn) return;
+  // Show back button only when there's a previous screen to return to
+  if(_navHistory.length > 1){
+    btn.style.display = 'flex';
+  } else {
+    btn.style.display = 'none';
   }
 }
+
+// Browser back/forward button support
+window.addEventListener('popstate', function(e){
+  var scr = (e.state && e.state.screen) || location.hash.replace('#','') || 'collection';
+  navigate(scr, {pushHash: false, pushHistory: false});
+});
 
 document.querySelectorAll('.ni').forEach(function(item){
   item.addEventListener('click',function(){
@@ -3875,72 +3926,4 @@ function _doContentSearch(q){
         var posterHtml = r.poster_url
           ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
           : '<div class="cs-poster-ph">'+fmtIcon+'</div>';
-        var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+(_TYPE_LABEL[r._type]||'')+'</span>' : '';
-        var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,55):'');
-        return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
-          +posterHtml
-          +'<div class="cs-info">'
-            +'<div class="cs-title-txt">'+typeLabel+escHtml(r.title)+'</div>'
-            +'<div class="cs-meta-txt">'+escHtml(meta)+'</div>'
-          +'</div></div>';
-      }).join('') + '<div class="cs-divider"></div>' + manualRow;
-    })
-    .catch(function(){
-      drop.innerHTML = '<div class="cs-searching">Search unavailable</div>';
-    });
-}
-
-function _pickSearchResult(idx){
-  var r = _csResults[idx];
-  if(!r) return;
-  /* Set title */
-  var titleInp = document.getElementById('add-title');
-  if(titleInp) titleInp.value = r.title;
-  /* Auto-set format from result type */
-  var _typeToFmt = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
-  if(r._type && _typeToFmt[r._type]){
-    var fmtSel = document.getElementById('add-format');
-    if(fmtSel){ fmtSel.value = _typeToFmt[r._type]; updateSportField(fmtSel); }
-  }
-  /* Clear old poster first, then apply new one */
-  clearPoster();
-  _posterUrl = r.poster_url || null;
-  var drop = document.getElementById('cs-drop');
-  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-  var cpw = document.getElementById('cover-poster-wrap');
-  var cpi = document.getElementById('cover-poster-img');
-  var cpt = document.getElementById('cover-poster-title');
-  var cpy = document.getElementById('cover-poster-year');
-  if(cpw && cpi){
-    if(_posterUrl){
-      cpi.src = _posterUrl;
-      if(cpt) cpt.textContent = r.title;
-      if(cpy) cpy.textContent = r.year ? r.year : '';
-      cpw.classList.add('visible');
-    }
-  }
-}
-
-function clearPoster(){
-  _posterUrl = null;
-  var cpw = document.getElementById('cover-poster-wrap');
-  if(cpw) cpw.classList.remove('visible');
-}
-
-function _closeSearchDrop(){
-  var drop = document.getElementById('cs-drop');
-  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-}
-
-/* Close search dropdown on outside click */
-document.addEventListener('click', function(e){
-  var drop = document.getElementById('cs-drop');
-  var inp  = document.getElementById('add-title');
-  if(drop && !drop.contains(e.target) && e.target !== inp){
-    drop.classList.remove('open');
-  }
-});
-
-</script>
-</body>
-</html>
+        var typeLabel = isAll && r._type ? '<span style="
