@@ -2757,12 +2757,43 @@ async function loadDiscovery(force){
   /* Build a minimal synthetic fingerprint if the real one isn't available yet */
   var fpToSend = _fp;
   if(!fpToSend){
-    var sumRating = _allEntries.reduce(function(s,e){ return s + (parseFloat(e.rating)||0); }, 0);
+    /* Build a rich synthetic fingerprint directly from _allEntries */
+    var sumRating = 0, ratedCount = 0;
+    var fmtMap = {};
+    var tagFreq = {}, tagRating = {};
+    _allEntries.forEach(function(e){
+      var r = parseFloat(e.rating);
+      if(!isNaN(r)){ sumRating += r; ratedCount++; }
+      var fmt = e.format || 'unknown';
+      if(!fmtMap[fmt]) fmtMap[fmt] = {count:0, sum:0, rated:0};
+      fmtMap[fmt].count++;
+      if(!isNaN(r)){ fmtMap[fmt].sum += r; fmtMap[fmt].rated++; }
+      (e.tags||[]).forEach(function(t){
+        var name = (t.name||t||'').toLowerCase();
+        if(!name) return;
+        tagFreq[name] = (tagFreq[name]||0) + 1;
+        if(!tagRating[name]) tagRating[name] = {sum:0,n:0};
+        if(!isNaN(r)){ tagRating[name].sum += r; tagRating[name].n++; }
+      });
+    });
+    /* Format breakdown */
+    var fmtBreak = {};
+    Object.keys(fmtMap).forEach(function(k){
+      var d = fmtMap[k];
+      fmtBreak[k] = {count: d.count, avg_rating: d.rated ? (d.sum/d.rated).toFixed(1) : '0'};
+    });
+    /* Primary themes sorted by frequency */
+    var maxFreq = Math.max.apply(null, Object.keys(tagFreq).map(function(k){return tagFreq[k];})) || 1;
+    var themes = Object.keys(tagFreq).map(function(tag){
+      var avg = tagRating[tag] && tagRating[tag].n ? tagRating[tag].sum/tagRating[tag].n : 0;
+      return {tag: tag, frequency: tagFreq[tag], avg_rating: avg.toFixed(1),
+              weight: (avg * tagFreq[tag] / maxFreq).toFixed(4)};
+    }).sort(function(a,b){ return parseFloat(b.weight)-parseFloat(a.weight); });
     fpToSend = {
       total_entries: _allEntries.length,
-      primary_themes: [],
-      format_breakdown: {},
-      overall_avg_rating: _allEntries.length ? (sumRating / _allEntries.length).toFixed(1) : '0'
+      primary_themes: themes,
+      format_breakdown: fmtBreak,
+      overall_avg_rating: ratedCount ? (sumRating/ratedCount).toFixed(1) : '0'
     };
   }
   try {
@@ -3169,7 +3200,8 @@ async function loadFingerprint(){
     .eq('user_id', currentUser.id)
     .single();
   if(res.error || !res.data){ renderInsights(null); return; }
-  _fp = res.data;
+  /* user_fingerprints stores data inside fingerprint_json column */
+  _fp = res.data.fingerprint_json || res.data;
   renderInsights(_fp);
   loadTimelineData();
 }
