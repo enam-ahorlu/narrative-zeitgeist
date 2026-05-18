@@ -1671,6 +1671,40 @@ textarea.fi{resize:vertical;min-height:64px}
   </div>
 </div>
 
+<!-- SET NEW PASSWORD MODAL (shown after password-reset link is clicked) -->
+<div class="overlay" id="m-newpass" style="display:none">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-h">
+      <div class="modal-title">Set new password</div>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--t-2);margin:0 0 18px;line-height:1.55">Choose a strong new password for your account.</p>
+      <div class="fgrid">
+        <div class="fl ff">
+          <label>NEW PASSWORD</label>
+          <div style="position:relative">
+            <input id="newpass-inp" class="fi" type="password" placeholder="At least 6 characters" style="padding-right:40px" onkeydown="if(event.key==='Enter')saveNewPassword()">
+            <button type="button" onclick="togglePassVis('newpass-inp',this)" aria-label="Show/hide password" style="position:absolute;right:9px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--t-3);padding:2px;display:flex;align-items:center">
+              <svg id="eye-newpass-inp" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="fl ff">
+          <label>CONFIRM PASSWORD</label>
+          <input id="newpass-confirm-inp" class="fi" type="password" placeholder="Repeat your new password" onkeydown="if(event.key==='Enter')saveNewPassword()">
+        </div>
+      </div>
+      <div id="newpass-err" style="font-size:12.5px;min-height:18px;margin-top:8px"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-p" id="newpass-save-btn" onclick="saveNewPassword()">Save password</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ══════════════════════════════════════════════
    SUPABASE CLIENT + DATA LAYER
@@ -2257,6 +2291,10 @@ function _authErr(msg){
   if(!el) return;
   el.textContent = msg;
   el.style.display = msg ? 'block' : 'none';
+  /* Reset to default error styling (in case signup-success teal was applied) */
+  el.style.color = '#B5474A';
+  el.style.background = 'rgba(181,71,74,.08)';
+  el.style.borderColor = 'rgba(181,71,74,.2)';
 }
 async function enterApp(){
   _authErr('');
@@ -2265,6 +2303,10 @@ async function enterApp(){
   var btn      = document.getElementById('auth-submit-btn');
   if(!email)    { _authErr('Please enter your email address.'); return; }
   if(!password) { _authErr('Please enter your password.'); return; }
+  if(_authMode === 'signup' && password.length < 6){
+    _authErr('Password must be at least 6 characters.');
+    return;
+  }
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Creating account…' : 'Signing in…'; btn.disabled = true; }
 
   if(_authMode === 'signup'){
@@ -2273,8 +2315,22 @@ async function enterApp(){
       email: email, password: password,
       options: { data: { display_name: name || email.split('@')[0] } }
     });
-    if(res.error){ _authErr(res.error.message); }
-    /* onAuthStateChange handles the transition to the app */
+    if(res.error){
+      _authErr(res.error.message);
+    } else if(!res.data.session){
+      /* Email confirmation required — session not yet granted */
+      var errEl = document.getElementById('auth-err');
+      if(errEl){
+        errEl.textContent = '✓ Account created! Check your email to confirm your account before signing in.';
+        errEl.style.color = 'var(--p-mid)';
+        errEl.style.background = 'rgba(74,173,186,.08)';
+        errEl.style.borderColor = 'rgba(74,173,186,.25)';
+        errEl.style.display = 'block';
+      }
+      if(btn){ btn.textContent = 'Create account'; btn.disabled = false; }
+      return;
+    }
+    /* If session exists, onAuthStateChange handles the transition to the app */
   } else {
     var res = await SUPA.auth.signInWithPassword({email: email, password: password});
     if(res.error){
@@ -3439,20 +3495,36 @@ async function sendPasswordReset(){
   }
   var emailInp = document.getElementById('auth-email-inp');
   var email = emailInp ? emailInp.value.trim() : '';
+  /* If called from Settings (auth form not visible), fall back to logged-in user's email */
+  if(!email && typeof currentUser !== 'undefined' && currentUser && currentUser.email){
+    email = currentUser.email;
+  }
   if(!email){ _authErr('Enter your email address first.'); return; }
-  var btn = document.getElementById('auth-submit-btn');
+  /* Use auth-submit-btn if on auth screen, otherwise the Settings "Change Password" button */
+  var btn = document.getElementById('auth-submit-btn') || document.querySelector('#s-account .btn.btn-glass');
   if(btn){ btn.textContent = 'Sending\u2026'; btn.disabled = true; }
   var res = await SUPA.auth.resetPasswordForEmail(email, {
     redirectTo: window.location.origin + window.location.pathname
   });
   if(btn) btn.disabled = false;
   if(res.error){
-    if(btn) btn.textContent = 'Send reset link';
+    if(btn) btn.textContent = document.getElementById('auth-submit-btn') ? 'Send reset link' : 'Change Password';
     _authErr(res.error.message || 'Could not send reset email.');
+    /* If called from settings, show toast instead of auth error */
+    if(!document.getElementById('auth-submit-btn')){
+      _authErr('');
+      showToast(res.error.message || 'Could not send reset email.', '\u2717  ');
+    }
     return;
   }
   _resetCooldownUntil = Date.now() + 60000;
   _authErr('');
+  /* Show success feedback contextually */
+  if(!document.getElementById('auth-submit-btn')){
+    showToast('Password reset email sent to ' + email, '\u2709  ');
+    if(btn){ btn.textContent = 'Email sent!'; setTimeout(function(){ btn.textContent = 'Change Password'; }, 4000); }
+    return;
+  }
   if(btn){
     var countdown = 60;
     btn.textContent = 'Email sent! Resend in 60s\u2026';
@@ -3468,6 +3540,38 @@ async function sendPasswordReset(){
       btn.textContent = 'Resend in ' + countdown + 's\u2026';
     }, 1000);
   }
+}
+
+/* ── Save new password (called from m-newpass modal after reset link) ── */
+async function saveNewPassword(){
+  var inp      = document.getElementById('newpass-inp');
+  var conf     = document.getElementById('newpass-confirm-inp');
+  var errEl    = document.getElementById('newpass-err');
+  var btn      = document.getElementById('newpass-save-btn');
+  var newPass  = inp  ? inp.value  : '';
+  var confPass = conf ? conf.value : '';
+  if(errEl){ errEl.textContent = ''; errEl.style.color = '#B5474A'; }
+  if(newPass.length < 6){
+    if(errEl) errEl.textContent = 'Password must be at least 6 characters.';
+    return;
+  }
+  if(newPass !== confPass){
+    if(errEl) errEl.textContent = 'Passwords do not match.';
+    return;
+  }
+  if(btn){ btn.textContent = 'Saving…'; btn.disabled = true; }
+  var res = await SUPA.auth.updateUser({ password: newPass });
+  if(btn){ btn.textContent = 'Save password'; btn.disabled = false; }
+  if(res.error){
+    if(errEl) errEl.textContent = res.error.message || 'Could not update password.';
+    return;
+  }
+  /* Success */
+  var modal = document.getElementById('m-newpass');
+  if(modal) modal.style.display = 'none';
+  if(inp)  inp.value  = '';
+  if(conf) conf.value = '';
+  showToast('Password updated successfully', '🔒 ');
 }
 
 /* ── Taste Fingerprint / Insights ── */
