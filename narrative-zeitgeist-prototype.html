@@ -1989,6 +1989,8 @@ function openDetailModal(entry){
     '</div>';
 
   openModal('detail');
+  _renderDetailInfluence(entry);
+  _renderRelatedEntries(entry);
 
   /* Fetch external ratings (OMDb) for films and shows */
   var _extEl = document.getElementById('ext-ratings');
@@ -2009,6 +2011,90 @@ function openDetailModal(entry){
       })
       .catch(function(){});
   }
+}
+
+/* ── Render live Taste Influence in detail modal ── */
+function _renderDetailInfluence(entry){
+  var el=document.querySelector('.detail-influence');
+  if(!el)return;
+  var tags=Array.isArray(entry.tags)?entry.tags:[];
+  if(!tags.length||!_fp||!(_fp.primary_themes||[]).length){
+    el.innerHTML='<div class="di-label">Taste Influence</div>'+
+      '<div class="di-text">'+(tags.length?'Fingerprint not yet computed.':'Add tags to see this entry\'s influence on your taste fingerprint.')+'</div>';
+    return;
+  }
+  var themes=(_fp.primary_themes||[]).slice(0,20);
+  var matched=themes.filter(function(t){
+    return tags.some(function(tag){return tag.toLowerCase()===t.tag.toLowerCase();});
+  }).slice(0,3);
+  if(!matched.length){
+    el.innerHTML='<div class="di-label">Taste Influence</div>'+
+      '<div class="di-text">This entry\'s tags don\'t overlap with your current top themes — log more similar entries to build impact.</div>';
+    return;
+  }
+  var topTheme=matched[0].tag;
+  var ratingVal=parseFloat(entry.rating)||0;
+  var similar=(_allEntries||[]).filter(function(e){
+    return e.id!==entry.id&&(e.tags||[]).some(function(t){return t.toLowerCase()===topTheme.toLowerCase();});
+  });
+  var rank=similar.filter(function(e){return parseFloat(e.rating)>ratingVal;}).length+1;
+  var total=similar.length+1;
+  var impact=matched.length>=2?'high':ratingVal>=8.5?'high':ratingVal>=7?'medium':'low';
+  var themeNames=matched.map(function(t){return '<strong>'+escHtml(t.tag)+'</strong>';});
+  var themeStr=themeNames.length===1?themeNames[0]:themeNames.length===2?themeNames[0]+' and '+themeNames[1]:themeNames[0]+', '+themeNames[1]+' and '+themeNames[2];
+  el.innerHTML='<div class="di-label">Taste Influence</div>'+
+    '<div class="di-text">This entry contributes to your '+themeStr+' fingerprint score'+(matched.length>1?'s':'')+'. Weighted impact: <strong>'+impact+'</strong>'+(total>1?' — ranked '+rank+' of '+total+' in this theme.':'.')+'</div>';
+}
+
+/* ── Render live Related Entries in detail modal ── */
+function _renderRelatedEntries(entry){
+  var container=document.querySelector('.detail-related');
+  if(!container)return;
+  var tags=Array.isArray(entry.tags)?entry.tags:[];
+  var others=(_allEntries||[]).filter(function(e){return e.id!==entry.id;});
+  if(!tags.length||!others.length){
+    container.innerHTML='<div class="detail-rel-label">From your collection — similar taste</div>'+
+      '<div style="font-size:12.5px;color:var(--t-3);padding:8px 0">'+(others.length?'Add tags to find similar entries.':'No other entries in your collection yet.')+'</div>';
+    return;
+  }
+  var scored=others.map(function(e){
+    var eTags=(e.tags||[]).map(function(t){return t.toLowerCase();});
+    var shared=tags.filter(function(t){return eTags.indexOf(t.toLowerCase())>=0;});
+    return{entry:e,shared:shared,score:shared.length};
+  }).filter(function(r){return r.score>0;})
+    .sort(function(a,b){return b.score-a.score||parseFloat(b.entry.rating)-parseFloat(a.entry.rating);})
+    .slice(0,3);
+  if(!scored.length){
+    container.innerHTML='<div class="detail-rel-label">From your collection — similar taste</div>'+
+      '<div style="font-size:12.5px;color:var(--t-3);padding:8px 0">No other entries share these tags yet.</div>';
+    return;
+  }
+  var itemsHtml=scored.map(function(r){
+    var e=r.entry;
+    var grad=e.cover_color||'linear-gradient(135deg,#1B5E76,#4AADBA)';
+    var initials=e.title.split(/\s+/).slice(0,3).map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,4);
+    var thumbHtml=e.poster_url
+      ?'<div class="detail-rel-thumb" style="background-image:url('+escHtml(e.poster_url)+');background-size:cover;background-position:center"></div>'
+      :'<div class="detail-rel-thumb" style="background:'+grad+'">'+escHtml(initials)+'</div>';
+    var sharedStr=r.shared.slice(0,3).map(function(t){return escHtml(t);}).join(' · ');
+    var rVal=parseFloat(e.rating)||0;
+    return'<div class="detail-rel-item" onclick="_openRelatedEntry(\''+escHtml(String(e.id))+'\')" style="cursor:pointer">'+
+      thumbHtml+
+      '<div class="detail-rel-info">'+
+        '<div class="detail-rel-title">'+escHtml(e.title)+'</div>'+
+        '<div class="detail-rel-shared">Shares: '+sharedStr+'</div>'+
+      '</div>'+
+      '<div class="detail-rel-rating">'+rVal+'</div>'+
+    '</div>';
+  }).join('');
+  container.innerHTML='<div class="detail-rel-label">From your collection — similar taste</div>'+
+    '<div class="detail-rel-items">'+itemsHtml+'</div>';
+}
+
+/* Navigate to a related entry without closing the modal — just replaces modal contents */
+function _openRelatedEntry(id){
+  var e=(_allEntries||[]).find(function(x){return String(x.id)===String(id);});
+  if(e)openDetailModal(e);
 }
 
 /* ── Upsert tags then link them to an entry ── */
@@ -2747,7 +2833,8 @@ async function saveEntry(){
   /* Read form values */
   var title    = ((document.getElementById('add-title')||{}).value||'').trim();
   if(!title){ showToast('Please enter a title'); return; }
-  var fmtRaw   = (document.getElementById('add-format')||{}).value || 'Show';
+  var fmtRaw   = (document.getElementById('add-format')||{}).value || '';
+  if(!fmtRaw){ showToast('Please select a format'); return; }
   var format   = FMT_TO_DB[fmtRaw] || 'show';
   var rating   = parseFloat(document.getElementById('add-rating').value) || 8;
   var notes    = ((document.getElementById('add-notes')||{}).value||'').trim() || null;
@@ -2916,6 +3003,25 @@ document.addEventListener('keydown',function(e){
     var cmd=document.getElementById('m-cmd');
     if(cmd.classList.contains('open')){closeCmdPalette();}else{openCmdPalette();}
   }
+  /* ↑↓ / Enter — keyboard navigation inside command palette */
+  var _cmdOv=document.getElementById('m-cmd');
+  if(_cmdOv&&_cmdOv.classList.contains('open')){
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      e.preventDefault();
+      var _items=Array.from(document.querySelectorAll('#cmd-results .cmd-item'));
+      if(!_items.length)return;
+      var _cur=document.querySelector('#cmd-results .cmd-item.cmd-active');
+      var _idx=_cur?_items.indexOf(_cur):-1;
+      if(_cur)_cur.classList.remove('cmd-active');
+      _idx=e.key==='ArrowDown'?(_idx+1)%_items.length:(_idx<=0?_items.length-1:_idx-1);
+      _items[_idx].classList.add('cmd-active');
+      _items[_idx].scrollIntoView({block:'nearest'});
+    }
+    if(e.key==='Enter'){
+      var _act=document.querySelector('#cmd-results .cmd-item.cmd-active');
+      if(_act){e.preventDefault();_act.click();}
+    }
+  }
   /* Escape → close command palette + any open modal overlay */
   if(e.key==='Escape'){
     closeCmdPalette();
@@ -2959,9 +3065,12 @@ function updateRatingRef(val){
 /* ── N3: Command palette ── */
 /* cmdSearchData is built dynamically in buildCmdIndex() from real entries */
 var cmdSearchData = [];
+var _cmdEntryMap = {};
 function buildCmdIndex(){
-  /* entries from collection */
-  var entryItems = _allEntries.slice(0,30).map(function(e){
+  _cmdEntryMap = {};
+  /* entries from collection — no cap: index all entries */
+  var entryItems = _allEntries.map(function(e){
+    _cmdEntryMap[String(e.id)] = e;
     var fmtLabel = FMT_LABEL[e.format] || e.format || '';
     var tags = (e.tags||[]).join(' ');
     return {type:'entry',title:e.title,sub:fmtLabel+' · '+e.rating,tags:tags,bg:e.cover_color||'linear-gradient(135deg,#1B5E76,#4AADBA)',screen:'collection',_entry:e};
@@ -2977,6 +3086,11 @@ function buildCmdIndex(){
     return {type:'watchlist',title:it.title,sub:'Watchlist · '+((it.format)||''),tags:(it.tags||[]).join(' '),bg:'linear-gradient(135deg,#1B5E76,#4AADBA)',screen:'watchlist'};
   });
   cmdSearchData = entryItems.concat(tagItems).concat(wlItems);
+}
+/* Opens an entry from the cmd palette by its stored ID */
+function _cmdOpenEntry(id){
+  var e = _cmdEntryMap[id];
+  if(e){ goToScreen('collection'); openDetailModal(e); }
 }
 
 function openCmdPalette(){
@@ -3041,7 +3155,9 @@ function cmdSearch(val){
           ? '<div class="cmd-item-thumb" style="background:'+d.bg+'">'+d.title.split(' ').map(function(w){return w[0]}).slice(0,3).join('')+'</div>'
           : '<div class="cmd-item-icon"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 7h10M7 12h10M7 17h6"/></svg></div>';
         var action=k==='tag'
-          ? 'onclick="filterByTag(\''+d.title+'\');closeCmdPalette()"'
+          ? 'onclick="filterByTag(\''+escHtml(d.title)+'\');closeCmdPalette()"'
+          : k==='entry'
+          ? 'onclick="_cmdOpenEntry(\''+String(d._entry.id)+'\');closeCmdPalette()"'
           : 'onclick="goToScreen(\''+d.screen+'\');closeCmdPalette()"';
         return '<div class="cmd-item" '+action+'>'+thumb+
           '<div><div class="cmd-item-title">'+d.title+'</div><div class="cmd-item-sub">'+d.sub+'</div></div></div>';
