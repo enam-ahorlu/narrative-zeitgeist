@@ -1735,52 +1735,67 @@ function escHtml(s){
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ── Restore existing session on page load ── */
-(async function(){
-  var res = await SUPA.auth.getSession();
-  if(res.data && res.data.session){
-    currentUser = res.data.session.user;
-    _showApp();
-    loadEntries();
-    loadWatchlist();
-  }
-})();
-
-/* ── Detect password-recovery landing from URL hash ── */
+/* ── Detect password-recovery landing from URL (implicit AND PKCE flows) ── */
 var _pendingPasswordRecovery = (function(){
+  /* Implicit flow: Supabase appends #access_token=...&type=recovery to the URL */
   var hash = {};
   window.location.hash.slice(1).split('&').forEach(function(p){
-    var kv = p.split('='); if(kv[0]) hash[kv[0]] = kv[1];
+    var kv = p.split('='); if(kv[0]) hash[kv[0]] = decodeURIComponent(kv[1]||'');
   });
-  return hash['type'] === 'recovery';
+  if(hash['type'] === 'recovery') return true;
+  /* PKCE flow: Supabase uses ?code=... — type is not exposed in the URL.
+     We rely on onAuthStateChange firing PASSWORD_RECOVERY for this case.
+     Nothing to detect here; just return false and let the event handler do it. */
+  return false;
 })();
 
-/* ── React to login / logout events ── */
+/* ── React to all auth state changes — register BEFORE getSession() so we
+       never miss PASSWORD_RECOVERY being fired during SDK initialisation ── */
 SUPA.auth.onAuthStateChange(function(event, session){
   if(event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && _pendingPasswordRecovery)){
+    /* User arrived via a password-reset link */
     _pendingPasswordRecovery = false;
     currentUser = session.user;
-    /* Clear the token from the URL so a page refresh doesn't re-trigger this */
+    /* Strip the token from the URL so a refresh doesn't re-trigger this */
     if(window.history && window.history.replaceState){
       window.history.replaceState(null, '', window.location.pathname);
     }
-    _showApp();
-    loadEntries();
-    loadWatchlist();
-    /* Small delay so the app finishes rendering before the modal appears */
+    if(!document.getElementById('app').classList.contains('show')){
+      _showApp();
+      loadEntries();
+      loadWatchlist();
+    }
+    /* Small delay so the app finishes rendering before the modal opens */
     setTimeout(function(){
       document.getElementById('m-newpass').style.display = 'flex';
-    }, 150);
-  } else if(event === 'SIGNED_IN'){
+    }, 200);
+  } else if(event === 'SIGNED_IN' || event === 'INITIAL_SESSION'){
+    if(!session){ return; } /* INITIAL_SESSION can fire with null when logged out */
+    if(currentUser) return; /* already initialised (e.g. getSession() ran first) */
     currentUser = session.user;
     _showApp();
-    loadEntries(); /* loadEntries now calls refreshFingerprint internally */
+    loadEntries();
     loadWatchlist();
   } else if(event === 'SIGNED_OUT'){
     currentUser = null;
     _showAuthScreen();
   }
 });
+
+/* ── Restore existing session on page load (fallback for browsers/SDK versions
+       that don't fire INITIAL_SESSION via onAuthStateChange quickly enough) ── */
+(async function(){
+  /* If we're on a recovery URL, let onAuthStateChange handle everything */
+  if(_pendingPasswordRecovery) return;
+  var res = await SUPA.auth.getSession();
+  if(res.data && res.data.session && !currentUser){
+    /* onAuthStateChange hasn't fired yet — initialise manually */
+    currentUser = res.data.session.user;
+    _showApp();
+    loadEntries();
+    loadWatchlist();
+  }
+})();
 
 function _showApp(){
   document.getElementById('auth').style.display = 'none';
@@ -2276,14 +2291,22 @@ function toggleAuthMode(){
   var isSignup = _authMode === 'signup';
   document.getElementById('auth-heading').textContent    = isSignup ? 'Create account'          : 'Welcome back';
   document.getElementById('auth-subheading').textContent = isSignup ? 'Start curating your taste' : 'Sign in to your collection';
-  document.getElementById('auth-name-field').style.display  = isSignup ? '' : 'none';
+  document.getElementById('auth-name-field').style.display   = isSignup ? '' : 'none';
   document.getElementById('auth-remember-row').style.display = isSignup ? 'none' : '';
-  document.getElementById('auth-submit-btn').textContent = isSignup ? 'Create account' : 'Sign in';
+  document.getElementById('auth-submit-btn').textContent     = isSignup ? 'Create account' : 'Sign in';
   document.getElementById('auth-foot-text').innerHTML = isSignup
     ? 'Already have an account? <a href="#" onclick="toggleAuthMode();return false;">Sign in</a>'
     : 'Don\'t have an account? <a href="#" onclick="toggleAuthMode();return false;">Create one</a>';
   /* Clear password when switching so old value isn't carried over */
   document.getElementById('auth-pass-inp').value = '';
+  /* Restore the password field if forgotPassword() hid it */
+  var allFl = document.querySelectorAll('#auth .fl');
+  if(allFl[1]) allFl[1].style.display = '';
+  /* Restore submit button onclick — forgotPassword() overrides it to sendPasswordReset */
+  var btn = document.getElementById('auth-submit-btn');
+  if(btn) btn.onclick = function(){ enterApp(); };
+  /* Clear any lingering error */
+  _authErr('');
 }
 
 function _authErr(msg){
@@ -4059,50 +4082,4 @@ function _pickSearchResult(idx){
   var titleInp = document.getElementById('add-title');
   if(titleInp) titleInp.value = r.title;
   /* Auto-set format from result type */
-  var _typeToFmt = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
-  if(r._type && _typeToFmt[r._type]){
-    var fmtSel = document.getElementById('add-format');
-    if(fmtSel){ fmtSel.value = _typeToFmt[r._type]; updateSportField(fmtSel); }
-  }
-  /* Clear old poster first, then apply new one */
-  clearPoster();
-  _posterUrl = r.poster_url || null;
-  var drop = document.getElementById('cs-drop');
-  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-  var cpw = document.getElementById('cover-poster-wrap');
-  var cpi = document.getElementById('cover-poster-img');
-  var cpt = document.getElementById('cover-poster-title');
-  var cpy = document.getElementById('cover-poster-year');
-  if(cpw && cpi){
-    if(_posterUrl){
-      cpi.src = _posterUrl;
-      if(cpt) cpt.textContent = r.title;
-      if(cpy) cpy.textContent = r.year ? r.year : '';
-      cpw.classList.add('visible');
-    }
-  }
-}
-
-function clearPoster(){
-  _posterUrl = null;
-  var cpw = document.getElementById('cover-poster-wrap');
-  if(cpw) cpw.classList.remove('visible');
-}
-
-function _closeSearchDrop(){
-  var drop = document.getElementById('cs-drop');
-  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-}
-
-/* Close search dropdown on outside click */
-document.addEventListener('click', function(e){
-  var drop = document.getElementById('cs-drop');
-  var inp  = document.getElementById('add-title');
-  if(drop && !drop.contains(e.target) && e.target !== inp){
-    drop.classList.remove('open');
-  }
-});
-
-</script>
-</body>
-</html>
+  var _typeToFmt = {film:'Film', show:'Show', book:'
