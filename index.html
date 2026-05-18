@@ -929,6 +929,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="strip">
         <div class="strip-item"><div class="sv" id="sv-total">—</div><div class="sl">Total</div></div>
         <div class="strip-item"><div class="sv" id="sv-avg">—</div><div class="sl">Avg Rating</div></div>
+        <div class="strip-item"><div class="sv" id="sv-films">—</div><div class="sl">Films</div></div>
         <div class="strip-item"><div class="sv" id="sv-shows">—</div><div class="sl">Shows</div></div>
         <div class="strip-item"><div class="sv" id="sv-books">—</div><div class="sl">Books</div></div>
         <div class="strip-item"><div class="sv" id="sv-matches">—</div><div class="sl">Matches</div></div>
@@ -944,7 +945,7 @@ textarea.fi{resize:vertical;min-height:64px}
           <div class="pill" onclick="setColPill(this)">Matches</div>
           <div class="pill" onclick="setColPill(this)">Music</div>
         </div>
-        <select class="fsel"><option>Sort: Date Added</option><option>Sort: Rating ↓</option><option>Sort: Title A–Z</option></select>
+        <select class="fsel" id="col-sort-sel" onchange="colSort(this.value)"><option value="date_desc">Sort: Date Added</option><option value="rating_desc">Sort: Rating ↓</option><option value="title_asc">Sort: Title A–Z</option></select>
       </div>
       <!-- C1/C2/C3 Advanced filter panel (toggle with Filter button) -->
       <div class="col-adv-panel" id="col-adv-panel">
@@ -978,7 +979,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="col-chips" id="col-chips"></div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>TITLE ↕</th><th>FORMAT</th><th>RATING ↕</th><th>DATE ↕</th><th class="col-tags">TAGS</th><th></th></tr></thead>
+          <thead><tr><th onclick="colSort('title_asc')" style="cursor:pointer" title="Sort by title">TITLE ↕</th><th>FORMAT</th><th onclick="colSort('rating_desc')" style="cursor:pointer" title="Sort by rating">RATING ↕</th><th onclick="colSort('date_desc')" style="cursor:pointer" title="Sort by date">DATE ↕</th><th class="col-tags">TAGS</th><th></th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -1050,7 +1051,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="ph">
         <div><div class="ph-title">Discover</div><div class="ph-sub">Personalized from your taste fingerprint</div></div>
         <div class="ph-actions">
-          <select class="fsel"><option>Best Match</option><option>Newest</option><option>Most Reviewed</option></select>
+          <select class="fsel" id="disc-sort-sel" onchange="discSort(this.value)"><option value="match">Best Match</option><option value="newest">Newest</option><option value="reviewed">Most Reviewed</option></select>
         </div>
       </div>
       <!-- D1: Search with on-demand match scoring -->
@@ -1724,6 +1725,7 @@ var _discRecs    = null; /* cached Discovery recommendations */
 var _discFetchedAt = 0;  /* timestamp of last Discovery fetch */
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you'; /* current Discovery tab */
+var _discSortVal = 'match';  /* current sort: match | newest | reviewed */
 
 /* ── Lookup tables ── */
 var FMT_LABEL = {show:'Show', film:'Film', book:'Book', sports_match:'Match', music:'Music'};
@@ -1908,6 +1910,7 @@ function updateCollectionStats(entries){
   /* update strip stats by ID — robust to any order */
   var _sv = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val; };
   _sv('sv-total', total); _sv('sv-avg', avg);
+  _sv('sv-films', counts.film);
   _sv('sv-shows', counts.show); _sv('sv-books', counts.book);
   _sv('sv-matches', counts.sports_match); _sv('sv-music', counts.music);
   var phSub = document.getElementById('col-ph-sub');
@@ -2385,6 +2388,9 @@ function closeModal(id){
     /* Reset tag search */
     var tpInp=document.getElementById('tp-search-inp');
     if(tpInp){tpInp.value='';tagSearch('');}
+    /* Clear watchlist move context — prevents a subsequent unrelated save from
+       silently archiving an old watchlist item if user closed without saving */
+    _wlMoveId = null;
   }
 }
 document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
@@ -2412,13 +2418,21 @@ function wlRemoveSelected(){
   var ids = checked.map(function(cb){ return cb.closest('.wl-item').dataset.wlId; }).filter(Boolean);
   Promise.all(ids.map(function(id){
     return SUPA.from('watchlist').delete().eq('id', id);
-  })).then(function(){
-    _wlItems = _wlItems.filter(function(it){ return ids.indexOf(it.id) < 0; });
-    _wlAllSelected = false;
-    var btn = document.getElementById('wl-sel-all-btn');
-    if(btn) btn.textContent = 'Select All';
+  })).then(function(results){
+    var failed = results.filter(function(r){ return r.error; });
+    if(failed.length){
+      showToast(failed.length + ' item(s) could not be removed', '⚠  ');
+    }
+    /* Remove only the successfully deleted ids from local cache */
+    var succeededIds = ids.filter(function(id, i){ return !results[i].error; });
+    _wlItems = _wlItems.filter(function(it){ return succeededIds.indexOf(it.id) < 0; });
+    renderWatchlist(); /* resets _wlAllSelected internally */
+    if(succeededIds.length){
+      showToast(succeededIds.length + ' item' + (succeededIds.length > 1 ? 's' : '') + ' removed');
+    }
+  }).catch(function(err){
+    showToast('Remove failed: ' + (err.message || 'unknown error'), '⚠  ');
     renderWatchlist();
-    showToast(ids.length + ' item' + (ids.length > 1 ? 's' : '') + ' removed');
   });
 }
 function wlSort(val){
@@ -2435,6 +2449,14 @@ function setDiscTab(el,name){
   document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active')});
   el.classList.add('active');
   _discTabName = name || 'for-you';
+  /* For "Because You Loved…" tab: surface the user's top-rated entry in the label */
+  if(name === 'because-loved' && _allEntries.length){
+    var top = _allEntries.slice().sort(function(a,b){
+      return parseFloat(b.rating||0) - parseFloat(a.rating||0);
+    })[0];
+    var tabEl = document.getElementById('dtab-because');
+    if(tabEl && top) tabEl.textContent = 'Because You Loved: ' + top.title;
+  }
   _discRecs = null; /* invalidate cache so tab change fetches fresh results */
   loadDiscovery();
 }
@@ -2928,6 +2950,24 @@ function applyCollectionFilter(){
   updateColFilterBtn();
 }
 
+/* ── Sort entries by field ── */
+var _colSortVal = 'date_desc';
+function colSort(val){
+  _colSortVal = val;
+  /* Sync the dropdown to match column-header clicks */
+  var sel = document.getElementById('col-sort-sel');
+  if(sel) sel.value = val;
+  if(val === 'rating_desc')
+    _allEntries.sort(function(a,b){ return parseFloat(b.rating) - parseFloat(a.rating); });
+  else if(val === 'title_asc')
+    _allEntries.sort(function(a,b){ return a.title.localeCompare(b.title); });
+  else
+    _allEntries.sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
+  renderEntriesTable(_allEntries);
+  renderEntriesGrid(_allEntries);
+  applyCollectionFilter();
+}
+
 /* ── Individual filter setters ── */
 function colSearch(val){colFilter.search=val.trim();applyCollectionFilter();}
 
@@ -3001,17 +3041,50 @@ function toggleFilterPanel(){
 function updateColChips(){
   var bar=document.getElementById('col-chips');
   var chips=[];
-  if(colFilter.search)chips.push({label:'Search: "'+colFilter.search+'"',clear:function(){document.getElementById('col-search-inp').value='';colFilter.search='';applyCollectionFilter();}});
-  if(colFilter.format!=='All')chips.push({label:'Format: '+colFilter.format,clear:function(){colFilter.format='All';document.querySelectorAll('#s-collection .pills .pill').forEach(function(p){p.classList.remove('active')});document.querySelector('#s-collection .pills .pill').classList.add('active');applyCollectionFilter();}});
-  if(colFilter.ratingMin>0||colFilter.ratingMax<10)chips.push({label:'Rating: '+colFilter.ratingMin+'–'+colFilter.ratingMax,clear:function(){colFilter.ratingMin=0;colFilter.ratingMax=10;document.getElementById('col-rmin').value=0;document.getElementById('col-rmax').value=10;applyCollectionFilter();}});
-  if(colFilter.yearFrom||colFilter.yearTo<9999)chips.push({label:'Year: '+(colFilter.yearFrom||'any')+'–'+(colFilter.yearTo<9999?colFilter.yearTo:'any'),clear:function(){colFilter.yearFrom=0;colFilter.yearTo=9999;document.getElementById('col-yfrom').value='';document.getElementById('col-yto').value='';applyCollectionFilter();}});
-  colFilter.tags.forEach(function(tag){chips.push({label:'#'+tag,clear:function(){var idx=colFilter.tags.indexOf(tag);if(idx>=0)colFilter.tags.splice(idx,1);document.querySelectorAll('.col-tag-pill').forEach(function(p){if(p.textContent.trim()===tag)p.classList.remove('active')});applyCollectionFilter();}});});
+  if(colFilter.search)chips.push({type:'search', label:'Search: "'+colFilter.search+'"'});
+  if(colFilter.format!=='All')chips.push({type:'format', label:'Format: '+colFilter.format});
+  if(colFilter.ratingMin>0||colFilter.ratingMax<10)chips.push({type:'rating', label:'Rating: '+colFilter.ratingMin+'–'+colFilter.ratingMax});
+  if(colFilter.yearFrom||colFilter.yearTo<9999)chips.push({type:'year', label:'Year: '+(colFilter.yearFrom||'any')+'–'+(colFilter.yearTo<9999?colFilter.yearTo:'any')});
+  colFilter.tags.forEach(function(tag){chips.push({type:'tag', tag:tag, label:'#'+tag});});
 
   if(!chips.length){bar.classList.remove('visible');bar.innerHTML='';return;}
   bar.classList.add('visible');
   bar.innerHTML='<span style="font-size:11px;color:var(--t-3)">Filtered by:</span>'+
-    chips.map(function(c,i){return '<span class="col-chip">'+c.label+'<span class="col-chip-x" onclick="('+c.clear.toString()+')()">×</span></span>';}).join('')+
+    chips.map(function(c){
+      /* Use data attributes instead of serialized closures — avoids scope loss */
+      var extra = c.type === 'tag' ? ' data-chip-type="tag" data-chip-tag="'+c.tag.replace(/"/g,'&quot;')+'"' : ' data-chip-type="'+c.type+'"';
+      return '<span class="col-chip"><span>'+c.label+'</span><span class="col-chip-x"'+extra+' onclick="clearColChip(this)">×</span></span>';
+    }).join('')+
     '<span class="col-chips-clear" onclick="clearColFilters()">Clear all</span>';
+}
+
+/* ── Clear a single active filter chip (called from data-chip-type onclick) ── */
+function clearColChip(el){
+  var t = el.dataset.chipType;
+  if(t === 'search'){
+    colFilter.search = '';
+    var si = document.getElementById('col-search-inp'); if(si) si.value = '';
+  } else if(t === 'format'){
+    colFilter.format = 'All';
+    document.querySelectorAll('#s-collection .pills .pill').forEach(function(p){ p.classList.remove('active'); });
+    var first = document.querySelector('#s-collection .pills .pill'); if(first) first.classList.add('active');
+  } else if(t === 'rating'){
+    colFilter.ratingMin = 0; colFilter.ratingMax = 10;
+    var rmin = document.getElementById('col-rmin'); if(rmin) rmin.value = 0;
+    var rmax = document.getElementById('col-rmax'); if(rmax) rmax.value = 10;
+  } else if(t === 'year'){
+    colFilter.yearFrom = 0; colFilter.yearTo = 9999;
+    var yf = document.getElementById('col-yfrom'); if(yf) yf.value = '';
+    var yt = document.getElementById('col-yto');   if(yt) yt.value = '';
+  } else if(t === 'tag'){
+    var tag = el.dataset.chipTag || '';
+    var idx = colFilter.tags.indexOf(tag);
+    if(idx >= 0) colFilter.tags.splice(idx, 1);
+    document.querySelectorAll('.col-tag-pill').forEach(function(p){
+      if(p.dataset.tag === tag) p.classList.remove('active');
+    });
+  }
+  applyCollectionFilter();
 }
 
 /* ── Pagination bar update ── */
@@ -3063,17 +3136,50 @@ function discSearch(val){
     var bg=d.cover_color||'linear-gradient(135deg,#1A1A2E,#2A2A4E)';
     var initials=(d.title||'').split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
     var sc=d.match_score||0;
-    return '<div class="disc-result-item">'+
+    var recJson=escHtml(JSON.stringify(d));
+    return '<div class="disc-result-item" style="cursor:pointer" title="Save to Watchlist" onclick="saveSearchResult(this)" data-rec="'+recJson+'">'+
       '<div class="disc-result-thumb" style="background:'+bg+'">'+initials+'</div>'+
       '<div class="disc-result-info">'+
         '<div class="disc-result-title">'+d.title+'</div>'+
         '<div class="disc-result-meta">'+(d.meta||d.format||'')+'</div>'+
         '<div class="disc-result-because">'+(d.match_hook||'')+'</div>'+
       '</div>'+
-      '<div class="disc-result-score"><div class="disc-result-pct '+scoreClass(sc)+'">'+sc+'%</div><div class="disc-result-label">match</div></div>'+
+      '<div class="disc-result-score"><div class="disc-result-pct '+scoreClass(sc)+'">'+sc+'%</div><div class="disc-result-label">+ save</div></div>'+
     '</div>';
   }).join('');
   res.classList.add('open');
+}
+
+/* ── Save a search-result item directly to Watchlist ── */
+function saveSearchResult(el){
+  var rec;
+  try { rec = JSON.parse(el.getAttribute('data-rec')); } catch(e){ return; }
+  if(!currentUser){ showToast('Please sign in first'); return; }
+  /* Prevent duplicate saves */
+  if(_wlItems.some(function(it){ return it.title === rec.title && it.format === rec.format; })){
+    showToast(rec.title + ' is already in your Watchlist');
+    document.getElementById('disc-search-res').classList.remove('open');
+    document.getElementById('disc-search-inp').value = '';
+    return;
+  }
+  el.style.opacity = '.5'; el.style.pointerEvents = 'none';
+  SUPA.from('watchlist').insert({
+    user_id:       currentUser.id,
+    title:         rec.title,
+    format:        rec.format,
+    source:        'claude_ai',
+    match_score:   rec.match_score,
+    match_reasons: rec.reasons || [],
+    cover_color:   rec.cover_color || null,
+    tags:          rec.tags || [],
+    priority:      'maybe'
+  }).then(function(res){
+    document.getElementById('disc-search-res').classList.remove('open');
+    document.getElementById('disc-search-inp').value = '';
+    if(res.error){ showToast('Could not save: '+res.error.message, '⚠  '); return; }
+    showToast(rec.title + ' saved to Watchlist', '🔖  ');
+    loadWatchlist();
+  });
 }
 
 /* ── "Why this match?" toggle ── */
@@ -3153,11 +3259,19 @@ async function loadDiscovery(force){
       overall_avg_rating: ratedCount ? (sumRating/ratedCount).toFixed(1) : '0'
     };
   }
+  /* Resolve top-rated entry for "because-loved" tab */
+  var becauseTitle = null;
+  if(_discTabName === 'because-loved' && _allEntries.length){
+    var _topEntry = _allEntries.slice().sort(function(a,b){
+      return parseFloat(b.rating||0) - parseFloat(a.rating||0);
+    })[0];
+    becauseTitle = _topEntry ? _topEntry.title : null;
+  }
   try {
     var resp = await fetch('/api/discover', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ fingerprint: fpToSend, entryTitles: entryTitles, tab: _discTabName })
+      body: JSON.stringify({ fingerprint: fpToSend, entryTitles: entryTitles, tab: _discTabName, becauseTitle: becauseTitle })
     });
     var data = await resp.json();
     if(!resp.ok) throw new Error((data.error || 'Server error '+resp.status) + (data.claude_said ? ' — Claude said: '+data.claude_said : ''));
@@ -3176,10 +3290,38 @@ function _filterDisc(recs){
   return recs.filter(function(r){ return r.format === fmt; });
 }
 
+function discSort(val){
+  _discSortVal = val;
+  var sel = document.getElementById('disc-sort-sel');
+  if(sel) sel.value = val;
+  if(!_discRecs || !_discRecs.length) return;
+  if(val === 'newest'){
+    _discRecs.sort(function(a,b){ return (parseInt(b.year)||0) - (parseInt(a.year)||0); });
+  } else if(val === 'reviewed'){
+    _discRecs.sort(function(a,b){ return (b.review_count||0) - (a.review_count||0); });
+  } else {
+    /* match (default) */
+    _discRecs.sort(function(a,b){ return (b.match_score||0) - (a.match_score||0); });
+  }
+  _renderDiscovery(_discRecs);
+}
+
 function _renderDiscovery(recs){
   if(!recs || !recs.length){ _discState('error','No recommendations returned.'); return; }
   var filtered = _filterDisc(recs);
-  if(!filtered.length){ _discState('error','No results for this format filter.'); return; }
+  if(!filtered.length){
+    /* Not an error — the AI just returned no items for this format pill */
+    _discState('results');
+    document.getElementById('disc-hero-wrap').innerHTML = '';
+    var pillLabel = _discPill.charAt(0).toUpperCase() + _discPill.slice(1);
+    document.getElementById('disc-grid-wrap').innerHTML =
+      '<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">'
+      + '<svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="margin-bottom:12px;opacity:.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+      + '<div style="font-size:14px;font-weight:600;color:var(--t-1);margin-bottom:6px">No '+escHtml(pillLabel)+' picks this time</div>'
+      + '<div style="font-size:12px">Try a different format or switch tabs for more results.</div>'
+      + '</div>';
+    return;
+  }
   _discState('results');
   /* Hero = first (highest match) */
   _renderHero(filtered[0]);
@@ -3267,6 +3409,12 @@ function _renderGrid(recs){
 async function saveToWatchlist(btn){
   var rec = JSON.parse(btn.getAttribute('data-rec'));
   if(!currentUser){ showToast('Please sign in first'); return; }
+  /* Prevent duplicate saves against in-memory watchlist cache */
+  if(_wlItems.some(function(it){ return it.title === rec.title && it.format === rec.format; })){
+    showToast(rec.title + ' is already in your Watchlist');
+    btn.textContent = '✓ Saved'; btn.disabled = true;
+    return;
+  }
   btn.disabled = true; btn.textContent = 'Saving…';
   var res = await SUPA.from('watchlist').insert({
     user_id:       currentUser.id,
@@ -3300,6 +3448,11 @@ function addFromDiscover(btn){
     document.querySelectorAll('#m-add .pill').forEach(function(p){
       if(p.textContent.trim() === fmtLabel) p.click();
     });
+    /* Pre-fill year if the recommendation includes one */
+    if(rec.year){
+      var yearInp = document.getElementById('add-year');
+      if(yearInp) yearInp.value = rec.year;
+    }
     (rec.tags||[]).forEach(function(tag){
       document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
         if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
@@ -3308,15 +3461,8 @@ function addFromDiscover(btn){
   }, 80);
 }
 
-/* ── Watchlist "Move to Collection" triggers toast ── */
-document.querySelectorAll('.wl-actions .btn-p').forEach(function(btn){
-  btn.addEventListener('click',function(){
-    var title=this.closest('.wl-item').querySelector('.wl-title');
-    showToast((title?title.textContent:'Entry')+' moved to Collection');
-  });
-});
+/* (wl-actions btn-p listener removed — wlMoveToCollection onclick handles this inline) */
 
-/* ── W1: Pass / Not for me ── */
 /* ── Watchlist: load, render, actions ──────────────────────── */
 var _wlItems       = [];    /* cached watchlist rows */
 var _wlTab         = 'all';
@@ -3352,11 +3498,27 @@ function renderWatchlist(){
   if(phSub)  phSub.textContent  = total + (total === 1 ? ' saved item' : ' saved items');
   if(badge)  badge.textContent  = total > 0 ? total : '';
 
+  /* Always reset select-all state on re-render so button label stays accurate */
+  _wlAllSelected = false;
+  var selBtn = document.getElementById('wl-sel-all-btn');
+  if(selBtn) selBtn.textContent = 'Select All';
+
   if(!listEl) return;
 
   if(items.length === 0){
-    listEl.innerHTML = '';
-    if(emptyEl) emptyEl.style.display = '';
+    if(_wlItems.length === 0){
+      /* Watchlist is genuinely empty — show the full onboarding empty state */
+      listEl.innerHTML = '';
+      if(emptyEl) emptyEl.style.display = '';
+    } else {
+      /* Items exist but none match the current tab filter */
+      if(emptyEl) emptyEl.style.display = 'none';
+      var tabLabel = _wlTab === 'up_next' ? 'Up Next' : _wlTab === 'maybe' ? 'Maybe' : 'All';
+      listEl.innerHTML = '<div style="text-align:center;padding:48px 16px;color:var(--t-3);font-size:13px">'
+        + 'No <strong>' + tabLabel + '</strong> items yet.'
+        + '<br><span style="font-size:12px;opacity:.7;margin-top:4px;display:block">Switch to <em>All</em> or change an item\'s priority.</span>'
+        + '</div>';
+    }
     return;
   }
   if(emptyEl) emptyEl.style.display = 'none';
