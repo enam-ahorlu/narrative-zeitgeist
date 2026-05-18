@@ -1012,7 +1012,7 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="screen" id="s-insights">
       <div class="ph">
         <div><div class="ph-title">Insights</div><div class="ph-sub" id="insights-ph-sub">Your taste fingerprint</div></div>
-        <div class="ph-actions"><button class="btn btn-glass btn-sm" onclick="showToast('Insights report exported — file will download shortly','↓  ')"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Export</button></div>
+        <div class="ph-actions"><button class="btn btn-glass btn-sm" onclick="exportInsights()"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Export</button></div>
       </div>
       <div class="stat-cards">
         <div class="sc anim-fadeup"><div class="sc-v" id="sc-total">—</div><div class="sc-l">Total Entries</div></div>
@@ -1042,7 +1042,7 @@ textarea.fi{resize:vertical;min-height:64px}
         </div>
         <div class="card anim-fadeup anim-delay-3"><div class="ct">Format Breakdown</div><div class="cs">Entries by type</div><canvas id="fmtChart" style="max-height:190px"></canvas></div>
         <div class="card anim-fadeup anim-delay-4"><div class="ct">Avg Rating by Genre</div><div class="cs">How taste scores vary across categories</div><canvas id="genChart" style="max-height:190px"></canvas></div>
-        <div class="card card-full anim-fadeup anim-delay-5"><div class="ct">Taste Over Time</div><div class="cs">How your average rating has shifted — are your standards rising?</div><canvas id="timelineChart" style="max-height:160px"></canvas></div>
+        <div class="card card-full anim-fadeup anim-delay-5"><div class="ct">Taste Over Time</div><div class="cs">Avg rating by completion date — fill in the date field when logging for best results</div><div id="timeline-empty" style="display:none;text-align:center;padding:32px 16px;color:var(--t-3);font-size:12.5px">No entries with a completion date yet.<br><span style="opacity:.7">Add a <em>Date Completed</em> when logging entries to populate this chart.</span></div><canvas id="timelineChart" style="max-height:160px"></canvas></div>
       </div>
     </div>
 
@@ -2178,7 +2178,9 @@ function navigate(scr, opts){
   if(scr==='insights'){
     setTimeout(function(){
       initCharts();
-      if(!_fp) loadFingerprint(); else { renderInsights(_fp); _applyFpToCharts(_fp); }
+      /* renderInsights already calls _applyFpToCharts internally — don't call it again here.
+         loadTimelineData is owned by loadFingerprint (new visit) or explicitly here (return visit). */
+      if(!_fp) loadFingerprint(); else { renderInsights(_fp); loadTimelineData(); }
     }, 80);
   }
   if(scr==='settings'){
@@ -3776,10 +3778,14 @@ async function loadFingerprint(){
 
 async function refreshFingerprint(){
   if(!currentUser) return;
+  var rpcOk = true;
   try {
     var rpcRes = await SUPA.rpc('compute_fingerprint', { p_user_id: currentUser.id });
-    if(rpcRes.error) console.warn('compute_fingerprint RPC error:', rpcRes.error);
-  } catch(e){ console.warn('compute_fingerprint exception:', e); }
+    if(rpcRes.error){ console.warn('compute_fingerprint RPC error:', rpcRes.error); rpcOk = false; }
+  } catch(e){ console.warn('compute_fingerprint exception:', e); rpcOk = false; }
+  if(!rpcOk){
+    showToast(_fp ? 'Could not refresh taste profile — showing cached data' : 'Could not generate taste fingerprint', '⚠  ');
+  }
   await loadFingerprint();
 }
 
@@ -3932,6 +3938,50 @@ async function deleteTag(name, el){
 }
 /* ─────────────────────────────────────────────────────────────────────────── */
 
+function exportInsights(){
+  if(!_fp && !_allEntries.length){ showToast('No data to export yet'); return; }
+  var lines = [
+    'Narrative & Zeitgeist — Taste Insights',
+    'Exported: ' + new Date().toLocaleDateString(),
+    ''
+  ];
+  var total = (_fp && _fp.total_entries) || _allEntries.length || 0;
+  var avg   = (_fp && _fp.overall_avg_rating) ? parseFloat(_fp.overall_avg_rating).toFixed(1) : '—';
+  lines.push('OVERVIEW');
+  lines.push('Total Entries: ' + total);
+  lines.push('Average Rating: ' + avg);
+  if(_fp && _fp.primary_themes && _fp.primary_themes.length){
+    lines.push('');
+    lines.push('TOP THEMES');
+    _fp.primary_themes.slice(0,12).forEach(function(t, i){
+      lines.push((i+1) + '. ' + t.tag
+        + ' — ' + (t.frequency||0) + ' entries'
+        + ', ' + parseFloat(t.avg_rating||0).toFixed(1) + ' avg rating');
+    });
+  }
+  if(_fp && _fp.format_breakdown){
+    var fmtNames = {show:'Shows', film:'Films', book:'Books', sports_match:'Matches', music:'Music'};
+    lines.push('');
+    lines.push('FORMAT BREAKDOWN');
+    Object.keys(_fp.format_breakdown).forEach(function(k){
+      var d = _fp.format_breakdown[k];
+      if(!d || !d.count) return;
+      lines.push((fmtNames[k]||k) + ': ' + d.count + ' entries, ' + parseFloat(d.avg_rating||0).toFixed(1) + ' avg rating');
+    });
+  }
+  var text = lines.join('\n');
+  var blob = new Blob([text], {type: 'text/plain'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'narrative-zeitgeist-insights.txt';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  showToast('Insights exported', '↓  ');
+}
+
 function renderInsights(fp){
   var sub     = document.getElementById('insights-ph-sub');
   var building= document.getElementById('fp-building');
@@ -3986,9 +4036,16 @@ function renderInsights(fp){
   var themes  = fp.primary_themes || [];
   var topTag  = themes[0] ? themes[0].tag : '—';
 
+  /* sc-themes: always count unique tags from raw entries for consistency with the no-fp path */
+  var _utSet = {};
+  (_allEntries||[]).forEach(function(e){
+    (e.tags||[]).forEach(function(t){ var n=(t.name||t||'').toLowerCase(); if(n) _utSet[n]=true; });
+  });
+  var uniqueThemeCount = Object.keys(_utSet).length || themes.length;
+
   var sc0=document.getElementById('sc-total'); if(sc0) sc0.textContent = total;
   var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = avgRat;
-  var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = themes.length;
+  var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = uniqueThemeCount||'—';
   var sc3=document.getElementById('sc-top');   if(sc3){ sc3.textContent = topTag; sc3.style.fontSize='14px'; }
   if(sub) sub.textContent = 'Your taste fingerprint · Based on ' + total + ' entries';
   renderPatterns(fp);
@@ -4025,10 +4082,16 @@ function _applyFpToCharts(fp){
     _charts.gen.update();
   }
   if(_charts.radar && themes.length >= 3){
-    var dims = ['character-driven','world-building','atmospheric','moral complexity','thriller','political drama'];
-    var tmap = {}; themes.forEach(function(t){ tmap[t.tag.toLowerCase()] = t.weight||0; });
-    var maxW = themes[0] ? (themes[0].weight||1) : 1;
-    _charts.radar.data.datasets[0].data = dims.map(function(d){ return Math.round(((tmap[d]||0)/maxW)*100); });
+    /* Use the user's actual top-6 tags as axes — hardcoded dimensions never matched real data */
+    var top6 = themes.slice(0,6);
+    var maxW  = top6[0] ? (top6[0].weight||1) : 1;
+    _charts.radar.data.labels = top6.map(function(t){
+      var tag = t.tag || '';
+      return tag.charAt(0).toUpperCase() + tag.slice(1);
+    });
+    _charts.radar.data.datasets[0].data = top6.map(function(t){
+      return Math.round(((t.weight||0) / maxW) * 100);
+    });
     _charts.radar.update();
   }
 }
@@ -4043,12 +4106,27 @@ async function loadTimelineData(){
   if(res.error) return;
   var qmap = {};
   (res.data||[]).forEach(function(e){
-    var d = new Date(e.date_completed || e.created_at);
+    var r = parseFloat(e.rating);
+    if(isNaN(r)) return;   /* skip unrated entries */
+    if(!e.date_completed) return; /* skip entries without a real completion date —
+                                     falling back to created_at would place retroactively
+                                     logged content in today's quarter, distorting the trend */
+    var d = new Date(e.date_completed);
     var q = d.getUTCFullYear() + ' Q' + (Math.floor(d.getUTCMonth()/3)+1);
     if(!qmap[q]) qmap[q] = [];
-    qmap[q].push(parseFloat(e.rating));
+    qmap[q].push(r);
   });
   var labels = Object.keys(qmap).sort();
+  /* Show/hide empty state */
+  var emptyEl = document.getElementById('timeline-empty');
+  var canvas  = document.getElementById('timelineChart');
+  if(!labels.length){
+    if(emptyEl) emptyEl.style.display = '';
+    if(canvas)  canvas.style.display  = 'none';
+    return;
+  }
+  if(emptyEl) emptyEl.style.display = 'none';
+  if(canvas)  canvas.style.display  = '';
   var data   = labels.map(function(q){
     var arr = qmap[q];
     return arr.length ? parseFloat((arr.reduce(function(s,v){return s+v;},0)/arr.length).toFixed(2)) : null;
@@ -4069,7 +4147,8 @@ function initCharts(){
   if(radarCtx && !_charts.radar){
     _charts.radar = new Chart(radarCtx, {
       type:'radar',
-      data:{ labels:['Character-Driven','World-Building','Atmospheric','Moral Complexity','Thriller','Political Drama'],
+      /* Labels seeded blank — replaced with user's actual top-6 tags by _applyFpToCharts */
+      data:{ labels:['—','—','—','—','—','—'],
              datasets:[{label:'Your Taste',data:[0,0,0,0,0,0],
                backgroundColor:'rgba(74,173,186,0.15)',borderColor:'#4AADBA',
                pointBackgroundColor:'#4AADBA',pointRadius:3,borderWidth:2}] },
@@ -4117,8 +4196,8 @@ function initCharts(){
         plugins:{legend:{display:false}} }
     });
   }
-  if(_fp) _applyFpToCharts(_fp);
-  loadTimelineData();
+  /* _applyFpToCharts and loadTimelineData are called by the navigate handler, not here,
+     to ensure they run exactly once per Insights visit. */
 }
 
 /* ── Watchlist helpers ── */
