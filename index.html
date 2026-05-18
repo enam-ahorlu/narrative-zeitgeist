@@ -4082,4 +4082,50 @@ function _pickSearchResult(idx){
   var titleInp = document.getElementById('add-title');
   if(titleInp) titleInp.value = r.title;
   /* Auto-set format from result type */
-  var _typeToFmt = {film:'Film', show:'Show', book:'
+  var _typeToFmt = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
+  if(r._type && _typeToFmt[r._type]){
+    var fmtSel = document.getElementById('add-format');
+    if(fmtSel){ fmtSel.value = _typeToFmt[r._type]; updateSportField(fmtSel); }
+  }
+  /* Clear old poster first, then apply new one */
+  clearPoster();
+  _posterUrl = r.poster_url || null;
+  var drop = document.getElementById('cs-drop');
+  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
+  var cpw = document.getElementById('cover-poster-wrap');
+  var cpi = document.getElementById('cover-poster-img');
+  var cpt = document.getElementById('cover-poster-title');
+  var cpy = document.getElementById('cover-poster-year');
+  if(cpw && cpi){
+    if(_posterUrl){
+      cpi.src = _posterUrl;
+      if(cpt) cpt.textContent = r.title;
+      if(cpy) cpy.textContent = r.year ? r.year : '';
+      cpw.classList.add('visible');
+    }
+  }
+}
+
+function clearPoster(){
+  _posterUrl = null;
+  var cpw = document.getElementById('cover-poster-wrap');
+  if(cpw) cpw.classList.remove('visible');
+}
+
+function _closeSearchDrop(){
+  var drop = document.getElementById('cs-drop');
+  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
+}
+
+/* Close search dropdown on outside click */
+document.addEventListener('click', function(e){
+  var drop = document.getElementById('cs-drop');
+  var inp  = document.getElementById('add-title');
+  if(drop && !drop.contains(e.target) && e.target !== inp){
+    drop.classList.remove('open');
+  }
+});
+
+</script>
+</body>
+</html>
