@@ -8,9 +8,22 @@ const GBOOKS_KEY = process.env.GOOGLE_BOOKS_API_KEY;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
+/* Wraps fetch() with a 5-second abort timeout so slow third-party APIs
+   don't stall the Vercel function up to its hard limit. */
+async function fetchWithTimeout(url, timeoutMs = 5000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    return r;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchFilms(q) {
   if (!TMDB_KEY) return [];
-  const r = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&page=1`);
+  const r = await fetchWithTimeout(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&page=1`);
   const d = await r.json();
   return (d.results || []).slice(0, 4).map(m => ({
     id: String(m.id), _type: 'film',
@@ -23,7 +36,7 @@ async function fetchFilms(q) {
 
 async function fetchShows(q) {
   if (!TMDB_KEY) return [];
-  const r = await fetch(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&page=1`);
+  const r = await fetchWithTimeout(`https://api.themoviedb.org/3/search/tv?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}&page=1`);
   const d = await r.json();
   return (d.results || []).slice(0, 4).map(s => ({
     id: String(s.id), _type: 'show',
@@ -34,37 +47,44 @@ async function fetchShows(q) {
   }));
 }
 
+async function fetchBooksOpenLibrary(q) {
+  const r = await fetchWithTimeout(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=key,title,author_name,first_publish_year,cover_i&limit=4`);
+  const d = await r.json();
+  return (d.docs || []).slice(0, 4).map(b => ({
+    id: b.key || '', _type: 'book',
+    title: b.title || '',
+    year:  b.first_publish_year ? String(b.first_publish_year) : '',
+    poster_url:  b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : null,
+    description: b.author_name ? `by ${b.author_name[0]}` : ''
+  }));
+}
+
 async function fetchBooks(q) {
   if (GBOOKS_KEY) {
-    const r = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&key=${GBOOKS_KEY}&maxResults=4&printType=books`);
-    const d = await r.json();
-    return (d.items || []).slice(0, 4).map(b => {
-      const info = b.volumeInfo || {};
-      const img  = info.imageLinks || {};
-      const raw  = img.thumbnail || img.smallThumbnail || null;
-      return {
-        id: b.id || '', _type: 'book',
-        title: info.title || '',
-        year:  info.publishedDate ? info.publishedDate.slice(0, 4) : '',
-        poster_url:  raw ? raw.replace('http://', 'https://').replace('&zoom=1', '&zoom=2') : null,
-        description: info.authors ? `by ${info.authors[0]}` : ''
-      };
-    });
-  } else {
-    const r = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&fields=key,title,author_name,first_publish_year,cover_i&limit=4`);
-    const d = await r.json();
-    return (d.docs || []).slice(0, 4).map(b => ({
-      id: b.key || '', _type: 'book',
-      title: b.title || '',
-      year:  b.first_publish_year ? String(b.first_publish_year) : '',
-      poster_url:  b.cover_i ? `https://covers.openlibrary.org/b/id/${b.cover_i}-M.jpg` : null,
-      description: b.author_name ? `by ${b.author_name[0]}` : ''
-    }));
+    try {
+      const r = await fetchWithTimeout(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&key=${GBOOKS_KEY}&maxResults=4&printType=books`);
+      const d = await r.json();
+      const items = (d.items || []).slice(0, 4).map(b => {
+        const info = b.volumeInfo || {};
+        const img  = info.imageLinks || {};
+        const raw  = img.thumbnail || img.smallThumbnail || null;
+        return {
+          id: b.id || '', _type: 'book',
+          title: info.title || '',
+          year:  info.publishedDate ? info.publishedDate.slice(0, 4) : '',
+          poster_url:  raw ? raw.replace('http://', 'https://').replace('&zoom=1', '&zoom=2') : null,
+          description: info.authors ? `by ${info.authors[0]}` : ''
+        };
+      });
+      // Fall back to Open Library if Google Books returned nothing useful
+      if (items.length > 0) return items;
+    } catch (_) { /* fall through to Open Library */ }
   }
+  return fetchBooksOpenLibrary(q);
 }
 
 async function fetchMusic(q) {
-  const r = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=4`);
+  const r = await fetchWithTimeout(`https://itunes.apple.com/search?term=${encodeURIComponent(q)}&entity=album&limit=4`);
   const d = await r.json();
   return (d.results || []).slice(0, 4).map(a => ({
     id: String(a.collectionId || a.trackId || Math.random()), _type: 'music',
@@ -76,7 +96,7 @@ async function fetchMusic(q) {
 }
 
 async function fetchMatch(q) {
-  const r = await fetch(`https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e=${encodeURIComponent(q)}`);
+  const r = await fetchWithTimeout(`https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e=${encodeURIComponent(q)}`);
   const d = await r.json();
   return (d.event || []).slice(0, 4).map(e => ({
     id: e.idEvent || '', _type: 'match',
@@ -114,7 +134,7 @@ module.exports = async (req, res) => {
 
     } else if (type === 'game') {
       if (!RAWG_KEY) return res.json([]);
-      const r = await fetch(`https://api.rawg.io/api/games?key=${RAWG_KEY}&search=${encodeURIComponent(q)}&page_size=4`);
+      const r = await fetchWithTimeout(`https://api.rawg.io/api/games?key=${RAWG_KEY}&search=${encodeURIComponent(q)}&page_size=4`);
       const d = await r.json();
       results = (d.results || []).slice(0, 4).map(g => ({
         id: String(g.id), _type: 'game',

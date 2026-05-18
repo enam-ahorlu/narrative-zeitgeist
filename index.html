@@ -1842,8 +1842,6 @@ async function loadEntries(){
   renderEntriesTable(entries);
   renderEntriesGrid(entries);
   updateCollectionStats(entries);
-  /* Compute fingerprint on every load so the row always exists */
-  refreshFingerprint();
   /* Update "Because You Loved…" tab with top-rated entry title */
   if(entries.length){
     var top = entries.slice().sort(function(a,b){ return b.rating - a.rating; })[0];
@@ -2016,28 +2014,34 @@ function openDetailModal(entry){
 /* ── Upsert tags then link them to an entry ── */
 async function upsertEntryTags(entryId, tagNames){
   if(!tagNames.length || !currentUser) return;
-  for(var i = 0; i < tagNames.length; i++){
-    var name = tagNames[i].toLowerCase().trim();
-    if(!name) continue;
-    /* Step 1: try to find existing tag first — upsert's .select() returns
-       nothing when no update is made (tag already exists), so we select first */
-    var existing = await SUPA.from('tags')
-      .select('id')
-      .eq('user_id', currentUser.id)
-      .eq('name', name)
-      .maybeSingle();
-    var tagId = existing.data ? existing.data.id : null;
-    /* Step 2: if not found, insert it */
-    if(!tagId){
-      var ins = await SUPA.from('tags')
-        .insert({user_id: currentUser.id, name: name})
-        .select('id').single();
-      if(ins.error || !ins.data){ console.warn('Tag insert failed:', name, ins.error); continue; }
-      tagId = ins.data.id;
-    }
-    /* Step 3: link tag to entry */
-    await SUPA.from('entry_tags')
-      .upsert({entry_id: entryId, tag_id: tagId}, {ignoreDuplicates: true});
+  /* Normalise and deduplicate tag names */
+  var names = tagNames.map(function(n){ return n.toLowerCase().trim(); }).filter(Boolean);
+  var unique = names.filter(function(n,i){ return names.indexOf(n) === i; });
+  if(!unique.length) return;
+
+  /* Step 1: fetch all existing tags for this user in one query */
+  var existing = await SUPA.from('tags')
+    .select('id,name')
+    .eq('user_id', currentUser.id)
+    .in('name', unique);
+  var tagMap = {}; /* name → id */
+  (existing.data || []).forEach(function(t){ tagMap[t.name] = t.id; });
+
+  /* Step 2: batch-insert any tags that don't exist yet */
+  var missing = unique.filter(function(n){ return !tagMap[n]; });
+  if(missing.length){
+    var toInsert = missing.map(function(n){ return {user_id: currentUser.id, name: n}; });
+    var ins = await SUPA.from('tags').insert(toInsert).select('id,name');
+    if(ins.error){ console.warn('Tag batch insert failed:', ins.error); }
+    (ins.data || []).forEach(function(t){ tagMap[t.name] = t.id; });
+  }
+
+  /* Step 3: batch-upsert all entry_tags in one call */
+  var links = unique
+    .filter(function(n){ return tagMap[n]; })
+    .map(function(n){ return {entry_id: entryId, tag_id: tagMap[n]}; });
+  if(links.length){
+    await SUPA.from('entry_tags').upsert(links, {onConflict: 'entry_id,tag_id', ignoreDuplicates: true});
   }
 }
 /* ══════════════════════════════════════════════ */
@@ -2808,13 +2812,13 @@ async function saveEntry(){
 
 /* ── Open Add modal pre-filled for editing (E1) ── */
 function openEditModal(){
+  if(!currentEntry){ showToast('No entry selected'); return; }
   editMode=true;
-  var title=document.querySelector('#m-detail .modal-title').textContent;
-  var badge=document.querySelector('#m-detail .badge');
-  var fmt=badge?badge.textContent.trim():'Show';
-  var ratingText=document.querySelector('#m-detail .rating').textContent.replace(/[^0-9.]/g,'').trim();
-  var notesEl=document.querySelector('#m-detail .modal-body [style*="line-height:1.65"]');
-  var notes=notesEl?notesEl.textContent.trim():'';
+
+  /* Use currentEntry directly — no DOM scraping */
+  var title  = currentEntry.title  || '';
+  var format = currentEntry.format || 'show';
+  var rVal   = parseFloat(currentEntry.rating) || 8;
 
   /* Update modal heading + button */
   document.getElementById('add-modal-title').textContent='Edit Entry';
@@ -2822,16 +2826,17 @@ function openEditModal(){
 
   /* Pre-fill title */
   var titleInp=document.getElementById('add-title');
-  if(titleInp)titleInp.value=title;
+  if(titleInp) titleInp.value=title;
 
-  /* Pre-fill format */
+  /* Pre-fill format — match DB value to dropdown option */
+  var DB_TO_FMT={'show':'Show','film':'Film','book':'Book','music':'Music','sports_match':'Match'};
+  var fmt=DB_TO_FMT[format]||'Show';
   var fmtSel=document.getElementById('add-format');
   if(fmtSel){for(var i=0;i<fmtSel.options.length;i++){if(fmtSel.options[i].text===fmt){fmtSel.selectedIndex=i;break;}}}
 
   /* Pre-fill rating */
   var ratingInp=document.getElementById('add-rating');
   var rv=document.getElementById('rv');
-  var rVal=parseFloat(ratingText)||8;
   if(ratingInp){ratingInp.value=rVal;if(rv)rv.textContent=rVal;}
 
   /* Pre-fill notes from currentEntry */

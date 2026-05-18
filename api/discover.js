@@ -16,22 +16,24 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  const { fingerprint, entryTitles = [], tab = 'for-you' } = req.body || {};
+  const { fingerprint: rawFingerprint, entryTitles = [], tab = 'for-you', becauseTitle = null } = req.body || {};
 
-  if (!fingerprint) {
+  if (!rawFingerprint) {
     return res.status(400).json({ error: 'A valid taste fingerprint is required.' });
   }
   // primary_themes may be null/empty for users with untagged entries — default to []
-  if (!Array.isArray(fingerprint.primary_themes)) {
-    fingerprint = { ...fingerprint, primary_themes: [] };
-  }
+  // Use a local `let` so we can safely normalise without hitting const-reassignment errors
+  let fingerprint = Array.isArray(rawFingerprint.primary_themes)
+    ? rawFingerprint
+    : { ...rawFingerprint, primary_themes: [] };
+
   // Use raw entry count (entryTitles) as fallback when tagged count is low
   const effectiveCount = Math.max((fingerprint.total_entries || 0), entryTitles.length);
   if (effectiveCount < 3) {
     return res.status(400).json({ error: 'Add at least 3 entries to unlock Discovery.' });
   }
 
-  const prompt = buildPrompt(fingerprint, entryTitles, tab);
+  const prompt = buildPrompt(fingerprint, entryTitles, tab, becauseTitle);
 
   let claudeRes;
   try {
@@ -87,7 +89,7 @@ module.exports = async function handler(req, res) {
 };
 
 /* ── Prompt builder ── */
-function buildPrompt(fp, entryTitles, tab) {
+function buildPrompt(fp, entryTitles, tab, becauseTitle) {
   const themes  = (fp.primary_themes || []).slice(0, 10);
   const formats = fp.format_breakdown || {};
   const totalEntries = fp.total_entries || entryTitles.length || 0;
@@ -119,8 +121,8 @@ function buildPrompt(fp, entryTitles, tab) {
   } else if (tab === 'trending') {
     tabInstruction = '\nFOCUS: Trending in their genres — recent works (2022–2026) gaining momentum in quality taste circles. Mix proven new releases with emerging titles.';
   } else if (tab === 'because-loved') {
-    const topTheme = themes[0]?.tag || 'their top theme';
-    tabInstruction = `\nFOCUS: Works that directly connect to the user's dominant taste signal: "${topTheme}". Every recommendation should trace back to why this theme resonates with them.`;
+    const topSignal = becauseTitle || themes[0]?.tag || 'their top-rated entry';
+    tabInstruction = `\nFOCUS: Works that directly connect to the user's top-rated entry: "${topSignal}". Every recommendation should trace back to why fans of "${topSignal}" would love it — same tone, themes, creators, or cultural moment.`;
   }
 
   return `You are a taste-aware recommendation engine for Narrative & Zeitgeist, a personal entertainment curator app.
