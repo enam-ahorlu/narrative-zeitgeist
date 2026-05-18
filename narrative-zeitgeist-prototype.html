@@ -385,6 +385,14 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .density-row{display:flex;gap:8px;margin-top:4px}
 .density-opt{flex:1;border:2px solid var(--n-border);border-radius:var(--r-sm);padding:10px;cursor:pointer;text-align:center;font-size:12px;font-weight:500;color:var(--t-2);transition:all .15s}
 .density-opt:hover,.density-opt.active{border-color:var(--p-light);color:var(--p-rich);background:var(--p-ghost)}
+/* Compact density overrides */
+[data-density="compact"] .sr{padding:7px 0}
+[data-density="compact"] .sr:last-child{padding-bottom:10px}
+[data-density="compact"] .sr:first-child{padding-top:10px}
+[data-density="compact"] tbody td{padding:6px 11px}
+[data-density="compact"] .strip-item{padding:7px 12px}
+[data-density="compact"] .wl-item{padding:8px 14px}
+[data-density="compact"] .sc{padding:10px 16px}
 .overlay{display:none;position:fixed;inset:0;background:rgba(14,68,88,.38);z-index:300;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
 .overlay.open{display:flex}
 .modal{background:var(--n-surface);border-radius:var(--r-lg);width:510px;max-height:84vh;overflow:auto;box-shadow:var(--sh-lg);animation:bounceIn .35s cubic-bezier(.34,1.56,.64,1) both}
@@ -1255,7 +1263,7 @@ textarea.fi{resize:vertical;min-height:64px}
               <div class="sr"><div class="sr-left"><div class="sr-label">Dark Mode</div><div class="sr-sub">Switch between light and dark interface</div></div><div class="sr-right"><div class="toggle" id="dm-setting-toggle" onclick="toggleDarkModeFromSettings(this)"></div></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Color Theme</div><div class="sr-sub">Sets the primary palette across the app</div></div><div class="sr-right"><div class="mini-theme-row"><div class="mini-theme active" onclick="applyThemeFromSettings(this,'#1B5E76','#4AADBA','#092E3D')" title="Ocean Teal"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"></div><div class="mini-theme-name">Teal</div></div><div class="mini-theme" onclick="applyThemeFromSettings(this,'#2A4A7A','#5A8ABA','#0A1E3A')" title="Deep Blue"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A4A7A,#5A8ABA)"></div><div class="mini-theme-name">Blue</div></div><div class="mini-theme" onclick="applyThemeFromSettings(this,'#2A5A3A','#5A9A6A','#0A2A1A')" title="Forest"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A5A3A,#5A9A6A)"></div><div class="mini-theme-name">Forest</div></div><div class="mini-theme" onclick="applyThemeFromSettings(this,'#7A4A6A','#B07A9A','#2A0A1A')" title="Mauve"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#7A4A6A,#B07A9A)"></div><div class="mini-theme-name">Mauve</div></div></div></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Accent Color</div><div class="sr-sub">Highlights, active states, and interactive elements</div></div><div class="sr-right"><div class="accent-row"><div class="accent-dot active" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)" onclick="setAccentFromSettings(this,'#4AADBA','#1B5E76')" title="Teal"></div><div class="accent-dot" style="background:linear-gradient(135deg,#5A5490,#9B94C0)" onclick="setAccentFromSettings(this,'#9B94C0','#5A5490')" title="Lavender"></div><div class="accent-dot" style="background:linear-gradient(135deg,#7A5A6A,#B89FAD)" onclick="setAccentFromSettings(this,'#B89FAD','#7A5A6A')" title="Mauve"></div><div class="accent-dot" style="background:linear-gradient(135deg,#2A5A3A,#6A9A7A)" onclick="setAccentFromSettings(this,'#6A9A7A','#2A5A3A')" title="Sage"></div></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Content Density</div><div class="sr-sub">Compact reduces padding for more content on screen</div></div><div class="sr-right"><select class="sr-select" onchange="setDensityFromSelect(this)"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Content Density</div><div class="sr-sub">Compact reduces padding for more content on screen</div></div><div class="sr-right"><select class="sr-select" id="density-select" onchange="setDensityFromSelect(this)"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>
             </div>
           </div>
 
@@ -1263,17 +1271,17 @@ textarea.fi{resize:vertical;min-height:64px}
           <div class="ss" id="s-collection-prefs">
             <div class="ss-head"><div><div class="ss-title">Collection Preferences</div><div class="ss-sub">Defaults for your library view</div></div></div>
             <div class="ss-body">
-              <div class="sr"><div class="sr-left"><div class="sr-label">Default View</div><div class="sr-sub">How entries are displayed when you open Collection</div></div><div class="sr-right"><select class="sr-select"><option>Table</option><option>Cards</option></select></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Default Sort</div><div class="sr-sub">Initial ordering of entries in your collection</div></div><div class="sr-right"><select class="sr-select"><option>Date Added ↓</option><option>Rating ↓</option><option>Title A–Z</option><option>Format</option></select></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Sport Badge Detail</div><div class="sr-sub">Show sport type (NFL, NBA, F1) inside the Match badge</div></div><div class="sr-right"><div class="toggle on" onclick="this.classList.toggle('on')"></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Show Taste Influence on Entries</div><div class="sr-sub">Display fingerprint weight indicator in entry detail</div></div><div class="sr-right"><div class="toggle on" onclick="this.classList.toggle('on')"></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Auto-add to Watchlist on Discover</div><div class="sr-sub">One-click adds from Discover go directly to Watchlist</div></div><div class="sr-right"><div class="toggle" onclick="this.classList.toggle('on')"></div></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Default View</div><div class="sr-sub">How entries are displayed when you open Collection</div></div><div class="sr-right"><select class="sr-select" id="col-pref-view" onchange="saveColPref('view',this.value)"><option value="table">Table</option><option value="grid">Cards</option></select></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Default Sort</div><div class="sr-sub">Initial ordering of entries in your collection</div></div><div class="sr-right"><select class="sr-select" id="col-pref-sort" onchange="saveColPref('sort',this.value)"><option value="date_desc">Date Added ↓</option><option value="rating_desc">Rating ↓</option><option value="title_asc">Title A–Z</option><option value="format">Format</option></select></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Sport Badge Detail</div><div class="sr-sub">Show sport type (NFL, NBA, F1) inside the Match badge</div></div><div class="sr-right"><div class="toggle on" id="tog-sport-badge" onclick="saveColToggle(this,'sportBadge')"></div></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Show Taste Influence on Entries</div><div class="sr-sub">Display fingerprint weight indicator in entry detail</div></div><div class="sr-right"><div class="toggle on" id="tog-taste-influence" onclick="saveColToggle(this,'tasteInfluence')"></div></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Auto-add to Watchlist on Discover</div><div class="sr-sub">One-click adds from Discover go directly to Watchlist</div></div><div class="sr-right"><div class="toggle" id="tog-auto-watchlist" onclick="saveColToggle(this,'autoWatchlist')"></div></div></div>
             </div>
           </div>
 
           <!-- Tags -->
           <div class="ss" id="s-tags">
-            <div class="ss-head"><div><div class="ss-title">Tag Management</div><div class="ss-sub" id="tag-mgmt-sub">Loading tags…</div></div><button class="btn btn-glass btn-sm">Merge Tags</button></div>
+            <div class="ss-head"><div><div class="ss-title">Tag Management</div><div class="ss-sub" id="tag-mgmt-sub">Loading tags…</div></div><button class="btn btn-glass btn-sm" onclick="openMergeTagsDialog()">Merge Tags</button></div>
             <div class="ss-body">
               <div class="tag-mgmt" id="tag-mgmt-list"><div style="color:var(--t-3);font-size:12.5px;padding:8px 0">No tags yet — add tags when logging entries.</div></div>
               <div class="tag-add-row"><input type="text" placeholder="New tag name…" id="new-tag-input" onkeydown="addTagOnEnter(event)"><button class="btn btn-p btn-sm" onclick="addTag()">Add Tag</button></div>
@@ -1288,7 +1296,7 @@ textarea.fi{resize:vertical;min-height:64px}
               <div class="sr"><div class="sr-left"><div class="sr-label">Email Address</div><div class="sr-sub">Used for sign-in and exports</div></div><div class="sr-right"><input class="fi" id="settings-email" style="width:210px;padding:6px 10px;font-size:12.5px" value="" readonly></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Password</div><div class="sr-sub" id="pass-sub">Last changed — never</div></div><div class="sr-right"><button class="btn btn-glass btn-sm" onclick="sendPasswordReset()">Change Password</button></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Sign Out</div><div class="sr-sub">Sign out of your account on this device</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm" onclick="signOut()">Sign Out</button></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label" style="color:var(--a-burg)">Delete Account</div><div class="sr-sub">Permanently removes all your data. This cannot be undone.</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm btn-danger">Delete Account</button></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label" style="color:var(--a-burg)">Delete Account</div><div class="sr-sub">Permanently removes all your data. This cannot be undone.</div></div><div class="sr-right"><button class="btn btn-ghost btn-sm btn-danger" onclick="deleteAccount()">Delete Account</button></div></div>
             </div>
           </div>
 
@@ -1298,8 +1306,8 @@ textarea.fi{resize:vertical;min-height:64px}
             <div class="ss-body">
               <div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t-3);padding-top:14px;margin-bottom:0">EXPORT</div>
               <div class="data-grid">
-                <div class="data-card" onclick="showToast('JSON export started — file will download shortly','↓  ')" style="cursor:pointer"><div class="data-card-icon" style="background:var(--c-show-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-show)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div><div><div class="data-card-title">Export as JSON</div><div class="data-card-sub">Full collection + metadata</div></div></div>
-                <div class="data-card" onclick="showToast('CSV export started — file will download shortly','↓  ')" style="cursor:pointer"><div class="data-card-icon" style="background:var(--c-book-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-book)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div><div class="data-card-title">Export as CSV</div><div class="data-card-sub">Spreadsheet-compatible</div></div></div>
+                <div class="data-card" onclick="exportCollectionJSON()" style="cursor:pointer"><div class="data-card-icon" style="background:var(--c-show-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-show)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div><div><div class="data-card-title">Export as JSON</div><div class="data-card-sub">Full collection + metadata</div></div></div>
+                <div class="data-card" onclick="exportCollectionCSV()" style="cursor:pointer"><div class="data-card-icon" style="background:var(--c-book-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-book)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div><div class="data-card-title">Export as CSV</div><div class="data-card-sub">Spreadsheet-compatible</div></div></div>
               </div>
               <div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t-3);margin-top:6px;margin-bottom:0">IMPORT</div>
               <div class="data-grid" style="padding-bottom:14px">
@@ -1780,6 +1788,7 @@ SUPA.auth.onAuthStateChange(function(event, session){
     loadWatchlist();
   } else if(event === 'SIGNED_OUT'){
     currentUser = null;
+    _fp = null; _allEntries = []; _wlItems = []; _discRecs = null; _discFetchedAt = 0;
     _showAuthScreen();
   }
 });
@@ -1810,6 +1819,9 @@ function _showApp(){
   // Restore the screen the user was on before a reload, or default to collection
   var hashScr = location.hash.replace('#','');
   var startScr = (_validScreens && _validScreens.indexOf(hashScr) >= 0) ? hashScr : 'collection';
+  /* Restore density preference before first render */
+  var _savedDensity = localStorage.getItem('nz-density');
+  if(_savedDensity) document.body.setAttribute('data-density', _savedDensity);
   navigate(startScr, {pushHash: false});
 }
 function _showAuthScreen(){
@@ -2271,7 +2283,143 @@ function setAccentFromSettings(el,light,deep){
   r.setProperty('--theme-accent-deep',deep);
 }
 
-function setDensityFromSelect(sel){}
+function setDensityFromSelect(sel){
+  var d = sel ? sel.value : 'comfortable';
+  document.body.setAttribute('data-density', d);
+  localStorage.setItem('nz-density', d);
+  /* Sync the Design System density buttons */
+  document.querySelectorAll('.density-opt').forEach(function(o){
+    o.classList.toggle('active', o.textContent.trim().toLowerCase() === d);
+  });
+  showToast('Density set to ' + d);
+}
+
+function saveColPref(key, val){
+  localStorage.setItem('nz-col-' + key, val);
+}
+
+function saveColToggle(el, key){
+  el.classList.toggle('on');
+  var prefs = JSON.parse(localStorage.getItem('nz-col-toggles') || '{}');
+  prefs[key] = el.classList.contains('on');
+  localStorage.setItem('nz-col-toggles', JSON.stringify(prefs));
+}
+
+function exportCollectionJSON(){
+  if(!_allEntries || !_allEntries.length){ showToast('No entries to export'); return; }
+  var data = {
+    exported: new Date().toISOString(),
+    version: '1',
+    entries: _allEntries.map(function(e){
+      return {
+        title: e.title, format: e.format, year: e.year,
+        rating: e.rating, review: e.review,
+        date_added: e.created_at, date_completed: e.date_completed,
+        tags: (e.tags||[]).map(function(t){ return t.name||t; })
+      };
+    })
+  };
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = 'narrative-zeitgeist-export.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  showToast(_allEntries.length + ' entries exported as JSON', '↓  ');
+}
+
+function exportCollectionCSV(){
+  if(!_allEntries || !_allEntries.length){ showToast('No entries to export'); return; }
+  var rows = [['Title','Format','Year','Rating','Review','Tags','Date Added','Date Completed']];
+  _allEntries.forEach(function(e){
+    var tags = (e.tags||[]).map(function(t){ return t.name||t; }).join('; ');
+    rows.push([
+      e.title||'', e.format||'', e.year||'',
+      e.rating != null ? e.rating : '',
+      (e.review||'').replace(/"/g,'""'),
+      tags,
+      e.created_at ? e.created_at.slice(0,10) : '',
+      e.date_completed ? e.date_completed.slice(0,10) : ''
+    ]);
+  });
+  var csv = rows.map(function(r){
+    return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], {type: 'text/csv'});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = 'narrative-zeitgeist-export.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  showToast(_allEntries.length + ' entries exported as CSV', '↓  ');
+}
+
+async function deleteAccount(){
+  if(!currentUser){ showToast('Please sign in first'); return; }
+  if(!confirm('This will permanently delete your account and all your data.\n\nThis cannot be undone. Are you sure?')) return;
+  showToast('Deleting your data…', '⏳  ');
+  try {
+    /* Delete all user data from each table */
+    await SUPA.from('entry_tags').delete().in('entry_id',
+      (await SUPA.from('entries').select('id').eq('user_id', currentUser.id)).data.map(function(r){ return r.id; })
+    );
+    await SUPA.from('entries').delete().eq('user_id', currentUser.id);
+    await SUPA.from('watchlist').delete().eq('user_id', currentUser.id);
+    await SUPA.from('tags').delete().eq('user_id', currentUser.id);
+    await SUPA.from('user_fingerprints').delete().eq('user_id', currentUser.id);
+    /* Auth account deletion requires server-side — sign out and inform user */
+    await SUPA.auth.signOut();
+    showToast('All data deleted. To fully remove your auth account, contact support.', '✓  ');
+  } catch(e){
+    showToast('Could not complete deletion: ' + (e.message||'unknown error'), '⚠  ');
+  }
+}
+
+function openMergeTagsDialog(){
+  var from = window.prompt('Tag to merge FROM (this tag will be removed):');
+  if(!from) return;
+  var to = window.prompt('Tag to merge INTO (entries will keep this tag):');
+  if(!to) return;
+  from = from.trim().toLowerCase();
+  to   = to.trim().toLowerCase();
+  if(!from || !to){ showToast('Tag names cannot be blank'); return; }
+  if(from === to){ showToast('Both tags are the same — nothing to merge'); return; }
+  if(!confirm('Merge "' + from + '" into "' + to + '"?\n\nAll entries tagged "' + from + '" will gain the tag "' + to + '". The "' + from + '" tag will be deleted. This cannot be undone.')){ return; }
+  _doMergeTags(from, to);
+}
+
+async function _doMergeTags(from, to){
+  if(!currentUser){ showToast('Please sign in first'); return; }
+  showToast('Merging tags…', '⏳  ');
+  /* Resolve or create the "to" tag */
+  var toRes = await SUPA.from('tags').select('id').eq('user_id', currentUser.id).eq('name', to).maybeSingle();
+  var toId;
+  if(toRes.data){
+    toId = toRes.data.id;
+  } else {
+    var createRes = await SUPA.from('tags').insert({user_id: currentUser.id, name: to}).select('id').single();
+    if(createRes.error){ showToast('Could not create tag: ' + createRes.error.message, '⚠  '); return; }
+    toId = createRes.data.id;
+  }
+  /* Resolve the "from" tag */
+  var fromRes = await SUPA.from('tags').select('id').eq('user_id', currentUser.id).eq('name', from).maybeSingle();
+  if(!fromRes.data){ showToast('"' + from + '" tag not found'); return; }
+  var fromId = fromRes.data.id;
+  /* Re-tag all entry_tags rows: fromId → toId */
+  var etRes = await SUPA.from('entry_tags').select('entry_id').eq('tag_id', fromId);
+  if(etRes.data && etRes.data.length){
+    var upserts = etRes.data.map(function(r){ return {entry_id: r.entry_id, tag_id: toId}; });
+    await SUPA.from('entry_tags').upsert(upserts, {onConflict: 'entry_id,tag_id', ignoreDuplicates: true});
+    await SUPA.from('entry_tags').delete().eq('tag_id', fromId);
+  }
+  /* Delete the "from" tag */
+  await SUPA.from('tags').delete().eq('id', fromId);
+  showToast('"' + from + '" merged into "' + to + '"', '✓  ');
+  loadEntries();
+  loadSettingsTags();
+}
 
 async function addTag(){
   var input = document.getElementById('new-tag-input');
@@ -2485,7 +2633,16 @@ function setAccent(el,light,deep){
   r.setProperty('--theme-accent',light);
   r.setProperty('--theme-accent-deep',deep);
 }
-function setDensity(el,d){document.querySelectorAll('.density-opt').forEach(function(o){o.classList.remove('active')});el.classList.add('active');showToast('Density set to '+d);}
+function setDensity(el,d){
+  document.querySelectorAll('.density-opt').forEach(function(o){o.classList.remove('active')});
+  el.classList.add('active');
+  document.body.setAttribute('data-density', d);
+  localStorage.setItem('nz-density', d);
+  /* Sync the Settings density select */
+  var _dsel = document.getElementById('density-select');
+  if(_dsel) _dsel.value = d;
+  showToast('Density set to ' + d);
+}
 function hexToRgb(hex){var r=hex.replace('#','');return[parseInt(r.substring(0,2),16),parseInt(r.substring(2,4),16),parseInt(r.substring(4,6),16)].join(',')}
 
 /* ── Toast notifications ── */
@@ -3909,6 +4066,22 @@ function populateSettings(){
   var allTags = new Set(); _allEntries.forEach(function(e){ (e.tags||[]).forEach(function(t){ allTags.add(t); }); });
   var tc = document.getElementById('about-tag-count'); if(tc) tc.textContent = allTags.size || '—';
   loadSettingsTags();
+  /* Restore Collection Prefs selects from localStorage */
+  var _cpv = document.getElementById('col-pref-view');
+  var _cps = document.getElementById('col-pref-sort');
+  if(_cpv) _cpv.value = localStorage.getItem('nz-col-view') || 'table';
+  if(_cps) _cps.value = localStorage.getItem('nz-col-sort') || 'date_desc';
+  /* Restore Collection Prefs toggles */
+  var _togPrefs = JSON.parse(localStorage.getItem('nz-col-toggles') || '{}');
+  var _tsb = document.getElementById('tog-sport-badge');
+  var _tti = document.getElementById('tog-taste-influence');
+  var _taw = document.getElementById('tog-auto-watchlist');
+  if(_tsb){ _togPrefs.sportBadge !== false ? _tsb.classList.add('on') : _tsb.classList.remove('on'); }
+  if(_tti){ _togPrefs.tasteInfluence !== false ? _tti.classList.add('on') : _tti.classList.remove('on'); }
+  if(_taw){ _togPrefs.autoWatchlist ? _taw.classList.add('on') : _taw.classList.remove('on'); }
+  /* Restore density select */
+  var _ds = document.getElementById('density-select');
+  if(_ds) _ds.value = document.body.getAttribute('data-density') || 'comfortable';
 }
 
 async function loadSettingsTags(){
