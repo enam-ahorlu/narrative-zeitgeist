@@ -46,7 +46,7 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 4096,
+        max_tokens: 8192,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -82,7 +82,24 @@ module.exports = async function handler(req, res) {
   try {
     recommendations = JSON.parse(jsonMatch[1]);
   } catch (e) {
-    return res.status(500).json({ error: 'Malformed JSON from Claude: ' + e.message });
+    // Response was likely truncated mid-JSON (max_tokens hit mid-array).
+    // Attempt to salvage all complete objects by trimming to the last '}' and closing the array.
+    const raw = jsonMatch[1];
+    const lastBrace = raw.lastIndexOf('}');
+    if (lastBrace !== -1) {
+      try {
+        recommendations = JSON.parse(raw.slice(0, lastBrace + 1) + ']');
+        console.warn(`Partial JSON recovered: ${recommendations.length} recommendations (truncated response)`);
+      } catch (_) {
+        return res.status(500).json({ error: 'Malformed JSON from Claude: ' + e.message });
+      }
+    } else {
+      return res.status(500).json({ error: 'Malformed JSON from Claude: ' + e.message });
+    }
+  }
+
+  if (!Array.isArray(recommendations) || recommendations.length === 0) {
+    return res.status(500).json({ error: 'Claude returned no recommendations.' });
   }
 
   return res.status(200).json({ recommendations });
