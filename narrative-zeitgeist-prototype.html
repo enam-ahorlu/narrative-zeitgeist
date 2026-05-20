@@ -1731,6 +1731,7 @@ var _charts      = {};   /* Chart.js instances keyed by name */
 var _allEntries  = [];   /* cached full entry list for Discovery */
 var _discRecs    = null; /* cached Discovery recommendations */
 var _discFetchedAt = 0;  /* timestamp of last Discovery fetch */
+var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed on save */
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you'; /* current Discovery tab */
 var _discSortVal = 'match';  /* current sort: match | newest | reviewed */
@@ -2631,6 +2632,7 @@ function closeModal(id){
     /* Clear watchlist move context — prevents a subsequent unrelated save from
        silently archiving an old watchlist item if user closed without saving */
     _wlMoveId = null;
+    _discAddRec = null; /* clear discover-dismiss context on cancel */
   }
 }
 document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
@@ -2884,6 +2886,12 @@ async function saveEntry(){
   document.querySelectorAll('.tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
 
   showToast(wasEdit ? 'Entry updated' : 'Entry saved to your collection');
+  /* Dismiss the discover card that triggered this save (if any) */
+  if(!wasEdit && _discAddRec){
+    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== _discAddRec.title; });
+    _discAddRec = null;
+    _renderDiscovery(_discRecs);
+  }
   loadEntries();        /* Refresh table + grid + stats */
   refreshFingerprint(); /* Recompute taste profile in background */
   /* If this save came from "Move to Collection", delete the watchlist item */
@@ -3496,7 +3504,9 @@ async function loadDiscovery(force){
     try { await refreshFingerprint(); } catch(e){ console.warn('Fingerprint load failed:', e); }
   }
   _discState('loading');
-  var entryTitles = _allEntries.map(function(e){ return e.title; });
+  /* Exclude both logged entries AND watchlist items so Claude never re-suggests them */
+  var wlTitles    = (_wlItems||[]).map(function(it){ return it.title; });
+  var entryTitles = _allEntries.map(function(e){ return e.title; }).concat(wlTitles);
   /* Build a minimal synthetic fingerprint if the real one isn't available yet */
   var fpToSend = _fp;
   if(!fpToSend){
@@ -3714,11 +3724,15 @@ async function saveToWatchlist(btn){
     btn.textContent = '✓ Saved';
     showToast(rec.title+' saved to Watchlist','🔖  ');
     loadWatchlist();
+    /* Dismiss this card from the current discover view */
+    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== rec.title; });
+    _renderDiscovery(_discRecs);
   }
 }
 
 function addFromDiscover(btn){
   var rec = JSON.parse(btn.getAttribute('data-rec'));
+  _discAddRec = rec; /* remember so saveEntry() can dismiss this card */
   openModal('add');
   setTimeout(function(){
     var titleInp = document.getElementById('add-title');
