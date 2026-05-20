@@ -670,7 +670,7 @@ textarea.fi{resize:vertical;min-height:64px}
 
   /* App layout: single column, leave room for bottom nav */
   #app{flex-direction:column}
-  .main{height:auto;min-height:100vh;padding-bottom:70px}
+  .main{height:auto;min-height:100vh;padding-bottom:130px}
 
   /* Page headers */
   .ph{padding:16px 16px 0}
@@ -775,6 +775,16 @@ textarea.fi{resize:vertical;min-height:64px}
 
   /* Mobile search FAB: shown above bottom nav for touch users */
   #mob-search-fab{display:flex}
+
+  /* Watchlist: stack actions row below entry info on narrow screens */
+  .wl-order-btns{display:none}
+  .wl-item{flex-wrap:wrap;align-items:flex-start}
+  .wl-actions{flex-basis:100%;margin-top:8px;padding-top:8px;border-top:1px solid var(--n-border);flex-wrap:wrap;gap:6px}
+  .wl-actions .btn{flex:1;justify-content:center;font-size:12px;padding:7px 8px;min-width:0}
+  .wl-remove-confirm{flex-basis:100%;margin-top:4px}
+
+  /* Pagination: tighter horizontal padding, won't be clipped by FAB */
+  .col-pagination{padding:10px 16px}
 }
 
 /* ── Film badge ── */
