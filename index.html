@@ -2992,7 +2992,7 @@ function openEditModal(){
 
   /* Pre-fill notes from currentEntry */
   var notesInp=document.getElementById('add-notes');
-  if(notesInp) notesInp.value = (currentEntry && currentEntry.notes) ? currentEntry.notes : notes;
+  if(notesInp) notesInp.value = (currentEntry && currentEntry.notes) ? currentEntry.notes : '';
   /* Pre-fill date from currentEntry */
   var dateInp=document.getElementById('add-date');
   if(dateInp && currentEntry && currentEntry.date_completed) dateInp.value = currentEntry.date_completed.slice(0,10);
