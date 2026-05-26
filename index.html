@@ -923,6 +923,14 @@ textarea.fi{resize:vertical;min-height:64px}
   .style-stats{gap:8px}
   .style-stat{padding:8px 12px}
 }
+/* ── Collections: scent/style mode ── */
+#s-collection.col-ss-mode .tbl-wrap,
+#s-collection.col-ss-mode #cg-grid,
+#s-collection.col-ss-mode #col-pagination{display:none!important}
+#col-ss-section{padding-bottom:24px}
+.col-ss-header{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);padding:20px 30px 10px;border-top:1px solid var(--n-border)}
+.col-ss-header:first-child{border-top:none;padding-top:4px}
+@media(max-width:768px){.col-ss-header{padding:16px 16px 8px}.col-ss-header:first-child{padding-top:4px}}
 </style>
 </head>
 <body>
@@ -1096,6 +1104,8 @@ textarea.fi{resize:vertical;min-height:64px}
           <div class="pill" onclick="setColPill(this)">Books</div>
           <div class="pill" onclick="setColPill(this)">Matches</div>
           <div class="pill" onclick="setColPill(this)">Music</div>
+          <div class="pill" onclick="setColPill(this)">Fragrances</div>
+          <div class="pill" onclick="setColPill(this)">Wardrobe</div>
         </div>
         <select class="fsel" id="col-sort-sel" onchange="colSort(this.value)"><option value="date_desc">Sort: Date Added</option><option value="rating_desc">Sort: Rating ↓</option><option value="title_asc">Sort: Title A–Z</option></select>
       </div>
@@ -1137,6 +1147,8 @@ textarea.fi{resize:vertical;min-height:64px}
       </div>
       <!-- Card grid view (hidden until toggled) -->
       <div class="cg-grid" id="cg-grid"></div>
+      <!-- Scent & Style items — shown when Fragrances/Wardrobe pill active, or appended in All mode -->
+      <div id="col-ss-section" style="display:none"></div>
       <!-- C4: Pagination bar -->
       <div class="col-pagination" id="col-pagination">
         <div class="col-pag-info" id="col-pag-info"></div>
@@ -3713,6 +3725,7 @@ function applyCollectionFilter(){
   updateColChips();
   updateColPagination(shown);
   updateColFilterBtn();
+  _renderColSS(q,fmt);
 }
 
 /* ── Sort entries by field ── */
@@ -3763,6 +3776,8 @@ function setColPill(el){
   el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});
   el.classList.add('active');
   colFilter.format=el.textContent.trim();
+  var _scr=document.getElementById('s-collection');
+  if(_scr) _scr.classList.toggle('col-ss-mode',colFilter.format==='Fragrances'||colFilter.format==='Wardrobe');
   applyCollectionFilter();
 }
 function toggleTagFilter(el,tag){
@@ -3793,7 +3808,40 @@ function clearColFilters(){
   document.querySelectorAll('.col-tag-pill.active').forEach(function(p){p.classList.remove('active')});
   document.querySelectorAll('#s-collection .pills .pill').forEach(function(p){p.classList.remove('active')});
   document.querySelector('#s-collection .pills .pill').classList.add('active');
+  var _ss=document.getElementById('s-collection');if(_ss)_ss.classList.remove('col-ss-mode');
   applyCollectionFilter();
+}
+
+/* ── Render Fragrances/Wardrobe cards inside Collections tab ── */
+function _renderColSS(q,fmt){
+  var section=document.getElementById('col-ss-section');
+  if(!section)return;
+  if(fmt==='Fragrances'){
+    section.style.display='';
+    var items=_loadFrags();
+    if(q)items=items.filter(function(f){return((f.name||'')+' '+(f.house||'')+' '+(f.character||'')+' '+(f.tags||[]).join(' ')).toLowerCase().indexOf(q)>=0;});
+    section.innerHTML=items.length?'<div class="frag-grid" style="padding:4px 30px 0">'+items.map(_fragCardHTML).join('')+'</div>':'<div style="padding:48px 30px;text-align:center;font-size:13px;color:var(--t-3)">No fragrances'+(q?' matching your search':'yet. Add your first scent in the Style &amp; Scent section.')+'</div>';
+  }else if(fmt==='Wardrobe'){
+    section.style.display='';
+    var items=_loadWard();
+    if(q)items=items.filter(function(w){return((w.name||'')+' '+(w.brand||'')+' '+(w.category||'')+' '+(w.tags||[]).join(' ')).toLowerCase().indexOf(q)>=0;});
+    section.innerHTML=items.length?'<div class="ward-grid" style="padding:4px 30px 0">'+items.map(_wardCardHTML).join('')+'</div>':'<div style="padding:48px 30px;text-align:center;font-size:13px;color:var(--t-3)">No wardrobe items'+(q?' matching your search':'yet. Add your first piece in the Style &amp; Scent section.')+'</div>';
+  }else if(fmt==='All'){
+    var frags=_loadFrags();
+    var ward=_loadWard();
+    if(q){
+      frags=frags.filter(function(f){return((f.name||'')+' '+(f.house||'')).toLowerCase().indexOf(q)>=0;});
+      ward=ward.filter(function(w){return((w.name||'')+' '+(w.brand||'')+' '+(w.category||'')).toLowerCase().indexOf(q)>=0;});
+    }
+    if(!frags.length&&!ward.length){section.style.display='none';section.innerHTML='';return;}
+    section.style.display='';
+    var html='';
+    if(frags.length)html+='<div class="col-ss-header">✦ Fragrances</div><div class="frag-grid" style="padding:0 30px">'+frags.map(_fragCardHTML).join('')+'</div>';
+    if(ward.length)html+='<div class="col-ss-header"'+(frags.length?' style="margin-top:8px"':'')+'>✦ Wardrobe</div><div class="ward-grid" style="padding:0 30px">'+ward.map(_wardCardHTML).join('')+'</div>';
+    section.innerHTML=html;
+  }else{
+    section.style.display='none';section.innerHTML='';
+  }
 }
 
 /* ── Filter panel toggle ── */
@@ -3833,6 +3881,7 @@ function clearColChip(el){
     colFilter.format = 'All';
     document.querySelectorAll('#s-collection .pills .pill').forEach(function(p){ p.classList.remove('active'); });
     var first = document.querySelector('#s-collection .pills .pill'); if(first) first.classList.add('active');
+    var _ss2=document.getElementById('s-collection');if(_ss2)_ss2.classList.remove('col-ss-mode');
   } else if(t === 'rating'){
     colFilter.ratingMin = 0; colFilter.ratingMax = 10;
     var rmin = document.getElementById('col-rmin'); if(rmin) rmin.value = 0;
@@ -4145,6 +4194,62 @@ function _renderDiscovery(recs){
   _renderHero(filtered[0]);
   /* Grid = rest */
   _renderGrid(filtered.slice(1));
+  /* Append scent & style picks at bottom of All feed */
+  if(_discPill==='all') setTimeout(_appendScentStyleToDiscover,0);
+}
+
+/* ── Append Scent & Style picks to the Discover All feed ── */
+function _appendScentStyleToDiscover(){
+  var wrap=document.getElementById('disc-grid-wrap');
+  if(!wrap)return;
+  /* Scent recs */
+  var sp=_buildScentProfile();
+  var ownedF=_loadFrags().map(function(f){return(f.name||'').toLowerCase();});
+  var fragRecs=FRAG_DB.filter(function(e){return ownedF.indexOf(e[0].toLowerCase())<0;})
+    .map(function(e){var r=_scoreFrag(e,sp);return{name:e[0],house:e[1],top:e[2],mid:e[3],base:e[4],character:e[5],projection:e[6],season:e[7],score:r.score,reasons:r.reasons,gradient:_fragGradient(e[5],e[7])};})
+    .filter(function(r){return r.score>=62;})
+    .sort(function(a,b){return b.score-a.score;})
+    .slice(0,3);
+  /* Style recs */
+  var wp=_buildStyleProfile();
+  var ownedW=_loadWard().map(function(w){return(w.name||'').toLowerCase();});
+  var styleRecs=WARD_STYLE_DB.filter(function(e){return ownedW.indexOf(e[0].toLowerCase())<0;})
+    .map(function(e){var r=_scoreStyleItem(e,wp);return{name:e[0],category:e[1],brand:e[2],style:e[3],occasions:e[4],season:e[5],description:e[6],score:r.score,reasons:r.reasons,gradient:_styleGradient(e[3])};})
+    .filter(function(r){return r.score>=62;})
+    .sort(function(a,b){return b.score-a.score;})
+    .slice(0,3);
+  if(!fragRecs.length&&!styleRecs.length)return;
+  var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin:24px 0 12px;padding-top:24px;border-top:1px solid var(--n-border)">✦ SCENT &amp; STYLE PICKS</div><div class="disc-grid">';
+  fragRecs.forEach(function(rec){
+    var init=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
+    var reas=rec.reasons.map(function(r){return'<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
+    var cTags=rec.character.split(',').slice(0,3).map(function(c){return'<span class="tag">'+escHtml(c.trim())+'</span>';}).join('');
+    var fd=escHtml(JSON.stringify({name:rec.name,house:rec.house,top:rec.top,mid:rec.mid,base:rec.base,character:rec.character,projection:rec.projection,season:rec.season}));
+    html+='<div class="rc"><div class="rc-poster" style="background:'+rec.gradient+'"><div class="rc-initials">'+escHtml(init)+'</div><div class="rc-match '+mCls+'">'+rec.score+'%</div></div>'
+      +'<div class="rc-body"><div class="rc-title">'+escHtml(rec.name)+'</div><div class="rc-meta">'+escHtml(rec.house)+' &nbsp;·&nbsp; '+escHtml(rec.season)+'</div>'
+      +'<div class="rc-because" style="font-size:11px;color:var(--t-3);margin:3px 0">'+escHtml(rec.top.split(',')[0].trim())+' · '+escHtml(rec.mid.split(',')[0].trim())+'</div>'
+      +'<button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button>'
+      +'<div class="rc-reasons">'+reas+'</div><div class="rc-tags">'+cTags+'</div>'
+      +'<div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addFragFromDiscover(this)" data-frag="'+fd+'">+ Fragrances</button></div>'
+      +'</div></div>';
+  });
+  styleRecs.forEach(function(rec){
+    var init=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
+    var reas=rec.reasons.map(function(r){return'<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
+    var sTags=rec.style.split(',').slice(0,3).map(function(s){return'<span class="tag">'+escHtml(s.trim())+'</span>';}).join('');
+    var wd=escHtml(JSON.stringify({name:rec.name,brand:rec.brand,category:rec.category,season:rec.season}));
+    html+='<div class="rc"><div class="rc-poster" style="background:'+rec.gradient+'"><div class="rc-initials">'+escHtml(init)+'</div><div class="rc-match '+mCls+'">'+rec.score+'%</div></div>'
+      +'<div class="rc-body"><div class="rc-title">'+escHtml(rec.name)+'</div><div class="rc-meta">'+escHtml(rec.category)+(rec.brand?' &nbsp;·&nbsp; '+escHtml(rec.brand):'')+' &nbsp;·&nbsp; '+escHtml(rec.season)+'</div>'
+      +'<div class="rc-because" style="font-size:11.5px;color:var(--t-3);margin:3px 0;font-style:italic">'+escHtml(rec.description)+'</div>'
+      +'<button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button>'
+      +'<div class="rc-reasons">'+reas+'</div><div class="rc-tags">'+sTags+'</div>'
+      +'<div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addWardFromDiscover(this)" data-ward="'+wd+'">+ Wardrobe</button></div>'
+      +'</div></div>';
+  });
+  html+='</div>';
+  wrap.insertAdjacentHTML('beforeend',html);
 }
 
 function _recInitials(title){
