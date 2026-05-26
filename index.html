@@ -1222,6 +1222,8 @@ textarea.fi{resize:vertical;min-height:64px}
         <div class="pill" onclick="setDiscPill(this,'books')">Books</div>
         <div class="pill" onclick="setDiscPill(this,'matches')">Matches</div>
         <div class="pill" onclick="setDiscPill(this,'music')">Music</div>
+        <div class="pill" onclick="setDiscPill(this,'fragrances')">✦ Fragrances</div>
+        <div class="pill" onclick="setDiscPill(this,'style')">✦ Style</div>
       </div>
       <div class="disc-tabs">
         <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
@@ -2183,6 +2185,8 @@ var _charts      = {};   /* Chart.js instances keyed by name */
 var _allEntries  = [];   /* cached full entry list for Discovery */
 var _discRecs    = null; /* cached Discovery recommendations */
 var _discFetchedAt = 0;  /* timestamp of last Discovery fetch */
+var _fragDiscRecs  = null; /* cached fragrance discovery results (client-side) */
+var _styleDiscRecs = null; /* cached style discovery results (client-side) */
 var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed on save */
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you'; /* current Discovery tab */
@@ -3100,7 +3104,23 @@ function setDiscPill(el, pill){
   el.closest('.disc-format-pills').querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
   el.classList.add('active');
   _discPill = pill;
-  if(_discRecs) _renderDiscovery(_discRecs);
+  var tabsEl  = document.querySelector('.disc-tabs');
+  var sortSel = document.getElementById('disc-sort-sel');
+  if(pill === 'fragrances'){
+    if(tabsEl)  tabsEl.style.display  = 'none';
+    if(sortSel) sortSel.style.display = 'none';
+    if(_fragDiscRecs){ _renderFragDiscovery(_fragDiscRecs, false); }
+    else { loadFragDiscovery(); }
+  } else if(pill === 'style'){
+    if(tabsEl)  tabsEl.style.display  = 'none';
+    if(sortSel) sortSel.style.display = 'none';
+    if(_styleDiscRecs){ _renderStyleDiscovery(_styleDiscRecs, false); }
+    else { loadStyleDiscovery(); }
+  } else {
+    if(tabsEl)  tabsEl.style.display  = '';
+    if(sortSel) sortSel.style.display = '';
+    if(_discRecs) _renderDiscovery(_discRecs);
+  }
 }
 
 /* ── Watchlist: select all / remove selected / sort ── */
@@ -3862,6 +3882,57 @@ function discSearch(val){
   var res=document.getElementById('disc-search-res');
   val=val.trim().toLowerCase();
   if(!val){res.classList.remove('open');res.innerHTML='';return;}
+  /* Fragrance search mode */
+  if(_discPill==='fragrances'){
+    var fragPool=_fragDiscRecs||[];
+    var fragMatches=fragPool.filter(function(d){
+      return d.name.toLowerCase().includes(val)||d.house.toLowerCase().includes(val)||d.character.toLowerCase().includes(val);
+    });
+    if(!fragMatches.length){
+      res.innerHTML='<div class="disc-no-result">No fragrance matches for "'+val+'"</div>';
+      res.classList.add('open');return;
+    }
+    var sC=function(s){return s>=90?'mh':s>=75?'mm':'ml';};
+    res.innerHTML=fragMatches.slice(0,5).map(function(d){
+      var fd=escHtml(JSON.stringify({name:d.name,house:d.house,top:d.top,mid:d.mid,base:d.base,character:d.character,projection:d.projection,season:d.season}));
+      return '<div class="disc-result-item" style="cursor:pointer" onclick="addFragFromDiscover(this)" data-frag="'+fd+'">'+
+        '<div class="disc-result-thumb" style="background:'+d.gradient+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
+        '<div class="disc-result-info">'+
+          '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
+          '<div class="disc-result-meta">'+escHtml(d.house)+' · '+escHtml(d.season)+'</div>'+
+          '<div class="disc-result-because">'+escHtml(d.character.split(',').slice(0,2).join(', '))+'</div>'+
+        '</div>'+
+        '<div class="disc-result-score"><div class="disc-result-pct '+sC(d.score)+'">'+d.score+'%</div><div class="disc-result-label">+ add</div></div>'+
+      '</div>';
+    }).join('');
+    res.classList.add('open');return;
+  }
+  /* Style search mode */
+  if(_discPill==='style'){
+    var stylePool=_styleDiscRecs||[];
+    var styleMatches=stylePool.filter(function(d){
+      return d.name.toLowerCase().includes(val)||d.category.toLowerCase().includes(val)||d.style.toLowerCase().includes(val);
+    });
+    if(!styleMatches.length){
+      res.innerHTML='<div class="disc-no-result">No style matches for "'+val+'"</div>';
+      res.classList.add('open');return;
+    }
+    var sC2=function(s){return s>=90?'mh':s>=75?'mm':'ml';};
+    res.innerHTML=styleMatches.slice(0,5).map(function(d){
+      var wd=escHtml(JSON.stringify({name:d.name,brand:d.brand,category:d.category,season:d.season}));
+      return '<div class="disc-result-item" style="cursor:pointer" onclick="addWardFromDiscover(this)" data-ward="'+wd+'">'+
+        '<div class="disc-result-thumb" style="background:'+d.gradient+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
+        '<div class="disc-result-info">'+
+          '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
+          '<div class="disc-result-meta">'+escHtml(d.category)+(d.brand?' · '+escHtml(d.brand):'')+'</div>'+
+          '<div class="disc-result-because">'+escHtml(d.description||'')+'</div>'+
+        '</div>'+
+        '<div class="disc-result-score"><div class="disc-result-pct '+sC2(d.score)+'">'+d.score+'%</div><div class="disc-result-label">+ add</div></div>'+
+      '</div>';
+    }).join('');
+    res.classList.add('open');return;
+  }
+  /* Default: regular discover search */
   var pool=_discRecs||[];
   if(!pool.length){
     res.innerHTML='<div class="disc-no-result">Load recommendations first, then search within them</div>';
@@ -5337,6 +5408,7 @@ function saveFragrance(){
     showToast('Fragrance added to your wardrobe');
   }
   _saveFrags(all);
+  _fragDiscRecs = null; /* invalidate scent discovery cache */
   closeFragranceModal();
   loadFragrances();
 }
@@ -5345,6 +5417,7 @@ function deleteFragrance(){
   if(!_fragEditId) return;
   if(!confirm('Remove this fragrance from your wardrobe?')) return;
   _saveFrags(_loadFrags().filter(function(f){ return f.id!==_fragEditId; }));
+  _fragDiscRecs = null;
   closeFragranceModal();
   loadFragrances();
   showToast('Fragrance removed');
@@ -5507,6 +5580,7 @@ function saveWardrobeItem(){
     showToast('Item added to your wardrobe');
   }
   _saveWard(all);
+  _styleDiscRecs = null; /* invalidate style discovery cache */
   closeWardrobeModal();
   loadWardrobe();
 }
@@ -5515,6 +5589,7 @@ function deleteWardrobeItem(){
   if(!_wardEditId) return;
   if(!confirm('Remove this item from your wardrobe?')) return;
   _saveWard(_loadWard().filter(function(w){ return w.id!==_wardEditId; }));
+  _styleDiscRecs = null;
   closeWardrobeModal();
   loadWardrobe();
   showToast('Item removed');
@@ -5546,6 +5621,424 @@ function wardTagSearch(val){
   document.querySelectorAll('#ward-tag-picker .tp').forEach(function(tp){
     tp.style.display=(!val||tp.textContent.trim().toLowerCase().indexOf(val)>=0)?'':'none';
   });
+}
+
+/* ══════════════════════════════════════════════════════════
+   SCENT & STYLE DISCOVERY ENGINE
+   Fully client-side matching — no API calls.
+══════════════════════════════════════════════════════════ */
+
+/* ── Wardrobe Style Database ──
+   Each entry: [name, category, brand, style_keywords, occasions, season, description]
+   ~50 curated timeless pieces scored against the user's wardrobe profile.
+── */
+var WARD_STYLE_DB = [
+  ["Breton Stripe Tee","Tops","Saint James","casual, minimalist, French, classic, nautical","everyday, weekend","Spring/Summer","The original nautical staple — effortlessly chic"],
+  ["Camel Trench Coat","Outerwear","","classic, tailored, investment piece, neutral, capsule staple","workwear, smart casual, formal","Fall/Winter","The definitive transitional layer — works over everything"],
+  ["White Linen Shirt","Tops","","minimalist, relaxed, summer, breathable, capsule staple","everyday, weekend, smart casual","Spring/Summer","Effortless warm-weather essential"],
+  ["Navy Wool Blazer","Outerwear","","tailored, workwear, versatile, classic, smart casual, investment piece","workwear, formal, smart casual","Fall/Winter","The most versatile jacket you can own"],
+  ["Black Slim Trousers","Bottoms","","minimalist, tailored, versatile, classic, workwear","workwear, formal, smart casual","Year-round","Perennial wardrobe anchor"],
+  ["Straight-leg Jeans","Bottoms","Levi's","casual, classic, relaxed, versatile, everyday","everyday, weekend","Year-round","The perfect everyday jean silhouette"],
+  ["White Poplin Shirt","Tops","","minimalist, classic, tailored, clean, workwear","workwear, smart casual, formal","Year-round","The foundational wardrobe shirt"],
+  ["Cashmere Crew Neck","Knitwear","N.Peal","luxe, minimalist, quiet luxury, investment piece, warm","smart casual, weekend, workwear","Fall/Winter","Investment knitwear that lasts decades"],
+  ["Merino Turtleneck","Knitwear","","minimalist, classic, clean lines, tailored","smart casual, weekend","Fall/Winter","Sleek cold-weather layering piece"],
+  ["Silk Slip Dress","Dresses","","feminine, luxe, sensual, minimalist, elegant","eveningwear, date night, formal","Spring/Summer","Effortlessly elegant at any hour"],
+  ["Little Black Dress","Dresses","","classic, feminine, tailored, versatile, investment piece","eveningwear, formal, date night","Year-round","The original Chanel invention — still unbeatable"],
+  ["Oversized Blazer","Outerwear","","oversized, streetwear, statement piece, androgynous","smart casual, eveningwear, weekend","Year-round","The borrowed-from-the-boys power move"],
+  ["Relaxed Linen Trousers","Bottoms","","relaxed fit, minimalist, summer, breathable","weekend, everyday, smart casual","Spring/Summer","Easy warm-weather bottoms with quiet elegance"],
+  ["Chelsea Boots","Shoes","","classic, versatile, tailored, heritage, capsule staple","workwear, smart casual, everyday","Fall/Winter","The most versatile boot in any wardrobe"],
+  ["White Sneakers","Shoes","Common Projects","minimalist, clean, versatile, streetwear, elevated basics","everyday, weekend, casual","Year-round","The elevated casual shoe — luxury in simplicity"],
+  ["Silk Scarf","Accessories","Hermès","luxe, feminine, classic, iconic, investment piece","smart casual, formal, weekend","Year-round","The one accessory that transforms any look"],
+  ["Maxi Coat","Outerwear","","statement piece, dramatic, minimalist, luxe, hero piece","formal, eveningwear, smart casual","Fall/Winter","The coat that commands a room"],
+  ["Pleated Trousers","Bottoms","","tailored, classic, Italian, relaxed fit, elegant","workwear, smart casual, formal","Year-round","Continental elegance in trouser form"],
+  ["Leather Jacket","Outerwear","","streetwear, classic, statement piece, signature item","casual, weekend, evening","Fall/Winter","The eternal rebel piece"],
+  ["Wrap Dress","Dresses","Diane von Furstenberg","feminine, flattering, classic, versatile","smart casual, workwear, date night","Year-round","The DVF original — works on every body"],
+  ["Ballet Flats","Shoes","Repetto","feminine, French, minimalist, classic","everyday, smart casual, weekend","Year-round","Quiet elegance for every occasion"],
+  ["Loafers","Shoes","Gucci","tailored, Italian, preppy, smart, luxe","smart casual, workwear, everyday","Year-round","The shoe that straddles formal and casual perfectly"],
+  ["Polo Shirt","Tops","Lacoste","preppy, classic, sporty, clean, smart casual","smart casual, weekend, everyday","Spring/Summer","The Lacoste original remains the reference"],
+  ["Chinos","Bottoms","","smart casual, preppy, versatile, relaxed","everyday, smart casual, workwear","Year-round","The gap-bridger between jeans and tailoring"],
+  ["Knit Cardigan","Knitwear","","relaxed, layering, classic, cosy","weekend, everyday, smart casual","Fall/Winter","Versatile layering knit for every season"],
+  ["Satin Blouse","Tops","","feminine, luxe, polished, evening, elegant","workwear, eveningwear, smart casual","Year-round","Elevates any bottom from casual to polished"],
+  ["Wide-leg Trousers","Bottoms","","relaxed fit, statement, editorial, flowing","smart casual, weekend, eveningwear","Year-round","The relaxed silhouette with maximum impact"],
+  ["Linen Suit","Tailoring","","tailored, summer formal, Mediterranean, lightweight","formal, workwear, smart casual","Spring/Summer","The hot-climate power suit"],
+  ["Tote Bag","Bags","","minimalist, everyday, practical, clean","everyday, workwear, weekend","Year-round","The functional style staple"],
+  ["Structured Handbag","Bags","","luxe, classic, investment piece, statement piece","workwear, formal, smart casual","Year-round","The bag that announces itself"],
+  ["Midi Skirt","Bottoms","","feminine, elegant, flowing, classic","smart casual, workwear, eveningwear","Year-round","The most flattering skirt length"],
+  ["Crew Neck Sweatshirt","Tops","Champion","casual, relaxed, streetwear, comfortable, everyday","weekend, everyday, casual","Fall/Winter","The elevated casual layer"],
+  ["Leather Tote","Bags","","investment piece, professional, classic, capsule staple","workwear, everyday","Year-round","The career bag that improves with age"],
+  ["Mock Neck Top","Tops","","minimalist, clean, modern, versatile, tailored","smart casual, workwear, everyday","Fall/Winter","Low-profile sophistication"],
+  ["Puffer Coat","Outerwear","Moncler","practical, warm, statement piece, modern, luxe","everyday, casual, winter","Fall/Winter","High-function meets high-fashion"],
+  ["Suede Chelsea Boots","Shoes","","luxe, heritage, versatile, classic","smart casual, workwear, casual","Fall/Winter","Suede elevates the classic silhouette"],
+  ["Peacoat","Outerwear","","classic, tailored, nautical, heritage","workwear, smart casual, formal","Fall/Winter","Naval heritage, city-ready"],
+  ["Ribbed Tank","Tops","","minimalist, basics, layering, everyday","everyday, casual, activewear","Year-round","The hardest-working basic in your wardrobe"],
+  ["Espadrilles","Shoes","","casual, Mediterranean, summer, relaxed","casual, weekend, travel-friendly","Spring/Summer","The quintessential summer casual shoe"],
+  ["Denim Jacket","Outerwear","Levi's","casual, relaxed, layering, classic","everyday, weekend, casual","Spring/Fall","The ultimate American casual layer"],
+  ["Quilted Jacket","Outerwear","Barbour","heritage, country, casual, relaxed","weekend, everyday","Fall/Winter","The British country classic"],
+  ["Ankled Boots","Shoes","","versatile, feminine, classic, wearable","everyday, smart casual, eveningwear","Fall/Winter","The most wearable heeled boot"],
+  ["Statement Belt","Accessories","","luxe, tailored, statement piece, finishing touch","workwear, smart casual, formal","Year-round","A quality belt elevates every outfit"],
+  ["Crossbody Bag","Bags","","practical, casual, travel-friendly, versatile","everyday, weekend, travel-friendly","Year-round","Low-effort, high-style carry"],
+  ["Trench Dress","Dresses","","tailored, classic, structured, minimal","workwear, smart casual","Spring/Fall","A dress that borrows from tailoring"],
+  ["Knit Co-ord Set","Knitwear","","matching set, relaxed fit, editorial, street style","weekend, smart casual, eveningwear","Fall/Winter","The matching knit set — minimal effort, maximum effect"],
+  ["High-waist Straight Jeans","Bottoms","","casual, elevated basics, versatile, relaxed","everyday, weekend","Year-round","The contemporary denim silhouette"],
+  ["Blazer Dress","Dresses","","tailored, power dressing, workwear, statement","workwear, formal, smart casual","Year-round","One piece, complete authority"],
+  ["Slip-on Loafers","Shoes","","minimal, relaxed, Italian, luxury casual","everyday, smart casual, weekend","Year-round","The relaxed loafer for every moment"],
+  ["Shawl-collar Cardigan","Knitwear","","relaxed, luxe, heritage, cosy, vintage find","weekend, smart casual","Fall/Winter","Effortless at-home luxury that works outside too"]
+];
+
+/* ── Character → gradient mapping ── */
+function _fragGradient(character, season){
+  var c=(character||'').toLowerCase(), s=(season||'').toLowerCase();
+  if(c.includes('fresh')||c.includes('aquatic')||c.includes('clean')||c.includes('watery'))
+    return 'linear-gradient(135deg,#0D3B52,#2A7A9A)';
+  if(c.includes('woody')||c.includes('earthy')||c.includes('petrichor')||c.includes('moss'))
+    return 'linear-gradient(135deg,#2E1E0E,#6B4A2E)';
+  if(c.includes('sweet')||c.includes('gourmand')||c.includes('vanilla')||c.includes('honey'))
+    return 'linear-gradient(135deg,#5E1A3A,#A84A6A)';
+  if(c.includes('smoky')||c.includes('leather')||c.includes('dark')||c.includes('resinous'))
+    return 'linear-gradient(135deg,#1A1A2E,#3A3A5E)';
+  if(c.includes('floral')||c.includes('rose')||c.includes('jasmine')||c.includes('powdery'))
+    return 'linear-gradient(135deg,#5E2040,#A86080)';
+  if(c.includes('oriental')||c.includes('warm')||c.includes('amber')||c.includes('oud')||c.includes('spicy'))
+    return 'linear-gradient(135deg,#4A2000,#8A4A10)';
+  if(c.includes('citrus')||c.includes('bright')||c.includes('sunny')||c.includes('radiant'))
+    return 'linear-gradient(135deg,#5A4800,#A88A20)';
+  if(c.includes('green')||c.includes('herbal')||c.includes('botanical')||c.includes('fig'))
+    return 'linear-gradient(135deg,#0E3020,#2A6A48)';
+  if(s.includes('winter')||s.includes('fall')) return 'linear-gradient(135deg,#1E1030,#4A3060)';
+  if(s.includes('spring')||s.includes('summer')) return 'linear-gradient(135deg,#0A3040,#206878)';
+  return 'linear-gradient(135deg,#1E1E2E,#4A4A6E)';
+}
+
+/* ── Style → gradient mapping ── */
+function _styleGradient(styleWords){
+  var s=(styleWords||'').toLowerCase();
+  if(s.includes('luxe')||s.includes('quiet luxury')||s.includes('investment'))
+    return 'linear-gradient(135deg,#2E1E0A,#6A4A28)';
+  if(s.includes('streetwear')||s.includes('oversized'))
+    return 'linear-gradient(135deg,#0E0E1E,#2E2E4E)';
+  if(s.includes('tailored')||s.includes('workwear')||s.includes('formal'))
+    return 'linear-gradient(135deg,#0E0E0E,#3E3E3E)';
+  if(s.includes('minimalist'))
+    return 'linear-gradient(135deg,#1A1A1A,#4A4A4A)';
+  if(s.includes('feminine')||s.includes('elegant'))
+    return 'linear-gradient(135deg,#3E1030,#7E4060)';
+  if(s.includes('casual')||s.includes('relaxed'))
+    return 'linear-gradient(135deg,#0A2030,#2A5060)';
+  return 'linear-gradient(135deg,#1A2030,#3A5070)';
+}
+
+/* ── Build scent profile from user's saved fragrances ── */
+function _buildScentProfile(){
+  var frags=_loadFrags();
+  var p={count:frags.length,ownedNames:{},seasons:{},projections:{},characters:{},houses:{},notes:{},tags:{},occasions:{}};
+  frags.forEach(function(f){
+    p.ownedNames[(f.name||'').toLowerCase()]=true;
+    var r=parseFloat(f.rating); var w=(!isNaN(r)&&r>0)?r/10:0.5;
+    var season=(f.season||'').toLowerCase();
+    if(season) p.seasons[season]=(p.seasons[season]||0)+w;
+    var proj=(f.projection||'').toLowerCase();
+    if(proj) p.projections[proj]=(p.projections[proj]||0)+w;
+    var house=(f.house||'').toLowerCase().trim();
+    if(house) p.houses[house]=(p.houses[house]||0)+w;
+    var occ=(f.occasion||'').toLowerCase().trim();
+    if(occ) p.occasions[occ]=(p.occasions[occ]||0)+w;
+    (f.character||'').toLowerCase().split(/[,\s]+/).forEach(function(c){
+      c=c.trim(); if(c.length>2) p.characters[c]=(p.characters[c]||0)+w;
+    });
+    [(f.notesTop||''),(f.notesMid||''),(f.notesBase||'')].join(',').toLowerCase().split(/,\s*/).forEach(function(n){
+      n=n.trim(); if(n.length>2) p.notes[n]=(p.notes[n]||0)+w;
+    });
+    (f.tags||[]).forEach(function(t){
+      var tl=t.toLowerCase(); p.tags[tl]=(p.tags[tl]||0)+w;
+    });
+    /* Enrich from FRAG_DB if name matched */
+    var db=FRAG_DB.find(function(e){ return e[0].toLowerCase()===(f.name||'').toLowerCase(); });
+    if(db){
+      (db[2]+','+db[3]+','+db[4]).toLowerCase().split(/,\s*/).forEach(function(n){
+        n=n.trim(); if(n.length>2) p.notes[n]=(p.notes[n]||0)+w*0.4;
+      });
+      db[5].toLowerCase().split(/[,\s]+/).forEach(function(c){
+        c=c.trim(); if(c.length>2) p.characters[c]=(p.characters[c]||0)+w*0.4;
+      });
+    }
+  });
+  return p;
+}
+
+/* ── Score a single FRAG_DB entry against the scent profile ── */
+function _scoreFrag(entry, p){
+  var score=0, reasons=[];
+  /* 1. Character (35 pts) */
+  var cWords=entry[5].toLowerCase().split(/[,\s]+/).filter(function(w){return w.length>2;});
+  var cVals=Object.values(p.characters); var maxC=cVals.length?Math.max.apply(null,cVals):1;
+  var cMatch=0, cHits=[];
+  cWords.forEach(function(w){ if(p.characters[w]){cMatch+=p.characters[w];cHits.push(w);} });
+  score+=cWords.length?Math.min(cMatch/(maxC*cWords.length)*35,35):0;
+  if(cHits.length) reasons.push('Character aligns: '+cHits.slice(0,2).join(', '));
+  /* 2. Notes (30 pts) */
+  var nList=(entry[2]+','+entry[3]+','+entry[4]).toLowerCase().split(/,\s*/).filter(function(n){return n.trim().length>2;});
+  var nVals=Object.values(p.notes); var maxN=nVals.length?Math.max.apply(null,nVals):1;
+  var nMatch=0, nHits=[];
+  nList.forEach(function(n){ n=n.trim(); if(p.notes[n]){nMatch+=p.notes[n];nHits.push(n);} });
+  score+=nList.length?Math.min(nMatch/(maxN*nList.length)*30,30):0;
+  if(nHits.length) reasons.push('Shares notes you love: '+nHits.slice(0,3).join(', '));
+  /* 3. Season (15 pts) */
+  var eSea=entry[7].toLowerCase(); var sVals=Object.values(p.seasons); var maxS=sVals.length?Math.max.apply(null,sVals):1;
+  var sMatch=0;
+  eSea.split('/').forEach(function(s){ if(p.seasons[s.trim()]) sMatch=Math.max(sMatch,p.seasons[s.trim()]); });
+  if(eSea.includes('year-round')) sMatch=Math.max(sMatch,maxS*0.5);
+  score+=Math.min(sMatch/maxS*15,15);
+  var topSea=Object.keys(p.seasons).sort(function(a,b){return p.seasons[b]-p.seasons[a];})[0];
+  if(topSea&&eSea.includes(topSea.split('/')[0])) reasons.push('Right for your favourite season');
+  /* 4. Projection (10 pts) */
+  var eProj=entry[6].toLowerCase(); var pVals=Object.values(p.projections); var maxP=pVals.length?Math.max.apply(null,pVals):1;
+  if(p.projections[eProj]) score+=Math.min(p.projections[eProj]/maxP*10,10);
+  /* 5. House bonus (10 pts) */
+  var hKey=entry[1].toLowerCase(); var hVals=Object.values(p.houses); var maxH=hVals.length?Math.max.apply(null,hVals):1;
+  if(p.houses[hKey]){ score+=Math.min(p.houses[hKey]/maxH*10,10); reasons.push('You already enjoy '+entry[1]); }
+  /* Normalize to 55–97 */
+  var final=Math.min(97,Math.max(55,Math.round(55+score/100*42)));
+  if(!reasons.length) reasons.push('Matches your overall scent profile');
+  return {score:final,reasons:reasons};
+}
+
+/* ── Load & render fragrance discovery ── */
+function loadFragDiscovery(){
+  _discState('loading');
+  var p=_buildScentProfile();
+  var scored=FRAG_DB.map(function(e){
+    if(p.ownedNames[e[0].toLowerCase()]) return null;
+    var r=_scoreFrag(e,p);
+    return {name:e[0],house:e[1],top:e[2],mid:e[3],base:e[4],character:e[5],projection:e[6],season:e[7],score:r.score,reasons:r.reasons,gradient:_fragGradient(e[5],e[7])};
+  }).filter(Boolean).sort(function(a,b){return b.score-a.score;});
+  _fragDiscRecs=scored;
+  _renderFragDiscovery(scored, p.count===0);
+}
+
+function _renderFragDiscovery(recs, isColdStart){
+  _discState('results');
+  var heroWrap=document.getElementById('disc-hero-wrap');
+  var gridWrap=document.getElementById('disc-grid-wrap');
+  if(!recs||!recs.length){
+    heroWrap.innerHTML='';
+    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">You\'ve already discovered all fragrances in the library — add more entries to unlock new matches.</div>';
+    return;
+  }
+  var banner=isColdStart?'<div style="background:var(--p-ghost);border:1px solid var(--p-subtle);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--t-2);line-height:1.6"><strong style="color:var(--p-rich)">✦ Start your scent collection</strong> to get personalised matches. These are beloved picks to explore first.</div>':'';
+  var h=recs[0];
+  var hInit=h.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+  var hReasons=h.reasons.map(function(r){return '<div class="disc-hero-reason"><div class="disc-hero-dot"></div>'+escHtml(r)+'</div>';}).join('');
+  var hTags=h.character.split(',').map(function(c){return '<span class="disc-hero-tag">'+escHtml(c.trim())+'</span>';}).join('');
+  var hData=escHtml(JSON.stringify({name:h.name,house:h.house,top:h.top,mid:h.mid,base:h.base,character:h.character,projection:h.projection,season:h.season}));
+  heroWrap.innerHTML=banner+
+    '<div class="disc-hero" style="background:'+h.gradient+'">'+
+    '<div style="flex:1;position:relative;z-index:1">'+
+    '<div class="disc-hero-badge">✦ Top Scent Pick</div>'+
+    '<div class="disc-hero-title">'+escHtml(h.name)+'</div>'+
+    '<div class="disc-hero-meta">'+escHtml(h.house)+' &nbsp;·&nbsp; '+escHtml(h.projection)+' &nbsp;·&nbsp; '+escHtml(h.season)+'</div>'+
+    '<div style="font-size:10.5px;color:rgba(255,255,255,.55);margin:8px 0 3px;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Notes</div>'+
+    '<div style="font-size:12px;color:rgba(255,255,255,.78);margin-bottom:10px;line-height:1.7">&#8593; '+escHtml(h.top)+'<br>&#8762; '+escHtml(h.mid)+'<br>&#8595; '+escHtml(h.base)+'</div>'+
+    '<div class="disc-hero-reasons">'+hReasons+'</div>'+
+    '<div class="disc-hero-tags">'+hTags+'</div>'+
+    '<button class="btn btn-p btn-sm" onclick="addFragFromDiscover(this)" data-frag="'+hData+'">+ Add to Fragrances</button>'+
+    '</div>'+
+    '<div class="disc-hero-right" style="position:relative;z-index:1">'+
+    '<div class="disc-hero-match">'+h.score+'%</div>'+
+    '<div class="disc-hero-match-label">scent match</div>'+
+    '<div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(hInit)+'</div>'+
+    '</div></div>';
+  if(recs.length<=1){gridWrap.innerHTML='';return;}
+  var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE SCENT PICKS</div><div class="disc-grid">';
+  recs.slice(1,25).forEach(function(rec,i){
+    var init2=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
+    var delay=i<6?' anim-delay-'+(i+1):'';
+    var reas2=rec.reasons.map(function(r){return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
+    var cTags=rec.character.split(',').slice(0,3).map(function(c){return '<span class="tag">'+escHtml(c.trim())+'</span>';}).join('');
+    var fd=escHtml(JSON.stringify({name:rec.name,house:rec.house,top:rec.top,mid:rec.mid,base:rec.base,character:rec.character,projection:rec.projection,season:rec.season}));
+    html+='<div class="rc anim-fadeup'+delay+'">'+
+      '<div class="rc-poster" style="background:'+rec.gradient+'">'+
+      '<div class="rc-initials">'+escHtml(init2)+'</div>'+
+      '<div class="rc-match '+mCls+'">'+rec.score+'%</div>'+
+      '</div>'+
+      '<div class="rc-body">'+
+      '<div class="rc-title">'+escHtml(rec.name)+'</div>'+
+      '<div class="rc-meta">'+escHtml(rec.house)+' &nbsp;·&nbsp; '+escHtml(rec.season)+'</div>'+
+      '<div class="rc-because" style="font-size:11px;color:var(--t-3);margin:3px 0">'+escHtml(rec.top.split(',')[0].trim())+' · '+escHtml(rec.mid.split(',')[0].trim())+' · '+escHtml(rec.base.split(',')[0].trim())+'</div>'+
+      '<button class="rc-why-btn" onclick="toggleWhy(this)">'+
+      '<svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>'+
+      'Why this match?</button>'+
+      '<div class="rc-reasons">'+reas2+'</div>'+
+      '<div class="rc-tags">'+cTags+'</div>'+
+      '<div class="rc-foot">'+
+      '<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addFragFromDiscover(this)" data-frag="'+fd+'">+ Add to Fragrances</button>'+
+      '</div></div></div>';
+  });
+  html+='</div>';
+  gridWrap.innerHTML=html;
+}
+
+/* ── Pre-fill fragrance modal from a discover card ── */
+function addFragFromDiscover(btn){
+  var data; try{data=JSON.parse(btn.getAttribute('data-frag'));}catch(e){return;}
+  navigate('fragrances');
+  setTimeout(function(){
+    openFragranceModal();
+    setTimeout(function(){
+      var ni=document.getElementById('frag-name');   if(ni) ni.value=data.name||'';
+      var hi=document.getElementById('frag-house');  if(hi) hi.value=data.house||'';
+      var ci=document.getElementById('frag-char');   if(ci) ci.value=data.character||'';
+      var ps=document.getElementById('frag-proj');   if(ps) ps.value=data.projection||'Moderate';
+      var ss=document.getElementById('frag-season'); if(ss) ss.value=data.season||'Year-round';
+      var ti=document.getElementById('frag-top');    if(ti) ti.value=data.top||'';
+      var mi=document.getElementById('frag-mid');    if(mi) mi.value=data.mid||'';
+      var bi=document.getElementById('frag-base');   if(bi) bi.value=data.base||'';
+    },120);
+  },60);
+}
+
+/* ────────────────────────────────────── Style Discovery ── */
+
+function _buildStyleProfile(){
+  var items=_loadWard();
+  var p={count:items.length,ownedNames:{},categories:{},occasions:{},seasons:{},tags:{}};
+  items.forEach(function(w){
+    p.ownedNames[(w.name||'').toLowerCase()]=true;
+    var cat=(w.category||'').toLowerCase(); if(cat) p.categories[cat]=(p.categories[cat]||0)+1;
+    var occ=(w.occasion||'').toLowerCase(); if(occ) p.occasions[occ]=(p.occasions[occ]||0)+1;
+    var sea=(w.season||'').toLowerCase(); if(sea) p.seasons[sea]=(p.seasons[sea]||0)+1;
+    (w.tags||[]).forEach(function(t){ var tl=t.toLowerCase(); p.tags[tl]=(p.tags[tl]||0)+1; });
+  });
+  return p;
+}
+
+function _scoreStyleItem(entry, p){
+  var score=0, reasons=[];
+  /* 1. Style tag alignment (40 pts) */
+  var eStyle=(entry[3]||'').toLowerCase();
+  var tVals=Object.values(p.tags); var maxT=tVals.length?Math.max.apply(null,tVals):1;
+  var tMatch=0, tHits=[];
+  Object.keys(p.tags).forEach(function(tag){ if(eStyle.includes(tag)){tMatch+=p.tags[tag];tHits.push(tag);} });
+  score+=tMatch>0?Math.min(tMatch/maxT*40,40):8;
+  if(tHits.length) reasons.push('Fits your style: '+tHits.slice(0,2).join(', '));
+  /* 2. Occasion alignment (25 pts) */
+  var eOcc=(entry[4]||'').toLowerCase();
+  var oVals=Object.values(p.occasions); var maxO=oVals.length?Math.max.apply(null,oVals):1;
+  var oMatch=0;
+  Object.keys(p.occasions).forEach(function(occ){ if(eOcc.includes(occ)) oMatch=Math.max(oMatch,p.occasions[occ]); });
+  score+=Math.min(oMatch/maxO*25,25);
+  var topOcc=Object.keys(p.occasions).sort(function(a,b){return p.occasions[b]-p.occasions[a];})[0];
+  if(topOcc&&eOcc.includes(topOcc)) reasons.push('Perfect for your '+topOcc+' wardrobe');
+  /* 3. Category diversity bonus (20 pts) */
+  var eCat=(entry[1]||'').toLowerCase();
+  var catCount=p.categories[eCat]||0; var total=p.count||1;
+  var catRatio=catCount/total;
+  var divScore=catRatio<0.1?20:catRatio<0.2?12:catRatio<0.3?6:2;
+  score+=divScore;
+  if(catRatio<0.1&&p.count>3) reasons.push('Fills a wardrobe gap: '+escHtml(entry[1]||''));
+  /* 4. Season (15 pts) */
+  var eSea=(entry[5]||'').toLowerCase();
+  var sVals=Object.values(p.seasons); var maxS=sVals.length?Math.max.apply(null,sVals):1;
+  var sMatch=0;
+  Object.keys(p.seasons).forEach(function(s){ if(eSea.includes(s.split('/')[0])) sMatch=Math.max(sMatch,p.seasons[s]); });
+  if(eSea.includes('year-round')) sMatch=Math.max(sMatch,maxS*0.7);
+  score+=Math.min(sMatch/maxS*15,15);
+  var final=Math.min(97,Math.max(55,Math.round(55+score/100*42)));
+  if(!reasons.length) reasons.push('Complements your existing wardrobe style');
+  return {score:final,reasons:reasons};
+}
+
+function loadStyleDiscovery(){
+  _discState('loading');
+  var p=_buildStyleProfile();
+  var scored=WARD_STYLE_DB.map(function(e){
+    if(p.ownedNames[e[0].toLowerCase()]) return null;
+    var r=_scoreStyleItem(e,p);
+    return {name:e[0],category:e[1],brand:e[2],style:e[3],occasions:e[4],season:e[5],description:e[6],score:r.score,reasons:r.reasons,gradient:_styleGradient(e[3])};
+  }).filter(Boolean).sort(function(a,b){return b.score-a.score;});
+  _styleDiscRecs=scored;
+  _renderStyleDiscovery(scored, p.count===0);
+}
+
+function _renderStyleDiscovery(recs, isColdStart){
+  _discState('results');
+  var heroWrap=document.getElementById('disc-hero-wrap');
+  var gridWrap=document.getElementById('disc-grid-wrap');
+  if(!recs||!recs.length){
+    heroWrap.innerHTML='';
+    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">Your wardrobe is impeccably complete. Add more pieces to discover new suggestions.</div>';
+    return;
+  }
+  var banner=isColdStart?'<div style="background:var(--p-ghost);border:1px solid var(--p-subtle);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--t-2);line-height:1.6"><strong style="color:var(--p-rich)">✦ Build your wardrobe</strong> to get personalised style matches. These are timeless pieces to consider first.</div>':'';
+  var h=recs[0];
+  var hInit=h.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+  var hReasons=h.reasons.map(function(r){return '<div class="disc-hero-reason"><div class="disc-hero-dot"></div>'+escHtml(r)+'</div>';}).join('');
+  var hTags=h.style.split(',').slice(0,4).map(function(s){return '<span class="disc-hero-tag">'+escHtml(s.trim())+'</span>';}).join('');
+  var hData=escHtml(JSON.stringify({name:h.name,brand:h.brand,category:h.category,season:h.season}));
+  heroWrap.innerHTML=banner+
+    '<div class="disc-hero" style="background:'+h.gradient+'">'+
+    '<div style="flex:1;position:relative;z-index:1">'+
+    '<div class="disc-hero-badge">✦ Top Style Pick</div>'+
+    '<div class="disc-hero-title">'+escHtml(h.name)+'</div>'+
+    '<div class="disc-hero-meta">'+escHtml(h.category)+(h.brand?' &nbsp;·&nbsp; '+escHtml(h.brand):'')+' &nbsp;·&nbsp; '+escHtml(h.season)+'</div>'+
+    '<div style="font-size:12.5px;color:rgba(255,255,255,.78);margin:8px 0 10px;font-style:italic;line-height:1.5">'+escHtml(h.description)+'</div>'+
+    '<div class="disc-hero-reasons">'+hReasons+'</div>'+
+    '<div class="disc-hero-tags">'+hTags+'</div>'+
+    '<button class="btn btn-p btn-sm" onclick="addWardFromDiscover(this)" data-ward="'+hData+'">+ Add to Wardrobe</button>'+
+    '</div>'+
+    '<div class="disc-hero-right" style="position:relative;z-index:1">'+
+    '<div class="disc-hero-match">'+h.score+'%</div>'+
+    '<div class="disc-hero-match-label">style match</div>'+
+    '<div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(hInit)+'</div>'+
+    '</div></div>';
+  if(recs.length<=1){gridWrap.innerHTML='';return;}
+  var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE STYLE PICKS</div><div class="disc-grid">';
+  recs.slice(1,25).forEach(function(rec,i){
+    var init2=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
+    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
+    var delay=i<6?' anim-delay-'+(i+1):'';
+    var reas2=rec.reasons.map(function(r){return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
+    var sTags=rec.style.split(',').slice(0,3).map(function(s){return '<span class="tag">'+escHtml(s.trim())+'</span>';}).join('');
+    var wd=escHtml(JSON.stringify({name:rec.name,brand:rec.brand,category:rec.category,season:rec.season}));
+    html+='<div class="rc anim-fadeup'+delay+'">'+
+      '<div class="rc-poster" style="background:'+rec.gradient+'">'+
+      '<div class="rc-initials">'+escHtml(init2)+'</div>'+
+      '<div class="rc-match '+mCls+'">'+rec.score+'%</div>'+
+      '</div>'+
+      '<div class="rc-body">'+
+      '<div class="rc-title">'+escHtml(rec.name)+'</div>'+
+      '<div class="rc-meta">'+escHtml(rec.category)+(rec.brand?' &nbsp;·&nbsp; '+escHtml(rec.brand):'')+' &nbsp;·&nbsp; '+escHtml(rec.season)+'</div>'+
+      '<div class="rc-because" style="font-size:11.5px;color:var(--t-3);margin:3px 0;font-style:italic">'+escHtml(rec.description)+'</div>'+
+      '<button class="rc-why-btn" onclick="toggleWhy(this)">'+
+      '<svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>'+
+      'Why this match?</button>'+
+      '<div class="rc-reasons">'+reas2+'</div>'+
+      '<div class="rc-tags">'+sTags+'</div>'+
+      '<div class="rc-foot">'+
+      '<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addWardFromDiscover(this)" data-ward="'+wd+'">+ Add to Wardrobe</button>'+
+      '</div></div></div>';
+  });
+  html+='</div>';
+  gridWrap.innerHTML=html;
+}
+
+/* ── Pre-fill wardrobe modal from a discover card ── */
+function addWardFromDiscover(btn){
+  var data; try{data=JSON.parse(btn.getAttribute('data-ward'));}catch(e){return;}
+  navigate('wardrobe');
+  setTimeout(function(){
+    openWardrobeModal();
+    setTimeout(function(){
+      var ni=document.getElementById('ward-name');   if(ni) ni.value=data.name||'';
+      var bi=document.getElementById('ward-brand');  if(bi) bi.value=data.brand||'';
+      var ss=document.getElementById('ward-season'); if(ss) ss.value=data.season||'Year-round';
+      var cs=document.getElementById('ward-cat');
+      if(cs&&data.category){
+        var cats=['Tops','Bottoms','Outerwear','Shoes','Accessories','Bags','Knitwear','Dresses','Tailoring'];
+        cats.forEach(function(c){ if(c.toLowerCase()===data.category.toLowerCase()) cs.value=c; });
+      }
+    },120);
+  },60);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -5737,7 +6230,160 @@ var FRAG_DB = [
   /* ── Vilhelm Parfumerie ── */
   ["Basilico & Fellini","Vilhelm Parfumerie","Lemon, bergamot","Basil, vetiver, woody notes","Musk, sandalwood","Herbal, fresh, Italian","Moderate","Spring/Summer"],
   /* ── Memo Paris ── */
-  ["Irish Leather","Memo Paris","Bergamot, pink pepper","Leather, petrichor, iris","Suede, vetiver, sandalwood","Irish rain, leather, earthy","Moderate","Year-round"]
+  ["Irish Leather","Memo Paris","Bergamot, pink pepper","Leather, petrichor, iris","Suede, vetiver, sandalwood","Irish rain, leather, earthy","Moderate","Year-round"],
+  /* ── Le Labo ── */
+  ["Santal 33","Le Labo","Cedar, cardamom, violet","Iris, violet, ambrette","Sandalwood, musk, vanilla","Smoky, woody, cult classic","Moderate","Year-round"],
+  ["Rose 31","Le Labo","Lemon, pink pepper","Rose, geranium, cloves","Musk, cedar, oud","Rosy, spicy, complex","Moderate","Spring/Fall"],
+  ["Bergamote 22","Le Labo","Bergamot, grapefruit","Neroli, vetiver","Musk, ambrette","Clean, citrus, radiant","Moderate","Spring/Summer"],
+  ["Noir 29","Le Labo","Bergamot, mandarin","Rose, jasmine","Leather, musk, amber","Dark, smoky, complex","Moderate–Strong","Fall/Winter"],
+  ["Another 13","Le Labo","Hawthorn, grapefruit","Iris, vetiver","Musk, cedar","Fresh, clean, unisex","Moderate","Spring/Summer"],
+  ["Thé Noir 29","Le Labo","Bergamot, mandarin","Black tea, rose","Vetiver, musk, cedar","Tea-forward, elegant, refined","Moderate","Year-round"],
+  ["Lys 41","Le Labo","Lemon, bergamot","Lily, jasmine, iris","Musk, cedar","White lily, powdery, luminous","Moderate","Spring/Summer"],
+  /* ── Serge Lutens ── */
+  ["Féminité du Bois","Serge Lutens","Plum, cedar","Cedar, violet, honey","Sandalwood, musk","Woody, plummy, pioneering","Moderate","Fall/Winter"],
+  ["Ambre Sultan","Serge Lutens","Coriander, oregano, bay leaf","Patchouli, benzoin","Amber, musk, labdanum","Rich, resinous, oriental","Strong","Fall/Winter"],
+  ["Chergui","Serge Lutens","Hay, tobacco","Rose, honey, iris","Sandalwood, amber, musk","Warm, tobacco-hay, sensual","Moderate","Fall/Winter"],
+  ["Daim Blond","Serge Lutens","Peach, freesia","Iris, violet","Suede, sandalwood, musk","Powdery suede, delicate, soft","Light–Moderate","Spring"],
+  ["Un Bois Sepia","Serge Lutens","Cinnamon, pepper","Vetiver, cedar","Musk, amber","Warm, woody, lightly spiced","Moderate","Fall/Winter"],
+  ["Five O'Clock Au Gingembre","Serge Lutens","Ginger, tea","Cardamom, cumin","Musk, cedar","Spiced tea, dry, contemplative","Moderate","Year-round"],
+  /* ── L'Artisan Parfumeur ── */
+  ["Passage d'Enfer","L'Artisan Parfumeur","Incense, lily","Lily, white wood","Musk, cedar","Church incense, spiritual, cool","Moderate","Year-round"],
+  ["Premier Figuier","L'Artisan Parfumeur","Fig leaf, grapefruit","Fig, coconut milk","Sandalwood, cedar, musk","Green fig, milky, natural","Moderate","Spring/Summer"],
+  ["Timbuktu","L'Artisan Parfumeur","Cardamom, pepper","Papyrus, karo karounde","Vetiver, patchouli, musk","Earthy, incense, exotic","Moderate","Fall/Winter"],
+  ["Mure et Musc","L'Artisan Parfumeur","Blackberry","White flowers, musk","Musk","Fruity-musky, light, simple","Light","Spring/Summer"],
+  /* ── Nishane ── */
+  ["Hacivat","Nishane","Pineapple, bergamot","Jasmine, oakmoss","Ambergris, musk, patchouli","Fresh, oud-tinged, complex","Moderate–Strong","Year-round"],
+  ["Ani","Nishane","Bergamot, lemon","Neroli, white tea","Sandalwood, musk, white cedar","Clean, citrusy, elegant","Moderate","Spring/Summer"],
+  ["Fan Your Flames","Nishane","Bergamot, orange","Saffron, rose","Oud, amber, musk","Warm, oriental, bold","Strong","Fall/Winter"],
+  ["Wulong Cha","Nishane","Osmanthus, bergamot","Oolong tea, jasmine","Sandalwood, musk","Tea-rose, delicate, refined","Moderate","Year-round"],
+  ["Hundred Silent Ways","Nishane","Rose, pear","Iris, oud","Sandalwood, musk, amber","Rosy, dark, complex","Moderate–Strong","Fall/Winter"],
+  /* ── Thierry Mugler ── */
+  ["Angel","Thierry Mugler","Bergamot, cotton candy","Honey, jasmine, red berries","Patchouli, vanilla, musk","Gourmand, iconic, polarizing","Strong","Fall/Winter"],
+  ["Alien","Thierry Mugler","Bergamot, mandarin","White jasmine","Amber, white wood, cashmeran","Warm, solar, otherworldly","Moderate–Strong","Year-round"],
+  ["A Men","Thierry Mugler","Lavender, bergamot","Coffee, patchouli, mint","Vanilla, amber, musk","Gourmand, masculine, distinct","Strong","Fall/Winter"],
+  ["Aura Mugler","Thierry Mugler","Vanilla orchid, jasmine","Musk, ambroxan","Sandalwood, vanilla","Warm, sensual, magnetic","Moderate","Year-round"],
+  /* ── Azzaro ── */
+  ["Chrome","Azzaro","Bergamot, anise, rosemary","Cardamom, oakmoss, coriander","Sandalwood, tonka, musk","Fresh, aquatic, classic","Moderate","Spring/Summer"],
+  ["Wanted","Azzaro","Lemon, cardamom, ginger","Violet, iris","Vetiver, patchouli, tonka","Spicy, woody, modern","Moderate–Strong","Fall/Winter"],
+  ["Pour Homme","Azzaro","Anise, basil, lavender","Carnation, oakmoss, coriander","Sandalwood, vetiver, tonka","Aromatic, fougere, classic","Moderate","Year-round"],
+  /* ── Davidoff ── */
+  ["Cool Water","Davidoff","Lavender, green nuances, mint","Jasmine, geranium, sandalwood","Amber, musk, oakmoss","Aquatic, fresh, iconic","Moderate","Spring/Summer"],
+  ["Zino","Davidoff","Lavender, rosemary","Cedar, oakmoss, geranium","Amber, tonka, musk","Fougere, elegant, classic","Moderate","Fall/Winter"],
+  ["Echo Man","Davidoff","Bergamot, mint","Cedar, nutmeg","Sandalwood, musk, amber","Fresh, woody, clean","Moderate","Year-round"],
+  /* ── Issey Miyake ── */
+  ["L'Eau d'Issey Pour Homme","Issey Miyake","Yuzu, cypress, mandarin","Coriander, sage","Sandalwood, musk","Aquatic, fresh, iconic","Moderate","Spring/Summer"],
+  ["L'Eau d'Issey","Issey Miyake","Rose, peony","Lotus, lily","Sandalwood, musk, cedar","Clean, watery, soft","Light–Moderate","Spring/Summer"],
+  ["Nuit d'Issey","Issey Miyake","Bergamot, pepper","Leather, cedar","Sandalwood, amber, musk","Spicy, leather, nocturnal","Moderate–Strong","Fall/Winter"],
+  ["A Scent","Issey Miyake","Galbanum, anise","Green stem, lily","White musk, cedar","Fresh, green, botanical","Light–Moderate","Spring/Summer"],
+  /* ── Hugo Boss ── */
+  ["Boss Bottled","Hugo Boss","Apple, plum","Cinnamon, mahogany, carnation","Sandalwood, vanilla, tonka","Warm, spicy, classic","Moderate","Fall/Winter"],
+  ["Hugo Man","Hugo Boss","Apple, green leaves","Geranium, lavender, oakmoss","Oak, amber, musk","Fresh, green, sporty","Moderate","Spring/Summer"],
+  ["Boss The Scent","Hugo Boss","Ginger, maninka fruit","Leather, osmanthus","Labdanum, musk","Warm, leathery, seductive","Moderate","Fall/Winter"],
+  ["Bottled Night","Hugo Boss","Fir, birch","Nocturnist accord, lavender","Sandalwood, musk, tonka","Woody, nocturnal, masculine","Moderate","Fall/Winter"],
+  /* ── Calvin Klein ── */
+  ["CK One","Calvin Klein","Green tea, bergamot, pineapple","Jasmine, violet, cardamom","Musk, amber, sandalwood","Unisex, fresh, clean","Moderate","Spring/Summer"],
+  ["Eternity","Calvin Klein","Bergamot, mandarin, green notes","Lily, rose, sage","Sandalwood, amber, musk","Green, fresh, timeless","Moderate","Spring/Summer"],
+  ["Obsession","Calvin Klein","Mandarin, bergamot","Spices, jasmine, orange flower","Musk, amber, sandalwood","Oriental, warm, seductive","Moderate–Strong","Fall/Winter"],
+  ["Euphoria","Calvin Klein","Pomegranate, persimmon","Orchid, black violet, champaca","Liquid amber, black violet, cream","Dark, fruity-floral, sensual","Moderate","Year-round"],
+  ["CK Be","Calvin Klein","Bergamot, lemon, pineapple","Nutmeg, jasmine","Musk, sandalwood, amber","Clean, unisex, fresh","Moderate","Spring/Summer"],
+  /* ── Marc Jacobs ── */
+  ["Daisy","Marc Jacobs","Strawberry, violet, grapefruit","Violet, gardenia, jasmine","White musk, vanilla, sandalwood","Fresh, young, floral","Moderate","Spring/Summer"],
+  ["Dot","Marc Jacobs","Red berries, honeymelon, waterlily","Dragon fruit, jasmine, honeysuckle","Musk, sandalwood, coconut","Fruity-floral, playful, bright","Moderate","Spring/Summer"],
+  ["Honey","Marc Jacobs","Pear, nectarine","Honeysuckle, orange blossom","Honey, musk, sandalwood","Sweet, honeyed, feminine","Moderate","Spring/Summer"],
+  /* ── Narciso Rodriguez ── */
+  ["For Her","Narciso Rodriguez","Musk, orange blossom","Musk, rose, magnolia","Musk, amber","Musky, feminine, clean","Moderate","Year-round"],
+  ["Bleu Noir","Narciso Rodriguez","Cardamom, pepper, bergamot","Vetiver, cedar, iris","Sandalwood, musk, tonka","Woody, cool, refined","Moderate","Fall/Winter"],
+  ["Pure Musc","Narciso Rodriguez","White flowers","Musk, rose","Musk, sandalwood","Sheer musk, skin-like","Light–Moderate","Year-round"],
+  /* ── Versace ── */
+  ["Eros","Versace","Mint, green apple, lemon","Tonka, geranium, ambroxan","Vanilla, vetiver, oakmoss","Fresh, sweet, bold","Strong","Spring/Summer"],
+  ["Dylan Blue","Versace","Bergamot, grapefruit, fig leaf","Violet, patchouli, saffron","Incense, musk, ambroxan","Aquatic-woody, masculine","Moderate–Strong","Year-round"],
+  ["Bright Crystal","Versace","Pomegranate, yuzu, frost","Magnolia, lotus, peony","Musk, amber, mahogany","Fresh, floral, feminine","Moderate","Spring/Summer"],
+  ["Pour Femme","Versace","Neroli, lemon","Rose, jasmine, tuberose","Sandalwood, musk, amber","Classic, feminine, elegant","Moderate","Spring/Summer"],
+  /* ── Dolce & Gabbana ── */
+  ["Light Blue Women","Dolce & Gabbana","Sicilian lemon, apple, bellflower","Bamboo, jasmine, white rose","Cedar, amber, musk","Fresh, Mediterranean, bright","Moderate","Spring/Summer"],
+  ["Light Blue Men","Dolce & Gabbana","Grapefruit, Sicilian mandarin","Juniper, rosemary, pepper","Oakmoss, musk, incense","Aquatic, fresh, masculine","Moderate","Spring/Summer"],
+  ["The One","Dolce & Gabbana","Grapefruit, basil, cardamom","Tobacco, ginger, orange blossom","Amber, cedar, musk","Warm, spicy, sophisticated","Moderate–Strong","Fall/Winter"],
+  ["The One for Her","Dolce & Gabbana","Mandarin, peach, litchi","Plum, lily, jasmine","Vanilla, amber, musk","Warm, fruity-floral, elegant","Moderate","Fall/Winter"],
+  /* ── Bvlgari ── */
+  ["Aqua Pour Homme","Bvlgari","Petitgrain, lemon, mandarin","Aquatic notes, rosemary","Musk, sandalwood, amber","Aquatic, clean, fresh","Moderate","Spring/Summer"],
+  ["Man in Black","Bvlgari","Rum, black pepper, tuberose","Plum, amber rose","Leather, guaiac wood, tonka","Dark, spicy, bold","Strong","Fall/Winter"],
+  ["Omnia","Bvlgari","Cardamom, bergamot, pepper","Black tea, saffron","Sandalwood, oud, musk","Dark, oriental, jewel-like","Moderate","Fall/Winter"],
+  ["Pour Femme","Bvlgari","Bergamot, white tea","Lily, white rose, iris","Musk, sandalwood","Clean, white, elegant","Moderate","Spring/Summer"],
+  /* ── Carolina Herrera ── */
+  ["212","Carolina Herrera","Gardenia, camellia, magnolia","White musk, magnolia","White amber, rosewood","Floral, clean, urban","Moderate","Spring/Summer"],
+  ["Good Girl","Carolina Herrera","Almond, coffee","Tuberose, jasmine, cocoa","Tonka, sandalwood, cacao","Dark, floral-gourmand, bold","Moderate–Strong","Fall/Winter"],
+  ["Bad Boy","Carolina Herrera","Bergamot, pepper","Sage, geranium","Cedar, carrot seed, vetiver","Edgy, woody, fresh","Moderate","Year-round"],
+  ["Very Good Girl","Carolina Herrera","Litchi, raspberry","Freesia, rose, jasmine","Vetiver, sandalwood, musk","Fruity-floral, playful","Moderate","Spring/Summer"],
+  /* ── Rabanne ── */
+  ["1 Million","Rabanne","Grapefruit, mint, blood mandarin","Rose, cinnamon, spices","Leather, amber, patchouli","Bold, spicy, luxurious","Strong","Fall/Winter"],
+  ["Invictus","Rabanne","Grapefruit, marine accord","Bay laurel, jasmine","Guaiac wood, patchouli, musk","Aquatic, sporty, victorious","Moderate–Strong","Spring/Summer"],
+  ["Olympea","Rabanne","Green water, ginger","Water jasmine, salted vanilla","Musk, cashmere wood","Aquatic-vanilla, feminine","Moderate","Year-round"],
+  ["Phantom","Rabanne","Lavender, lemon","Vanilla, hawthorn, black pepper","Cashmeran, musk, woody notes","Futuristic, sweet, bold","Moderate–Strong","Year-round"],
+  /* ── Jean Paul Gaultier ── */
+  ["Le Male","Jean Paul Gaultier","Lavender, bergamot, cardamom","Cumin, cinnamon, mint","Amber, musk, vanilla","Iconic, sweet-spicy, carnal","Moderate","Year-round"],
+  ["Classique","Jean Paul Gaultier","Mandarin, bergamot","Rose, iris, ginger","Musk, vanilla, amber","Floral, powdery, iconic","Moderate","Year-round"],
+  ["Ultra Male","Jean Paul Gaultier","Bergamot, cardamom, lavender","Vanilla, iris, pear","White musk, amber","Sweet, fresh, masculine","Moderate–Strong","Year-round"],
+  /* ── Giorgio Armani ── */
+  ["Acqua di Gio","Giorgio Armani","Calabrian bergamot, neroli, green tangerine","Jasmine, calone, rosemary","Musk, cedarwood, patchouli","Aquatic, marine, iconic","Moderate","Spring/Summer"],
+  ["Acqua di Gio Profumo","Giorgio Armani","Bergamot, geranium","Incense, sage","Patchouli, guaiac wood, incense","Deep aquatic, smoky","Moderate–Strong","Year-round"],
+  ["Armani Code","Giorgio Armani","Bergamot, lemon","Star anise, lavender","Guaiac wood, vanilla, olive wood","Aromatic, seductive, classic","Moderate","Fall/Winter"],
+  ["Si","Giorgio Armani","Blackcurrant, bergamot","Freesia, rose","Vanilla, patchouli, musk","Feminine, fresh-chypre","Moderate","Year-round"],
+  /* ── Gucci ── */
+  ["Bloom","Gucci","White floral, tuberose","Rangoon creeper, jasmine","Sandalwood, musk","White floral, lush, feminine","Moderate","Spring/Summer"],
+  ["Guilty","Gucci","Pink pepper, mandarin","Peach, lilac, geranium","Patchouli, amber, musk","Fruity, floral, guilty pleasure","Moderate","Fall/Winter"],
+  ["Memoire d'une Odeur","Gucci","Chamomile, musk","Roman chamomile, jasmine, Indian coral","Sandalwood, musk, cedarwood","Herbal, clean, mineral","Moderate","Year-round"],
+  ["Flora Gorgeous Gardenia","Gucci","Pear, citrus","Gardenia, frangipani","Patchouli, musk, sandalwood","Fresh-floral, young, sunny","Moderate","Spring/Summer"],
+  /* ── Etat Libre d'Orange ── */
+  ["Secretions Magnifiques","Etat Libre d'Orange","Iris, coconut","Adrenaline accord, white flowers","Sandalwood, musk","Skin-like, provocative, watery","Moderate","Year-round"],
+  ["Putain des Palaces","Etat Libre d'Orange","Aldehydes, orchid","Iris, rose, leather","Musk, sandalwood, vanilla","Old-school glam, plush","Moderate","Fall/Winter"],
+  ["Fat Electrician","Etat Libre d'Orange","Vetiver, elemi","Mastic, rose","Frankincense, oakmoss","Dry, resinous, contemplative","Moderate","Fall/Winter"],
+  /* ── Orto Parisi ── */
+  ["Megamare","Orto Parisi","Sea accord, black pepper","Labdanum, algae","Ambergris, musk","Deep ocean, primal, intense","Moderate–Strong","Year-round"],
+  ["Stercus","Orto Parisi","Cumin, caraway","Rose, oud","Animalic musk, amber","Animalic, raw, challenging","Moderate","Fall/Winter"],
+  ["Terroni","Orto Parisi","Bitter orange, citrus","Vetiver, woods","Petrichor, earth, musk","Petrichor, earthy, distinctive","Moderate","Year-round"],
+  /* ── Zoologist ── */
+  ["Bat","Zoologist","Bergamot, grapefruit","Incense, labdanum","Oud, vetiver, musk","Nocturnal, waxy, complex","Moderate","Fall/Winter"],
+  ["Hummingbird","Zoologist","Mandarin, apricot","Magnolia, jasmine, ylang-ylang","Musk, sandalwood","Tropical, bright, joyful","Light–Moderate","Spring/Summer"],
+  ["Squid","Zoologist","Sea salt, lemon","Algae, lichen","Ambergris, musk","Deep ocean, aquatic-metallic","Moderate","Spring/Summer"],
+  /* ── Tauer Perfumes ── */
+  ["Lonestar Memories","Tauer Perfumes","Tobacco, labdanum","Orris, leather","Amber, musk, sandalwood","Smoky, leathery, American West","Moderate","Fall/Winter"],
+  ["Amber Absolute","Tauer Perfumes","Amber, frankincense","Labdanum, rose","Amber, musk, benzoin","Rich, amber-pure, resinous","Moderate–Strong","Fall/Winter"],
+  /* ── Additional Tom Ford ── */
+  ["Tobacco Vanille","Tom Ford","Tobacco leaf, spice","Tobacco blossom, jasmine, ginger","Vanilla, cacao, wood","Warm, gourmand, luxurious","Moderate–Strong","Fall/Winter"],
+  ["Oud Wood","Tom Ford","Oud, rosewood, cardamom","Sandalwood, vetiver","Papyrus wood, amber, tonka","Woody, smoky, rich","Moderate","Year-round"],
+  ["Soleil Neige","Tom Ford","Heliotrope, solar notes","Orange blossom, iris","Musk, sandalwood","Solar, clean, warm","Moderate","Spring/Summer"],
+  ["Mandarino di Amalfi","Tom Ford","Bergamot, lemon, Sicilian mandarin","Myrtle, basil","White musk, vetiver","Citrus, Mediterranean, bright","Moderate","Spring/Summer"],
+  /* ── Additional Chanel ── */
+  ["Coco Mademoiselle","Chanel","Orange, bergamot","Rose, jasmine, mimosa","Patchouli, vetiver, vanilla","Feminine, bold, modern classic","Moderate–Strong","Year-round"],
+  ["Bleu de Chanel","Chanel","Citrus, mint, pink pepper","Ginger, nutmeg, jasmine","Labdanum, sandalwood, cedarwood","Fresh-woody, versatile, clean","Moderate","Year-round"],
+  ["Chance","Chanel","Pink pepper, citrus","Iris, jasmine","Patchouli, white musk","Floral, fresh, spontaneous","Moderate","Spring/Summer"],
+  /* ── Additional Dior ── */
+  ["Dior Homme","Dior","Iris, bergamot","Iris, cocoa","Vetiver, patchouli, cedarwood","Powdery iris, distinctive","Moderate","Fall/Winter"],
+  ["Miss Dior","Dior","Sicilian bergamot, pink pepper","Grasse rose, peony","Patchouli, musk","Floral-chypre, modern, romantic","Moderate","Year-round"],
+  ["J'adore","Dior","Bergamot, mandarin","Jasmine, rose, lily","Sandalwood, blackberry musk","White floral, feminine, iconic","Moderate","Spring/Summer"],
+  /* ── Additional Creed ── */
+  ["Original Santal","Creed","Bergamot, lemon","Geranium, rose, oakmoss","Sandalwood, musk, amber","Sandalwood, warm, elegant","Moderate","Year-round"],
+  ["Silver Mountain Water","Creed","Bergamot, grapefruit","Green tea, blackcurrant","Musk, sandalwood, vetiver","Crisp, fresh, alpine","Moderate","Spring/Summer"],
+  ["Bois du Portugal","Creed","Lavender, bergamot","Rose, cedar, geranium","Sandalwood, oakmoss, ambergris","Woody, classic, refined","Moderate","Fall/Winter"],
+  /* ── Additional Yves Saint Laurent ── */
+  ["Black Opium","Yves Saint Laurent","Pink pepper, orange blossom","Coffee, jasmine","Patchouli, vanilla, cedar","Dark, gourmand, addictive","Moderate–Strong","Fall/Winter"],
+  ["Mon Paris","Yves Saint Laurent","Strawberry, pear","Datura, peony, jasmine","Patchouli, white musk","Fruity-floral, romantic","Moderate","Spring/Summer"],
+  /* ── Additional Maison Margiela Replica ── */
+  ["Jazz Club","Maison Margiela Replica","Pink pepper, rum, neroli","Tobacco, vanilla, iris","Musk, vanilla, vetiver","Jazz bar, warm, inviting","Moderate","Fall/Winter"],
+  ["Flower Market","Maison Margiela Replica","Bergamot, peach","Rose, peony, peach blossom","Musk, cedar","Cheerful, fresh, floral","Moderate","Spring/Summer"],
+  ["When the Rain Stops","Maison Margiela Replica","Osmanthus, hawthorn","White tea, peach","Ambrette, sandalwood","Post-rain, fresh, delicate","Light–Moderate","Spring/Summer"],
+  /* ── Additional Byredo ── */
+  ["Gypsy Water","Byredo","Bergamot, lemon, pepper","Pine needles, orris, incense","Amber, sandalwood, vanilla","Bohemian, fresh-woody","Moderate","Year-round"],
+  ["Bibliotheque","Byredo","Plum, peach","Violet, iris","Peach, vanilla, sandalwood","Old books, warm, cultured","Moderate","Fall/Winter"],
+  ["Mojave Ghost","Byredo","Magnolia, woody notes","Ambrette, musk","Sandalwood, violet, musk","Desert dry, ghost-like","Moderate","Spring/Summer"],
+  /* ── Additional Acqua di Parma ── */
+  ["Colonia Assoluta","Acqua di Parma","Bergamot, tangerine, lemon","Orange blossom, jasmine","Sandalwood, vetiver, musk","Classic Italian, refined","Moderate","Year-round"],
+  ["Peonia Nobile","Acqua di Parma","Bergamot, pink pepper","Peony, rose, jasmine","White musk, sandalwood","Delicate, floral, Italian","Moderate","Spring/Summer"],
+  ["Colonia Oud","Acqua di Parma","Lemon, bergamot","Oud, geranium","Amber, musk, vetiver","Modern Italian, oud twist","Moderate","Year-round"],
+  /* ── Additional Diptyque ── */
+  ["Philosykos","Diptyque","Bergamot, green notes","Fig leaf, cedar","Musk, cedar, white cedar","Green fig, woody, nature","Moderate","Spring/Summer"],
+  ["Eau Duelle","Diptyque","Bergamot, vanilla, pink pepper","Iris, cardamom, saffron","Musk, vanilla, amber","Spicy-vanilla, warm","Moderate","Fall/Winter"],
+  ["Tempo","Diptyque","Patchouli, pepper","Geranium, cloves","Sandalwood, musk, benzoin","Patchouli-centric, earthy","Moderate","Fall/Winter"]
 ];
 
 /* ── Fragrance name autocomplete ── */
