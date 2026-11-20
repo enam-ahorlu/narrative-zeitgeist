@@ -299,13 +299,8 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .pat-cta{font-size:10.5px;color:var(--p-light);margin-top:6px;opacity:0;transition:opacity .18s}
 .pat:hover .pat-cta{opacity:1}
 .ni-badge{display:inline-flex;align-items:center;justify-content:center;background:rgba(74,173,186,.65);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;padding:0 3px;margin-left:auto;letter-spacing:0;line-height:1;flex-shrink:0}
-.wl-order-btns{display:flex;flex-direction:column;gap:2px;flex-shrink:0}
-.wl-ob{width:20px;height:20px;border:1px solid var(--n-border);border-radius:4px;background:var(--n-bg);color:var(--t-3);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .13s;padding:0;line-height:1}
-.wl-ob:hover{background:var(--p-ghost);border-color:var(--p-light);color:var(--p-rich)}
 .wl-pass-btn{color:var(--t-3)!important;font-size:15px!important;width:28px;height:28px;padding:0!important;display:flex;align-items:center;justify-content:center;border-radius:50%!important}
 .wl-pass-btn:hover{color:var(--a-burg)!important;background:var(--a-burg-lt)!important}
-[data-theme="dark"] .wl-ob{background:rgba(255,255,255,.05);border-color:rgba(200,225,245,.1)}
-[data-theme="dark"] .wl-ob:hover{background:rgba(74,173,186,.18);border-color:var(--p-light)}
 .disc-seed{padding:14px clamp(16px,4vw,30px);display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:8px 12px}
 .disc-seed[hidden]{display:none}
 .disc-compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
@@ -788,7 +783,6 @@ textarea.fi{resize:vertical;min-height:64px}
   #mob-search-fab{display:flex}
 
   /* Watchlist: stack actions row below entry info on narrow screens */
-  .wl-order-btns{display:none}
   .wl-item{flex-wrap:wrap;align-items:flex-start}
   .wl-actions{flex-basis:100%;margin-top:8px;padding-top:8px;border-top:1px solid var(--n-border);flex-wrap:wrap;gap:6px}
   .wl-actions .btn{flex:1;justify-content:center;font-size:12px;padding:7px 8px;min-width:0}
@@ -941,6 +935,7 @@ textarea.fi{resize:vertical;min-height:64px}
 .col-ss-header:first-child{border-top:none;padding-top:4px}
 @media(max-width:768px){.col-ss-header{padding:16px 16px 8px}.col-ss-header:first-child{padding-top:4px}}
 .tag-format-controls{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}
+#col-page-nav[hidden]{display:none}
 #tag-picker{max-height:10rem;overflow:auto;align-content:flex-start}
 #tag-picker .tp[hidden]{display:none}
 #tp-scope{color:var(--t-3);font-size:11px;margin-top:4px}
@@ -1191,23 +1186,11 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <!-- C4: Pagination bar -->
       <div class="col-pagination" id="col-pagination">
         <div class="col-pag-info" id="col-pag-info"></div>
-        <div class="col-pag-btns">
-          <button class="col-pag-btn" disabled title="Previous">‹</button>
-          <button class="col-pag-btn pg-active">1</button>
-          <button class="col-pag-btn">2</button>
-          <button class="col-pag-btn">3</button>
-          <button class="col-pag-btn">4</button>
-          <button class="col-pag-btn">5</button>
-          <button class="col-pag-btn">6</button>
-          <button class="col-pag-btn" title="Next">›</button>
+        <div class="col-pag-btns" id="col-page-nav" hidden>
+          <button class="col-pag-btn" id="col-page-prev" onclick="changeCollectionPage(-1)" aria-label="Previous page">‹</button>
+          <span id="col-page-number" aria-live="polite"></span>
+          <button class="col-pag-btn" id="col-page-next" onclick="changeCollectionPage(1)" aria-label="Next page">›</button>
         </div>
-      </div>
-      <!-- Collection empty state -->
-      <div class="empty-state" id="col-empty" style="display:none">
-        <svg class="empty-icon" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="var(--t-3)" stroke-width="1.2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-        <div class="empty-title">Your collection is empty</div>
-        <div class="empty-sub">Add your first entry to start building your taste fingerprint.</div>
-        <button class="btn btn-p" style="margin-top:4px" onclick="openModal('add')">Add First Entry</button>
       </div>
     </div>
 
@@ -1645,7 +1628,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
     <div class="modal-body">
       <div class="fgrid">
         <div class="fl ff"><label>TITLE</label><div class="cs-wrap"><input id="add-title" class="fi" type="text" placeholder="Type to search, or enter manually…" oninput="onTitleInput(this.value)" autocomplete="off"><div class="cs-drop" id="cs-drop"></div></div></div>
-        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="updateSportField(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
+        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="changeEntryFormat(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
         <div class="fl" id="sport-field" style="display:none"><label for="sport-select">SPORT</label><select id="sport-select" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
         <div class="fl"><label>DATE COMPLETED</label><input id="add-date" class="fi" type="date"></div>
         <div class="fl ff"><label>RATING</label>
@@ -2177,13 +2160,20 @@ function handleAuthChange(event, session){
     document.querySelectorAll('.overlay.open').forEach(function(overlay){overlay.classList.remove('open');});
     document.getElementById('m-newpass').style.display = 'none';
     closeCmdPalette();
-    renderEntriesTable([]);
-    renderEntriesGrid([]);
+    _collectionPage = 1;
+    _entriesLoadVersion++;
+    _watchlistLoadVersion++;
+    _fingerprintVersion++;
+    if(_charts.timeline){_charts.timeline.data.labels=[];_charts.timeline.data.datasets[0].data=[];_charts.timeline.update();}
+    buildCmdIndex();
+    clearColFilters();
+    renderColTagPills([]);
     updateCollectionStats([]);
     renderWatchlist();
     renderInsights(null);
     _discSeedId = '';
     editMode = false;
+    _entryDraftId = null;
     _wlMoveId = null;
     tagPickerVersion++;
     _discCacheKey = '';
@@ -2235,22 +2225,28 @@ function _showAuthScreen(){
 }
 
 /* ── Load all entries from Supabase and re-render ── */
+var _entriesLoadVersion = 0;
 async function loadEntries(){
   if(!currentUser) return;
   var userId = currentUser.id;
+  var version = ++_entriesLoadVersion;
   var entries = [];
   var pageSize = 500;
   for(var offset = 0; ; offset += pageSize){
     var res = await SUPA.from('entries_with_tags').select('*').eq('user_id', userId)
       .order('created_at', {ascending:false}).order('id').range(offset, offset + pageSize - 1);
-    if(currentUser?.id !== userId) return;
+    if(currentUser?.id !== userId || _entriesLoadVersion !== version) return;
     if(res.error){ console.error('loadEntries:', res.error); return; }
     entries.push(...(res.data || []));
     if(!res.data || res.data.length < pageSize) break;
   }
-  renderEntriesTable(entries);
-  renderEntriesGrid(entries);
+  _allEntries = entries;
+  buildCmdIndex();
+  renderColTagPills(entries);
+  renderCollectionPage();
   updateCollectionStats(entries);
+  loadTimelineData();
+  if(_discSeedId && !entries.some(function(entry){return entry.id === _discSeedId;})) _discSeedId = '';
   showDiscoverySeeds(document.getElementById('disc-seed-query').value);
   _discCacheKey = '';
   return true;
@@ -2262,9 +2258,6 @@ function _entryDateStr(e){
 }
 
 function renderEntriesTable(entries){
-  _allEntries = entries; /* cache for Discovery */
-  buildCmdIndex(); /* refresh cmd palette with real entries */
-  renderColTagPills(entries); /* refresh filter tag pills */
   var tbody = document.querySelector('#s-collection .tbl-wrap tbody');
   if(!tbody) return;
   tbody.innerHTML = '';
@@ -2405,6 +2398,7 @@ function openDetailModal(entry){
     fetch('/api/ratings?title='+encodeURIComponent(entry.title))
       .then(function(r){ return r.json(); })
       .then(function(d){
+        if(currentEntry !== entry || !document.getElementById('m-detail').classList.contains('open')) return;
         if(!d || (!d.imdb && !d.rt && !d.metacritic)) return;
         var el = document.getElementById('ext-ratings');
         if(!el) return;
@@ -2503,40 +2497,7 @@ function _openRelatedEntry(id){
   if(e)openDetailModal(e);
 }
 
-/* ── Upsert tags then link them to an entry ── */
-async function upsertEntryTags(entryId, tagNames){
-  if(!tagNames.length || !currentUser) return;
-  /* Normalise and deduplicate tag names */
-  var names = tagNames.map(function(n){ return n.toLowerCase().trim(); }).filter(Boolean);
-  var unique = names.filter(function(n,i){ return names.indexOf(n) === i; });
-  if(!unique.length) return;
 
-  /* Step 1: fetch all existing tags for this user in one query */
-  var existing = await SUPA.from('tags')
-    .select('id,name')
-    .eq('user_id', currentUser.id)
-    .in('name', unique);
-  var tagMap = {}; /* name → id */
-  (existing.data || []).forEach(function(t){ tagMap[t.name] = t.id; });
-
-  /* Step 2: batch-insert any tags that don't exist yet */
-  var missing = unique.filter(function(n){ return !tagMap[n]; });
-  if(missing.length){
-    var toInsert = missing.map(function(n){ return {user_id: currentUser.id, name: n}; });
-    var ins = await SUPA.from('tags').insert(toInsert).select('id,name');
-    if(ins.error){ console.warn('Tag batch insert failed:', ins.error); }
-    (ins.data || []).forEach(function(t){ tagMap[t.name] = t.id; });
-  }
-
-  /* Step 3: batch-upsert all entry_tags in one call */
-  var links = unique
-    .filter(function(n){ return tagMap[n]; })
-    .map(function(n){ return {entry_id: entryId, tag_id: tagMap[n]}; });
-  if(links.length){
-    await SUPA.from('entry_tags').upsert(links, {onConflict: 'entry_id,tag_id', ignoreDuplicates: true});
-  }
-}
-/* ══════════════════════════════════════════════ */
 
 var sportsTags = [
     'final','semifinal','quarterfinal','derby','rivalry','upset',
@@ -2733,6 +2694,14 @@ function navigate(scr, opts){
   if(t){t.classList.add('active');}
   // Per-screen data loading
   if(scr==='watchlist'){loadWatchlist();}
+  if(scr==='collection' && currentUser){
+    var owner = currentUser.id;
+    ensureStyleItems().then(function(){
+      if(currentUser?.id === owner) _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
+    }).catch(function(){
+      if(currentUser?.id === owner) showToast('Could not load scent and wardrobe items.', '⚠');
+    });
+  }
   if(scr==='discover'){openDiscoverScreen();}
   if(scr==='insights'){
     setTimeout(function(){
@@ -2936,34 +2905,15 @@ function openMergeTagsDialog(){
 }
 
 async function _doMergeTags(from, to){
-  if(!currentUser){ showToast('Please sign in first'); return; }
-  showToast('Merging tags…', '⏳  ');
-  /* Resolve or create the "to" tag */
-  var toRes = await SUPA.from('tags').select('id').eq('user_id', currentUser.id).eq('name', to).maybeSingle();
-  var toId;
-  if(toRes.data){
-    toId = toRes.data.id;
-  } else {
-    var createRes = await SUPA.from('tags').insert({user_id: currentUser.id, name: to}).select('id').single();
-    if(createRes.error){ showToast('Could not create tag: ' + createRes.error.message, '⚠  '); return; }
-    toId = createRes.data.id;
-  }
-  /* Resolve the "from" tag */
-  var fromRes = await SUPA.from('tags').select('id').eq('user_id', currentUser.id).eq('name', from).maybeSingle();
-  if(!fromRes.data){ showToast('"' + from + '" tag not found'); return; }
-  var fromId = fromRes.data.id;
-  /* Re-tag all entry_tags rows: fromId → toId */
-  var etRes = await SUPA.from('entry_tags').select('entry_id').eq('tag_id', fromId);
-  if(etRes.data && etRes.data.length){
-    var upserts = etRes.data.map(function(r){ return {entry_id: r.entry_id, tag_id: toId}; });
-    await SUPA.from('entry_tags').upsert(upserts, {onConflict: 'entry_id,tag_id', ignoreDuplicates: true});
-    await SUPA.from('entry_tags').delete().eq('tag_id', fromId);
-  }
-  /* Delete the "from" tag */
-  await SUPA.from('tags').delete().eq('id', fromId);
-  showToast('"' + from + '" merged into "' + to + '"', '✓  ');
-  loadEntries();
+  var owner = currentUser?.id;
+  if(!owner) return;
+  var result = await SUPA.rpc('merge_journal_tags',{p_from:from,p_to:to});
+  if(currentUser?.id !== owner) return;
+  if(result.error){showToast(result.error.message || 'Could not merge tags', '⚠');return;}
+  colFilter.tags = Array.from(new Set(colFilter.tags.map(function(tag){return tag === from ? to : tag;})));
+  showToast('"' + from + '" merged into "' + to + '"');
   loadSettingsTags();
+  refreshJournal();
 }
 
 async function addTag(){
@@ -3083,7 +3033,6 @@ function resetEntryForm(){
   document.getElementById('add-rating').value = 8;
   updateRatingRef(8);
   clearPoster();
-  clearTimeout(_csTimer);
   _closeSearchDrop();
   var swatch = document.querySelector('.cover-swatch');
   setCover(swatch, swatch.style.background);
@@ -3092,15 +3041,19 @@ function resetEntryForm(){
 function openModal(id){
   document.getElementById('m-'+id).classList.add('open');
   if(id==='add' && !editMode){
+    _entryDraftId = crypto.randomUUID();
     resetEntryForm();
     loadTagPicker(_discAddRec?.tags || _wlItems.find(function(item){return item.id === _wlMoveId;})?.tags || []);
   }
 }
 function closeModal(id){
+  if(id==='add' && document.getElementById('add-save-btn').disabled) return;
   document.getElementById('m-'+id).classList.remove('open');
   if(id==='detail'){cancelDelete();}
   if(id==='add'){
+    _closeSearchDrop();
     editMode=false;
+    _entryDraftId = null;
     tagPickerVersion++;
     document.getElementById('add-modal-title').textContent='Add Entry';
     document.getElementById('add-save-btn').textContent='Save Entry';
@@ -3195,16 +3148,12 @@ function wlRemoveSelected(){
     renderWatchlist();
   });
 }
-function wlSort(val){
-  if(val === 'match'){
-    _wlItems.sort(function(a,b){ return (b.match_score||0) - (a.match_score||0); });
-  } else if(val === 'alpha'){
-    _wlItems.sort(function(a,b){ return (a.title||'').localeCompare(b.title||''); });
-  } else {
-    _wlItems.sort(function(a,b){ return new Date(b.saved_at||0) - new Date(a.saved_at||0); });
-  }
+var _watchlistSort = 'date';
+function wlSort(value){
+  _watchlistSort = value;
   renderWatchlist();
 }
+
 function selectDiscoveryMode(el, name){
   document.querySelectorAll('.dtab').forEach(function(tab){tab.classList.toggle('active', tab === el);});
   _discTabName = name;
@@ -3336,6 +3285,8 @@ function showToast(msg,icon){
 }
 
 /* ── Card grid / table view toggle ── */
+var _collectionPage = 1;
+var COLLECTION_PAGE_SIZE = 10;
 var collectionView='table';
 function toggleCollectionView(){
   collectionView=collectionView==='table'?'grid':'table';
@@ -3349,6 +3300,7 @@ function toggleCollectionView(){
     tbl.style.display='';grid.style.display='none';
     icon.innerHTML='<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>';
   }
+  renderCollectionPage();
 }
 
 /* ── Delete confirm flow ── */
@@ -3362,18 +3314,21 @@ function cancelDelete(){
 }
 async function confirmDelete(){
   if(!currentEntry){ cancelDelete(); closeModal('detail'); return; }
-  var res = await SUPA.from('entries').delete().eq('id', currentEntry.id);
+  var owner = currentUser?.id;
+  if(!owner) return;
+  var res = await SUPA.from('entries').delete().eq('id',currentEntry.id).eq('user_id',owner).select('id').single();
+  if(currentUser?.id !== owner) return;
   if(res.error){ showToast('Could not delete: ' + res.error.message); return; }
   cancelDelete();
   closeModal('detail');
   showToast('Entry deleted');
   currentEntry = null;
-  loadEntries();
-  refreshFingerprint();
+  refreshJournal();
 }
 
 /* ── Save entry with toast ── */
 var editMode=false;
+var _entryDraftId = null;
 /* ── Cover map: title prefix → gradient for all existing entries ── */
 var coverMap={
   'Succession':'linear-gradient(135deg,#1B5E76,#4AADBA)',
@@ -3434,80 +3389,47 @@ function applyCoverColors(){
 }
 
 async function saveEntry(){
-  if(!currentUser){ showToast('Please sign in first'); return; }
-  var wasEdit = editMode;
+  var owner = currentUser?.id;
+  var button = document.getElementById('add-save-btn');
+  if(!owner || button.disabled) return;
+  var editing = editMode;
+  var entryId = editing ? currentEntry?.id : _entryDraftId;
+  if(!entryId) return;
+  var title = document.getElementById('add-title').value.trim();
+  if(!title){showToast('Please enter a title');return;}
+  var format = FMT_TO_DB[document.getElementById('add-format').value];
+  if(!format){showToast('Please select a format');return;}
+  var watchlistId = _wlMoveId;
+  var recommendation = _discAddRec;
 
-  /* Read form values */
-  var title    = ((document.getElementById('add-title')||{}).value||'').trim();
-  if(!title){ showToast('Please enter a title'); return; }
-  var fmtRaw   = (document.getElementById('add-format')||{}).value || '';
-  if(!fmtRaw){ showToast('Please select a format'); return; }
-  var format   = FMT_TO_DB[fmtRaw] || 'show';
-  var rating   = parseFloat(document.getElementById('add-rating').value) || 8;
-  var notes    = ((document.getElementById('add-notes')||{}).value||'').trim() || null;
-  var cover    = currentCover || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
-  var dateInp  = document.getElementById('add-date');
-  var dateCompleted = (dateInp && dateInp.value) ? dateInp.value : null;
-  var selectedTags = Array.from(document.querySelectorAll('#tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
-
-  /* Disable save button while working */
-  var saveBtn = document.getElementById('add-save-btn');
-  if(saveBtn){ saveBtn.textContent = wasEdit ? 'Updating…' : 'Saving…'; saveBtn.disabled = true; }
-
-  if(wasEdit && currentEntry){
-    /* UPDATE */
-    var upd = await SUPA.from('entries').update({
-      title: title, format: format, rating: rating,
-      notes: notes, cover_color: cover, date_completed: dateCompleted,
-      poster_url: _posterUrl !== undefined ? _posterUrl : (currentEntry.poster_url || null),
-      updated_at: new Date().toISOString()
-    }).eq('id', currentEntry.id);
-    if(upd.error){ showToast('Save failed: ' + upd.error.message); if(saveBtn){ saveBtn.textContent='Update Entry'; saveBtn.disabled=false; } return; }
-    /* Re-sync tags: remove old, add new */
-    await SUPA.from('entry_tags').delete().eq('entry_id', currentEntry.id);
-    await upsertEntryTags(currentEntry.id, selectedTags);
-  } else {
-    /* INSERT */
-    var ins = await SUPA.from('entries').insert({
-      user_id: currentUser.id, title: title, format: format,
-      rating: rating, notes: notes, cover_color: cover, date_completed: dateCompleted,
-      poster_url: _posterUrl || null
-    }).select().single();
-    if(ins.error){ showToast('Save failed: ' + ins.error.message); if(saveBtn){ saveBtn.textContent='Save Entry'; saveBtn.disabled=false; } return; }
-    await upsertEntryTags(ins.data.id, selectedTags);
-  }
-
-  /* Reset modal */
-  tagPickerVersion++;
-  editMode = false;
-  document.getElementById('add-modal-title').textContent = 'Add Entry';
-  if(saveBtn){ saveBtn.textContent = 'Save Entry'; saveBtn.disabled = false; }
-  document.getElementById('m-add').classList.remove('open');
-  _posterUrl = null;
-  var cpw = document.getElementById('cover-poster-wrap');
-  if(cpw) cpw.classList.remove('visible');
-  var tpInp = document.getElementById('tp-search-inp');
-  if(tpInp){ tpInp.value = ''; tagSearch(''); }
-  /* Deselect all tags in picker */
-  document.querySelectorAll('.tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
-
-  showToast(wasEdit ? 'Entry updated' : 'Entry saved to your collection');
-  /* Dismiss the discover card that triggered this save (if any) */
-  if(!wasEdit && _discAddRec){
-    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== _discAddRec.title || r.format !== _discAddRec.format; });
-    _discAddRec = null;
-    _renderDiscovery(_discRecs);
-  }
-  loadEntries();        /* Refresh table + grid + stats */
-  refreshFingerprint(); /* Recompute taste profile in background */
-  /* If this save came from "Move to Collection", delete the watchlist item */
-  if(_wlMoveId){
-    var _moveId = _wlMoveId;
-    _wlMoveId = null;
-    SUPA.from('watchlist').update({ added_to_collection: true }).eq('id', _moveId).then(function(){
-      _wlItems = _wlItems.filter(function(it){ return it.id !== _moveId; });
-      renderWatchlist();
+  button.disabled = true;
+  button.textContent = editing ? 'Updating…' : 'Saving…';
+  try {
+    var result = await SUPA.rpc('save_journal_entry',{
+      p_entry_id:entryId, p_edit:editing, p_title:title, p_format:format,
+      p_rating:Number(document.getElementById('add-rating').value),
+      p_notes:document.getElementById('add-notes').value.trim() || null,
+      p_cover_color:currentCover, p_date_completed:document.getElementById('add-date').value || null,
+      p_poster_url:_posterUrl || null,
+      p_tags:Array.from(document.querySelectorAll('#tag-picker .tp.sel'),function(tag){return tag.textContent.trim();}),
+      p_watchlist_id:watchlistId
     });
+    if(currentUser?.id !== owner) return;
+    if(result.error || result.data !== entryId){
+      showToast(result.error?.code === 'P0002' ? result.error.message : 'Could not save the entry. Your form is ready to retry.', '⚠');
+      return;
+    }
+    button.disabled = false;
+    closeModal('add');
+    showToast(editing ? 'Entry updated' : watchlistId ? 'Moved to Collection' : 'Entry saved to your collection');
+    if(recommendation) removeDiscoveryPick(recommendation);
+    if(watchlistId) removeWatchlistRow(watchlistId);
+    refreshJournal();
+  } catch {
+    if(currentUser?.id === owner) showToast('Could not confirm the save. Retry this form to check.', '⚠');
+  } finally {
+    button.disabled = false;
+    button.textContent = editMode ? 'Update Entry' : 'Save Entry';
   }
 }
 
@@ -3798,84 +3720,50 @@ function cmdSearch(val){
 /* ── Collection filter engine (C1–C5) ── */
 var colFilter={search:'',format:'All',tags:[],ratingMin:0,ratingMax:10,yearFrom:0,yearTo:9999};
 
-function applyCollectionFilter(){
-  var q=colFilter.search.toLowerCase();
-  var fmt=colFilter.format;
-  var activeTags=colFilter.tags;
-  var minR=colFilter.ratingMin;
-  var maxR=colFilter.ratingMax;
-  var yFrom=colFilter.yearFrom;
-  var yTo=colFilter.yearTo;
-  var shown=0;
+var _colSortVal = 'date_desc';
+var collectionFormats = {Films:'film',Shows:'show',Books:'book',Matches:'sports_match',Music:'music'};
 
-  /* ── Table rows ── */
-  document.querySelectorAll('#s-collection .tbl-wrap tbody tr').forEach(function(row){
-    var title=((row.querySelector('.tc-title')||{}).textContent||'').toLowerCase();
-    var badge=((row.querySelector('.badge')||{}).textContent||'').toLowerCase();
-    var ratingNode=row.querySelector('.rating');
-    var rating=ratingNode?parseFloat(ratingNode.textContent.trim()):0;
-    var tds=row.querySelectorAll('td');
-    var dateText=tds[3]?tds[3].textContent.trim():'';
-    var ym=dateText.match(/\d{4}/);
-    var year=ym?parseInt(ym[0]):2024;
-    var tagTexts=Array.from(row.querySelectorAll('.tag')).map(function(t){return t.textContent.toLowerCase()});
-    var fullText=title+' '+tagTexts.join(' ');
-
-    var ok=true;
-    if(q&&fullText.indexOf(q)<0)ok=false;
-    if(fmt!=='All'){var _fmtMap={'Films':'film','Shows':'show','Books':'book','Matches':'sports_match','Music':'music'};var fk=_fmtMap[fmt]||fmt.toLowerCase();if(badge.indexOf(fk)<0)ok=false;}
-    if(activeTags.length&&!activeTags.every(function(at){return tagTexts.some(function(tt){return tt.indexOf(at)>=0});}))ok=false;
-    if(!isNaN(rating)&&(rating<minR||rating>maxR))ok=false;
-    if(yFrom&&year<yFrom)ok=false;
-    if(yTo<9999&&year>yTo)ok=false;
-
-    row.style.display=ok?'':'none';
-    if(ok)shown++;
-  });
-
-  /* ── Card grid ── */
-  document.querySelectorAll('#cg-grid .cg-card').forEach(function(card){
-    var title=((card.querySelector('.cg-title')||{}).textContent||'').toLowerCase();
-    var badge=((card.querySelector('.badge')||{}).textContent||'').toLowerCase();
-    var rating=parseFloat(((card.querySelector('.cg-rating')||{}).textContent||'0'));
-    var dateText=((card.querySelector('.cg-date')||{}).textContent||'');
-    var ym=dateText.match(/\d{4}/);
-    var year=ym?parseInt(ym[0]):2024;
-    var tagTexts=Array.from(card.querySelectorAll('.tag')).map(function(t){return t.textContent.toLowerCase()});
-    var fullText=title+' '+tagTexts.join(' ');
-
-    var ok=true;
-    if(q&&fullText.indexOf(q)<0)ok=false;
-    if(fmt!=='All'){var _fmtMap={'Films':'film','Shows':'show','Books':'book','Matches':'sports_match','Music':'music'};var fk=_fmtMap[fmt]||fmt.toLowerCase();if(badge.indexOf(fk)<0)ok=false;}
-    if(activeTags.length&&!activeTags.every(function(at){return tagTexts.some(function(tt){return tt.indexOf(at)>=0});}))ok=false;
-    if(!isNaN(rating)&&(rating<minR||rating>maxR))ok=false;
-    if(yFrom&&year<yFrom)ok=false;
-    if(yTo<9999&&year>yTo)ok=false;
-
-    card.style.display=ok?'':'none';
-  });
-
-  updateColChips();
-  updateColPagination(shown);
-  updateColFilterBtn();
-  _renderColSS(q,fmt);
+function hasCollectionFilter(){
+  return Boolean(colFilter.search || colFilter.format !== 'All' || colFilter.tags.length ||
+    colFilter.ratingMin > 0 || colFilter.ratingMax < 10 || colFilter.yearFrom || colFilter.yearTo < 9999);
 }
 
-/* ── Sort entries by field ── */
-var _colSortVal = 'date_desc';
-function colSort(val){
-  _colSortVal = val;
-  /* Sync the dropdown to match column-header clicks */
-  var sel = document.getElementById('col-sort-sel');
-  if(sel) sel.value = val;
-  if(val === 'rating_desc')
-    _allEntries.sort(function(a,b){ return parseFloat(b.rating) - parseFloat(a.rating); });
-  else if(val === 'title_asc')
-    _allEntries.sort(function(a,b){ return a.title.localeCompare(b.title); });
-  else
-    _allEntries.sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
-  renderEntriesTable(_allEntries);
-  renderEntriesGrid(_allEntries);
+function applyCollectionFilter(){
+  _collectionPage = 1;
+  renderCollectionPage();
+}
+
+function renderCollectionPage(){
+  var query = colFilter.search.toLowerCase();
+  var format = collectionFormats[colFilter.format];
+  var dateFilter = colFilter.yearFrom || colFilter.yearTo < 9999;
+  var results = _allEntries.filter(function(entry){
+    if(format && entry.format !== format) return false;
+    var rating = Number(entry.rating);
+    if(rating < colFilter.ratingMin || rating > colFilter.ratingMax) return false;
+    var tags = (entry.tags || []).map(function(tag){return tag.toLowerCase();});
+    if(!colFilter.tags.every(function(tag){return tags.includes(tag);})) return false;
+    if(query && ![entry.title.toLowerCase(),...tags].some(function(value){return value.includes(query);})) return false;
+    var year = Number((entry.date_completed || entry.created_at || '').slice(0,4));
+    return !dateFilter || (year && year >= colFilter.yearFrom && year <= colFilter.yearTo);
+  });
+  if(_colSortVal === 'rating_desc') results.sort(function(a,b){return Number(b.rating)-Number(a.rating);});
+  if(_colSortVal === 'title_asc') results.sort(function(a,b){return a.title.localeCompare(b.title);});
+  var pages = Math.max(1, Math.ceil(results.length / COLLECTION_PAGE_SIZE));
+  _collectionPage = Math.min(pages, Math.max(1,_collectionPage));
+  var start = (_collectionPage - 1) * COLLECTION_PAGE_SIZE;
+  var visible = results.slice(start,start + COLLECTION_PAGE_SIZE);
+  renderEntriesTable(collectionView === 'table' ? visible : []);
+  renderEntriesGrid(collectionView === 'grid' ? visible : []);
+  updateColPagination(results.length,start,visible.length,pages);
+  updateColChips();
+  updateColFilterBtn();
+  _renderColSS(query,colFilter.format);
+}
+
+function colSort(value){
+  _colSortVal = value;
+  document.getElementById('col-sort-sel').value = value;
   applyCollectionFilter();
 }
 
@@ -3887,7 +3775,7 @@ function renderColTagPills(entries){
   var container=document.getElementById('col-tag-pills');
   if(!container)return;
   // Collect tag frequency from entries
-  var freq={};
+  var freq=Object.create(null);
   (entries||[]).forEach(function(e){
     (e.tags||[]).forEach(function(t){
       var tag=(t.name||t||'').toLowerCase();
@@ -3901,8 +3789,8 @@ function renderColTagPills(entries){
   }
   container.innerHTML=tags.map(function(tag){
     var active=colFilter.tags.indexOf(tag)>=0;
-    var safeTag=tag.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
-    return '<span class="col-tag-pill'+(active?' active':'')+'" data-tag="'+safeTag+'" onclick="toggleTagFilter(this,this.dataset.tag)">#'+tag+'</span>';
+    var safeTag=escHtml(tag);
+    return '<span class="col-tag-pill'+(active?' active':'')+'" data-tag="'+safeTag+'" onclick="toggleTagFilter(this,this.dataset.tag)">#'+safeTag+'</span>';
   }).join('');
 }
 function setColPill(el){
@@ -3921,7 +3809,7 @@ function toggleTagFilter(el,tag){
 }
 function colUpdateRating(){
   colFilter.ratingMin=parseFloat(document.getElementById('col-rmin').value)||0;
-  colFilter.ratingMax=parseFloat(document.getElementById('col-rmax').value)||10;
+  colFilter.ratingMax=Number(document.getElementById('col-rmax').value);
   applyCollectionFilter();
 }
 function colUpdateDate(){
@@ -3998,8 +3886,8 @@ function updateColChips(){
   bar.innerHTML='<span style="font-size:11px;color:var(--t-3)">Filtered by:</span>'+
     chips.map(function(c){
       /* Use data attributes instead of serialized closures — avoids scope loss */
-      var extra = c.type === 'tag' ? ' data-chip-type="tag" data-chip-tag="'+c.tag.replace(/"/g,'&quot;')+'"' : ' data-chip-type="'+c.type+'"';
-      return '<span class="col-chip"><span>'+c.label+'</span><span class="col-chip-x"'+extra+' onclick="clearColChip(this)">×</span></span>';
+      var extra = c.type === 'tag' ? ' data-chip-type="tag" data-chip-tag="'+escHtml(c.tag)+'"' : ' data-chip-type="'+c.type+'"';
+      return '<span class="col-chip"><span>'+escHtml(c.label)+'</span><span class="col-chip-x"'+extra+' onclick="clearColChip(this)">×</span></span>';
     }).join('')+
     '<span class="col-chips-clear" onclick="clearColFilters()">Clear all</span>';
 }
@@ -4035,28 +3923,30 @@ function clearColChip(el){
 }
 
 /* ── Pagination bar update ── */
-function updateColPagination(shown){
-  var info=document.getElementById('col-pag-info');
-  var pg=document.getElementById('col-pagination');
-  var pgBtns=pg.querySelector('.col-pag-btns');
-  var hasFilter=colFilter.search||colFilter.format!=='All'||colFilter.tags.length||colFilter.ratingMin>0||colFilter.ratingMax<10||colFilter.yearFrom||colFilter.yearTo<9999;
-  if(hasFilter){
-    info.innerHTML='<b>'+shown+'</b> matching '+(shown===1?'result':'results');
-    pgBtns.style.display='none';
-  } else {
-    info.innerHTML='Showing <b>1–10</b> of <b>'+_allEntries.length+'</b> entries';
-    pgBtns.style.display='';
-  }
-  var fcount=document.getElementById('col-filter-count');
-  if(fcount)fcount.textContent=hasFilter?shown+' results visible':'';
+function changeCollectionPage(delta){
+  _collectionPage += delta;
+  renderCollectionPage();
+}
+
+function updateColPagination(count,start,length,pages){
+  var info = document.getElementById('col-pag-info');
+  var nav = document.getElementById('col-page-nav');
+  var filtered = hasCollectionFilter();
+  info.textContent = count ? 'Showing ' + (start+1) + '–' + (start+length) + ' of ' + count + (filtered ? ' matching entries' : ' entries')
+    : filtered ? 'No matching media entries' : 'No media entries yet';
+  nav.hidden = pages < 2;
+  document.getElementById('col-page-number').textContent = _collectionPage + ' / ' + pages;
+  document.getElementById('col-page-prev').disabled = _collectionPage <= 1;
+  document.getElementById('col-page-next').disabled = _collectionPage >= pages;
+  var filterCount = document.getElementById('col-filter-count');
+  if(filterCount) filterCount.textContent = filtered ? count+' results' : '';
 }
 
 /* ── Filter button indicator dot ── */
 function updateColFilterBtn(){
   var btn=document.getElementById('col-filter-btn');
   if(!btn)return;
-  var hasFilter=colFilter.search||colFilter.format!=='All'||colFilter.tags.length||colFilter.ratingMin>0||colFilter.ratingMax<10||colFilter.yearFrom||colFilter.yearTo<9999;
-  btn.classList.toggle('col-filter-on',!!hasFilter);
+  btn.classList.toggle('col-filter-on',hasCollectionFilter());
 }
 
 /* ── Discover: search within real _discRecs ── */
@@ -4147,36 +4037,17 @@ function discSearch(val){
   res.classList.add('open');
 }
 
-/* ── Save a search-result item directly to Watchlist ── */
-function saveSearchResult(el){
-  var rec;
-  try { rec = JSON.parse(el.getAttribute('data-rec')); } catch(e){ return; }
-  if(!currentUser){ showToast('Please sign in first'); return; }
-  /* Prevent duplicate saves */
-  if(_wlItems.some(function(it){ return it.title === rec.title && it.format === rec.format; })){
-    showToast(rec.title + ' is already in your Watchlist');
-    document.getElementById('disc-search-res').classList.remove('open');
-    document.getElementById('disc-search-inp').value = '';
-    return;
+async function saveSearchResult(element){
+  element.style.pointerEvents = 'none';
+  try {
+    if(await saveRecommendation(JSON.parse(element.dataset.rec))){
+      var search = document.getElementById('disc-search-inp');
+      search.value = '';
+      discSearch('');
+    }
+  } finally {
+    element.style.pointerEvents = '';
   }
-  el.style.opacity = '.5'; el.style.pointerEvents = 'none';
-  SUPA.from('watchlist').insert({
-    user_id:       currentUser.id,
-    title:         rec.title,
-    format:        rec.format,
-    source:        'claude_ai',
-    match_score:   rec.match_score ?? null,
-    match_reasons: rec.reasons || [],
-    cover_color:   rec.cover_color || null,
-    tags:          rec.tags || [],
-    priority:      'maybe'
-  }).then(function(res){
-    document.getElementById('disc-search-res').classList.remove('open');
-    document.getElementById('disc-search-inp').value = '';
-    if(res.error){ showToast('Could not save: '+res.error.message, '⚠  '); return; }
-    showToast(rec.title + ' saved to Watchlist', '🔖  ');
-    loadWatchlist();
-  });
 }
 
 /* ── "Why this match?" toggle ── */
@@ -4519,38 +4390,50 @@ function _renderGrid(recs){
   wrap.innerHTML = html;
 }
 
-async function saveToWatchlist(btn){
-  var rec = JSON.parse(btn.getAttribute('data-rec'));
-  if(!currentUser){ showToast('Please sign in first'); return; }
-  /* Prevent duplicate saves against in-memory watchlist cache */
-  if(_wlItems.some(function(it){ return it.title === rec.title && it.format === rec.format; })){
-    showToast(rec.title + ' is already in your Watchlist');
-    btn.textContent = '✓ Saved'; btn.disabled = true;
-    return;
-  }
-  btn.disabled = true; btn.textContent = 'Saving…';
-  var res = await SUPA.from('watchlist').insert({
-    user_id:       currentUser.id,
-    title:         rec.title,
-    format:        rec.format,
-    source:        'claude_ai',
-    match_score:   rec.match_score ?? null,
-    match_reasons: rec.reasons || [],
-    cover_color:   rec.cover_color || null,
-    tags:          rec.tags || [],
-    priority:      'maybe'
-  });
-  if(res.error){
-    btn.disabled = false; btn.textContent = '+ Watchlist';
-    showToast('Could not save: '+res.error.message,'⚠  ');
-  } else {
-    btn.textContent = '✓ Saved';
+var _watchlistSaves = new Set();
+
+async function saveRecommendation(rec){
+  var owner = currentUser?.id;
+  if(!owner) return false;
+  var key = JSON.stringify([owner,rec.format,rec.title.trim().toLowerCase()]);
+  if(_watchlistSaves.has(key)) return false;
+  _watchlistSaves.add(key);
+  try {
+    var externalId = rec.catalog ? rec.catalog.provider + ':' + rec.catalog.id : null;
+    var result = await SUPA.rpc('save_watchlist_pick',{
+      p_title:rec.title, p_format:rec.format, p_external_id:externalId,
+      p_reasons:rec.reasons || [], p_cover_color:rec.cover_color || null, p_tags:rec.tags || []
+    });
+    if(currentUser?.id !== owner) return false;
+    if(result.error || !result.data) throw new Error('Save failed');
     showToast(rec.title+' saved to Watchlist','🔖  ');
+    removeDiscoveryPick(rec);
     loadWatchlist();
-    /* Dismiss this card from the current discover view */
-    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== rec.title || r.format !== rec.format; });
-    _renderDiscovery(_discRecs);
+    return true;
+  } catch {
+    if(currentUser?.id === owner) showToast('Could not save this pick. Try again.', '⚠');
+    return false;
+  } finally {
+    _watchlistSaves.delete(key);
   }
+}
+
+function removeDiscoveryPick(item){
+  if(!Array.isArray(_discRecs)) return;
+  var remaining = _discRecs.filter(function(rec){return rec.title !== item.title || rec.format !== item.format;});
+  if(remaining.length === _discRecs.length) return;
+  _discRecs = remaining;
+  if(document.getElementById('s-discover').classList.contains('active') && !_discoveryRequest &&
+    _discPill !== 'fragrances' && _discPill !== 'style') _renderDiscovery(remaining);
+}
+
+async function saveToWatchlist(button){
+  var label = button.textContent;
+  button.disabled = true;
+  button.textContent = 'Saving…';
+  var saved = await saveRecommendation(JSON.parse(button.dataset.rec));
+  button.textContent = saved ? '✓ Saved' : label;
+  button.disabled = saved;
 }
 
 function addFromDiscover(btn){
@@ -4564,11 +4447,6 @@ function addFromDiscover(btn){
   var formatSelect = document.getElementById('add-format');
   formatSelect.value = fmtLabel;
   updateSportField(formatSelect);
-  /* Pre-fill year if the recommendation includes one */
-  if(rec.year){
-    var yearInp = document.getElementById('add-year');
-    if(yearInp) yearInp.value = rec.year;
-  }
 }
 
 /* (wl-actions btn-p listener removed — wlMoveToCollection onclick handles this inline) */
@@ -4578,19 +4456,24 @@ var _wlItems       = [];    /* cached watchlist rows */
 var _wlTab         = 'all';
 var _wlMoveId      = null;  /* watchlist id being moved to collection */
 var _wlAllSelected = false; /* select-all toggle state */
+var _watchlistLoadVersion = 0;
 
 async function loadWatchlist(){
-  if(!currentUser) return;
-  var userId = currentUser.id;
-  var res = await SUPA
-    .from('watchlist')
-    .select('*')
-    .eq('user_id', userId)
-    .eq('added_to_collection', false)
-    .order('saved_at', { ascending: false });
-  if(currentUser?.id !== userId) return;
-  if(res.error){ console.error('loadWatchlist:', res.error); return; }
-  _wlItems = res.data || [];
+  var owner = currentUser?.id;
+  if(!owner) return;
+  var version = ++_watchlistLoadVersion;
+  var items = [];
+  var pageSize = 500;
+  for(var offset=0; ; offset+=pageSize){
+    var result = await SUPA.from('watchlist').select('*').eq('user_id',owner).eq('added_to_collection',false)
+      .order('saved_at',{ascending:false}).order('id').range(offset,offset+pageSize-1);
+    if(currentUser?.id !== owner || version !== _watchlistLoadVersion) return;
+    if(result.error){console.error('loadWatchlist:',result.error);return;}
+    items.push(...result.data);
+    if(result.data.length < pageSize) break;
+  }
+  _wlItems = items;
+  buildCmdIndex();
   renderWatchlist();
 }
 
@@ -4606,6 +4489,7 @@ async function setWatchlistPriority(select){
       .eq('id',id).eq('user_id',owner).select('id').single();
     if(currentUser?.id !== owner) return;
     if(result.error) throw result.error;
+    _watchlistLoadVersion++;
     var savedItem = _wlItems.find(function(row){return row.id === id;});
     if(savedItem) savedItem.priority = priority;
     renderWatchlist();
@@ -4626,6 +4510,8 @@ function renderWatchlist(){
     if(_wlTab === 'maybe')   return it.priority === 'maybe';
     return true;
   });
+  if(_watchlistSort === 'alpha') items.sort(function(a,b){return a.title.localeCompare(b.title);});
+  if(_watchlistSort === 'match') items.sort(function(a,b){return (b.match_score || 0)-(a.match_score || 0);});
 
   var listEl  = document.getElementById('wl-list');
   var emptyEl = document.getElementById('wl-empty');
@@ -4697,10 +4583,6 @@ function renderWatchlist(){
         + '<option value="maybe"'+(it.priority !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
         + '<option value="up_next"'+(it.priority === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
         + '<div class="wl-match">'+score+'</div>'
-        + '<div class="wl-order-btns">'
-        +   '<button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button>'
-        +   '<button class="wl-ob" onclick="wlMoveDown(this)" title="Move down">↓</button>'
-        + '</div>'
         + '<div class="wl-actions">'
         +   '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlMoveToCollection(\''+it.id+'\')">Move to Collection</button>'
         +   '<button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button>'
@@ -4780,29 +4662,34 @@ async function dismissDiscovery(btn){
   var item = JSON.parse(btn.dataset.rec);
   btn.disabled = true;
   if(await rememberDismissal(item, currentUser?.id)){
-    _discRecs = (_discRecs || []).filter(function(rec){return rec.title !== item.title || rec.format !== item.format;});
-    _renderDiscovery(_discRecs);
+    removeDiscoveryPick(item);
     showToast('Dismissed from future recommendations.');
   }
   btn.disabled = false;
 }
 
 async function passWlItem(btn){
-  var row = btn.closest('.wl-item');
-  var item = _wlItems.find(function(candidate){return candidate.id === row.dataset.wlId;});
-  if(!item || !currentUser) return;
-  var userId = currentUser.id;
+  var id = btn.closest('.wl-item').dataset.wlId;
+  var owner = currentUser?.id;
+  if(!owner) return;
   btn.disabled = true;
-  if(!await rememberDismissal(item, userId)){ btn.disabled = false; return; }
-  var result = await SUPA.from('watchlist').delete().eq('id', item.id);
-  if(currentUser?.id !== userId) return;
-  btn.disabled = false;
-  if(result.error){showToast('Preference saved. Could not remove the watchlist item.', '⚠'); return;}
-  _wlItems = _wlItems.filter(function(candidate){return candidate.id !== item.id;});
-  _animateRemove(row, function(){renderWatchlist();});
-  showToast('Removed and dismissed from future recommendations.');
+  try {
+    var result = await SUPA.rpc('dismiss_watchlist_pick',{p_id:id});
+    if(currentUser?.id !== owner) return;
+    if(result.error){showToast('Could not dismiss this item. Try again.', '⚠');return;}
+    removeWatchlistRow(id);
+    showToast('Removed and dismissed from future recommendations.');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
+function removeWatchlistRow(id){
+  _watchlistLoadVersion++;
+  _wlItems = _wlItems.filter(function(item){return item.id !== id;});
+  buildCmdIndex();
+  renderWatchlist();
+}
 
 /* ── Password show/hide toggle ── */
 function togglePassVis(inputId, btn){
@@ -4908,12 +4795,13 @@ async function saveNewPassword(){
 async function loadFingerprint(){
   if(!currentUser) return;
   var userId = currentUser.id;
+  var version = _fingerprintVersion;
   var res = await SUPA
     .from('user_fingerprints')
     .select('*')
     .eq('user_id', userId)
     .single();
-  if(currentUser?.id !== userId) return;
+  if(currentUser?.id !== userId || version !== _fingerprintVersion) return;
   if(res.error || !res.data){ renderInsights(null); return; }
   /* user_fingerprints stores data inside fingerprint_json column */
   _fp = res.data.fingerprint_json || res.data;
@@ -4921,19 +4809,25 @@ async function loadFingerprint(){
   loadTimelineData();
 }
 
+var _fingerprintVersion = 0;
+
 async function refreshFingerprint(){
-  if(!currentUser) return;
-  var userId = currentUser.id;
-  var rpcOk = true;
-  try {
-    var rpcRes = await SUPA.rpc('compute_fingerprint', {p_user_id: userId});
-    if(rpcRes.error){ console.warn('compute_fingerprint RPC error:', rpcRes.error); rpcOk = false; }
-  } catch(e){ console.warn('compute_fingerprint exception:', e); rpcOk = false; }
-  if(currentUser?.id !== userId) return;
-  if(!rpcOk){
-    showToast(_fp ? 'Could not refresh taste profile — showing cached data' : 'Could not generate taste fingerprint', '⚠  ');
+  var owner = currentUser?.id;
+  if(!owner) return;
+  var version = ++_fingerprintVersion;
+  var result = await SUPA.rpc('compute_fingerprint',{p_user_id:owner});
+  if(currentUser?.id !== owner || version !== _fingerprintVersion) return;
+  if(result.error || !result.data){
+    showToast('Could not refresh your taste profile.', '⚠');
+    return;
   }
-  await loadFingerprint();
+  _fp = result.data;
+  renderInsights(_fp);
+}
+
+function refreshJournal(){
+  loadEntries();
+  refreshFingerprint();
 }
 
 /* ── Dynamic Patterns Discovered ─────────────────────────────────────────── */
@@ -5089,18 +4983,23 @@ async function loadSettingsTags(){
       list.innerHTML = '<div style="color:var(--t-3);font-size:12.5px;padding:8px 0">No tags yet — add tags when logging entries.</div>';
     } else {
       list.innerHTML = tags.map(function(t){
-        return '<div class="tag-edit">'+escHtml(t)+'<span class="tag-x" onclick="deleteTag(\''+escHtml(t)+'\',this)">×</span></div>';
+        return '<div class="tag-edit">'+escHtml(t)+'<span class="tag-x" data-tag="'+escHtml(t)+'" onclick="deleteTag(this.dataset.tag)">×</span></div>';
       }).join('');
     }
   }
 }
 
-async function deleteTag(name, el){
-  if(!currentUser) return;
-  var res = await SUPA.from('tags').delete().eq('user_id', currentUser.id).eq('name', name);
-  if(!res.error && el) el.parentElement.remove();
+async function deleteTag(name){
+  var owner = currentUser?.id;
+  if(!owner) return;
+  var result = await SUPA.from('tags').delete().eq('user_id',owner).eq('name',name);
+  if(currentUser?.id !== owner) return;
+  if(result.error){showToast('Could not remove this tag.', '⚠');return;}
+  colFilter.tags = colFilter.tags.filter(function(tag){return tag !== name;});
   loadSettingsTags();
+  refreshJournal();
 }
+
 /* ─────────────────────────────────────────────────────────────────────────── */
 
 function exportInsights(){
@@ -5299,18 +5198,10 @@ function _applyFpToCharts(fp){
   }
 }
 
-async function loadTimelineData(){
+function loadTimelineData(){
   if(!currentUser || !_charts.timeline) return;
-  var userId = currentUser.id;
-  var res = await SUPA
-    .from('entries_with_tags')
-    .select('rating,created_at,date_completed')
-    .eq('user_id', userId)
-    .order('created_at',{ascending:true});
-  if(currentUser?.id !== userId) return;
-  if(res.error) return;
   var qmap = {};
-  (res.data||[]).forEach(function(e){
+  _allEntries.forEach(function(e){
     var r = parseFloat(e.rating);
     if(isNaN(r)) return;   /* skip unrated entries */
     if(!e.date_completed) return; /* skip entries without a real completion date —
@@ -5413,17 +5304,7 @@ function _animateRemove(el, cb){
   setTimeout(cb, 320);
 }
 
-function wlMoveUp(btn){
-  var item = btn.closest('.wl-item');
-  var prev = item && item.previousElementSibling;
-  if(prev && prev.classList.contains('wl-item')) item.parentNode.insertBefore(item, prev);
-}
 
-function wlMoveDown(btn){
-  var item = btn.closest('.wl-item');
-  var next = item && item.nextElementSibling;
-  if(next && next.classList.contains('wl-item')) item.parentNode.insertBefore(next, item);
-}
 
 function wlMoveToCollection(id){
   var it = _wlItems.find(function(x){ return x.id == id; });
@@ -5455,34 +5336,44 @@ function toggleFpState(){
 var _posterUrl  = null;
 var _csTimer    = null;
 var _csResults  = [];
+var _csRequest = null;
 var _FMT_ICONS  = {Film:'🎬', Show:'📺', Book:'📚', Music:'🎵', Match:'⚽'};
 
-function onTitleInput(val){
-  /* Clear stale poster whenever the user starts typing a new search */
-  clearPoster();
-  var drop = document.getElementById('cs-drop');
-  if(!val || val.length < 2){
-    if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-    clearTimeout(_csTimer);
-    return;
+function changeEntryFormat(select){
+  updateSportField(select);
+  if(document.getElementById('cs-drop').classList.contains('open') || _csTimer){
+    onTitleInput(document.getElementById('add-title').value);
   }
-  clearTimeout(_csTimer);
-  _csTimer = setTimeout(function(){ _doContentSearch(val); }, 380);
+}
+
+function onTitleInput(value){
+  clearPoster();
+  _closeSearchDrop();
+  var query = value.trim();
+  if(query.length < 2) return;
+  _csTimer = setTimeout(function(){
+    _csTimer = null;
+    _doContentSearch(query);
+  },380);
 }
 
 function _doContentSearch(q){
-  var fmtVal = (document.getElementById('add-format')||{}).value || '';
-  /* blank = search all formats; named format = search that type only */
-  var typeMap = {Film:'film', Show:'show', Book:'book', Music:'music', Match:'match', '':'all'};
-  var type = typeMap.hasOwnProperty(fmtVal) ? typeMap[fmtVal] : 'all';
+  var fmtVal = document.getElementById('add-format').value;
+  var format = FMT_TO_DB[fmtVal];
+  var type = format === 'sports_match' ? 'match' : format || 'all';
+  var request = new AbortController();
+  _csRequest = request;
   var drop = document.getElementById('cs-drop');
   if(!drop) return;
   drop.innerHTML = '<div class="cs-searching">Searching…</div>';
   drop.classList.add('open');
-  fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type)
-    .then(function(r){ return r.json(); })
+  fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type,{signal:request.signal})
+    .then(function(response){
+      if(!response.ok) throw new Error('Search failed');
+      return response.json();
+    })
     .then(function(list){
-      if(!document.getElementById('m-add').classList.contains('open') || document.getElementById('add-title').value !== q) return;
+      if(_csRequest !== request) return;
       _csResults = Array.isArray(list) ? list : [];
       var _TYPE_LABEL = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
       var isAll = (type === 'all');
@@ -5511,7 +5402,10 @@ function _doContentSearch(q){
       }).join('') + '<div class="cs-divider"></div>' + manualRow;
     })
     .catch(function(){
-      drop.innerHTML = '<div class="cs-searching">Search unavailable</div>';
+      if(_csRequest === request) drop.textContent = 'Search unavailable. You can enter the title manually.';
+    })
+    .finally(function(){
+      if(_csRequest === request) _csRequest = null;
     });
 }
 
@@ -5553,6 +5447,11 @@ function clearPoster(){
 }
 
 function _closeSearchDrop(){
+  clearTimeout(_csTimer);
+  _csTimer = null;
+  _csRequest?.abort();
+  _csRequest = null;
+  _csResults = [];
   var drop = document.getElementById('cs-drop');
   if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
 }
@@ -5614,6 +5513,49 @@ function fragrancePoster(rec){
   return figure+'</div>';
 }
 
+function styleRecommendationDetails(kind,rec){
+  if(kind === 'fragrance'){
+    return {
+      name:rec.name, house:rec.house, notesTop:rec.top, notesMid:rec.mid,
+      notesBase:rec.base, character:rec.character, projection:rec.projection, season:rec.season
+    };
+  }
+  return {
+    name:rec.name, brand:rec.brand, category:rec.category, season:rec.season, occasion:rec.occasions,
+    pairing:rec.description, tags:rec.style.split(',').map(function(tag){return tag.trim();}).filter(Boolean)
+  };
+}
+
+function setStyleTags(prefix, tags){
+  var picker = document.getElementById(prefix+'-tag-picker');
+  picker.querySelectorAll('[data-saved-tag]').forEach(function(tag){tag.remove();});
+  var pending = new Map(tags.map(function(tag){return [tag.trim().toLowerCase(),tag];}));
+  picker.querySelectorAll('.tp').forEach(function(button){
+    var key = button.textContent.trim().toLowerCase();
+    button.classList.toggle('sel',pending.delete(key));
+  });
+  pending.forEach(function(tag){
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'tp sel';
+    button.dataset.savedTag = '';
+    button.textContent = tag;
+    button.onclick = function(){button.classList.toggle('sel');};
+    picker.appendChild(button);
+  });
+}
+
+function setStyleChoice(id, value){
+  var select = document.getElementById(id);
+  Array.from(select.querySelectorAll('[data-saved-choice]')).forEach(function(option){option.remove();});
+  if(value && !Array.from(select.options).some(function(option){return option.value === value;})){
+    var option = new Option(value,value);
+    option.dataset.savedChoice = '';
+    select.add(option);
+  }
+  select.value = value;
+}
+
 function styleDiscoveryActions(kind,rec){
   var scent = kind === 'fragrance';
   var data = escHtml(JSON.stringify(rec));
@@ -5636,24 +5578,23 @@ async function saveDiscoveryStyle(button){
     return catalogueText(item.name) === catalogueText(rec.name) &&
       (!scent || !item.house || catalogueText(item.house) === catalogueText(rec.house));
   });
-  var details = scent ? {
-    name:rec.name, house:rec.house, notesTop:rec.top, notesMid:rec.mid,
-    notesBase:rec.base, character:rec.character, projection:rec.projection, season:rec.season
-  } : {
-    name:rec.name, brand:rec.brand, category:rec.category, season:rec.season,
-    occasion:rec.occasions, tags:rec.style.split(',').map(function(tag){return tag.trim();}).filter(Boolean)
-  };
+  var details = styleRecommendationDetails(kind,rec);
   var item = {...details, id:crypto.randomUUID(), created:Date.now(), ...saved, status:status};
   var buttons = controls.querySelectorAll('button');
   buttons.forEach(function(control){control.disabled = true;});
   try {
     if(!await changeStyleItem(kind,item,false)) return;
     showToast(rec.name + ' saved as ' + status.toLowerCase());
-    if(_discPill === 'all') renderCombinedDiscovery();
-    else if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
+    refreshStyleDiscovery();
   } finally {
     buttons.forEach(function(control){control.disabled = false;});
   }
+}
+
+function refreshStyleDiscovery(){
+  if(!document.getElementById('s-discover').classList.contains('active')) return;
+  if(_discPill === 'all') renderCombinedDiscovery();
+  else if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
 }
 
 function _loadFrags(){ return _styleItems.fragrance; }
@@ -5771,6 +5712,7 @@ function updateStyleCache(kind, items, replacedId){
   })).sort(function(a,b){ return b.created - a.created; });
   _fragDiscRecs = null;
   _styleDiscRecs = null;
+  _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
   if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
 }
 
@@ -5943,7 +5885,7 @@ function openFragranceModal(id){
   var rat = document.getElementById('frag-rating'); if(rat) rat.value=0;
   var rv = document.getElementById('frag-rv'); if(rv) rv.textContent='—';
   var drop = document.getElementById('frag-cs-drop'); if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-  document.querySelectorAll('#frag-tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
+  setStyleTags('frag',[]);
   var ftpInp=document.getElementById('frag-tp-search'); if(ftpInp){ ftpInp.value=''; fragTagSearch(''); }
   /* Edit mode */
   var delBtn  = document.getElementById('frag-del-btn');
@@ -5956,11 +5898,7 @@ function openFragranceModal(id){
       set('frag-name',f.name); set('frag-house',f.house); set('frag-char',f.character);
       set('frag-occasion',f.occasion); set('frag-top',f.notesTop); set('frag-mid',f.notesMid);
       set('frag-base',f.notesBase); set('frag-review',f.review); set('frag-photo',f.photoUrl);
-      (f.tags||[]).forEach(function(tag){
-        document.querySelectorAll('#frag-tag-picker .tp').forEach(function(tp){
-          if(tp.textContent.trim().toLowerCase()===tag.toLowerCase()) tp.classList.add('sel');
-        });
-      });
+      setStyleTags('frag',f.tags || []);
       var stEl=document.getElementById('frag-status'); if(stEl) stEl.value=f.status||'owned';
       var prEl=document.getElementById('frag-proj'); if(prEl) prEl.value=f.projection||'Moderate';
       var seEl=document.getElementById('frag-season'); if(seEl) seEl.value=f.season||'Year-round';
@@ -6013,6 +5951,7 @@ async function saveFragrance(){
   if(existing) f.created = existing.created;
   if(!await changeStyleItem('fragrance', f, false)) return;
   closeFragranceModal();
+  refreshStyleDiscovery();
   loadFragrances();
   showToast(existing ? 'Fragrance updated' : 'Fragrance added');
 }
@@ -6107,12 +6046,12 @@ function openWardrobeModal(id){
   ['ward-color-name'].forEach(function(k){ var el=document.getElementById(k); if(el) el.value=''; });
   var cat=document.getElementById('ward-cat'); if(cat) cat.value='Tops';
   var sea=document.getElementById('ward-season'); if(sea) sea.value='Year-round';
-  var occ=document.getElementById('ward-occasion'); if(occ) occ.value='Everyday';
+  setStyleChoice('ward-occasion','Everyday');
   var sta=document.getElementById('ward-status'); if(sta) sta.value='Owned';
   _wardColor='#1B5E76';
   var cp=document.getElementById('ward-color-picker'); if(cp) cp.value='#1B5E76';
   document.querySelectorAll('#ward-palette .pal-sw').forEach(function(s){ s.classList.remove('active'); });
-  document.querySelectorAll('#ward-tag-picker .tp.sel').forEach(function(tp){ tp.classList.remove('sel'); });
+  setStyleTags('ward',[]);
   var wtpInp=document.getElementById('ward-tp-search'); if(wtpInp){ wtpInp.value=''; wardTagSearch(''); }
   /* Edit mode */
   var delBtn  = document.getElementById('ward-del-btn');
@@ -6126,7 +6065,7 @@ function openWardrobeModal(id){
       set('ward-pairing',w.pairing); set('ward-color-name',w.colorName);
       var catEl=document.getElementById('ward-cat'); if(catEl) catEl.value=w.category||'Tops';
       var seaEl=document.getElementById('ward-season'); if(seaEl) seaEl.value=w.season||'Year-round';
-      var occEl=document.getElementById('ward-occasion'); if(occEl) occEl.value=w.occasion||'Everyday';
+      setStyleChoice('ward-occasion',w.occasion || 'Everyday');
       var staEl=document.getElementById('ward-status'); if(staEl) staEl.value=w.status||'Owned';
       _wardColor=w.color||'#1B5E76';
       var cpEl=document.getElementById('ward-color-picker'); if(cpEl) cpEl.value=_wardColor;
@@ -6134,11 +6073,7 @@ function openWardrobeModal(id){
       document.querySelectorAll('#ward-palette .pal-sw').forEach(function(s){
         if(s.dataset.color===_wardColor) s.classList.add('active');
       });
-      (w.tags||[]).forEach(function(tag){
-        document.querySelectorAll('#ward-tag-picker .tp').forEach(function(tp){
-          if(tp.textContent.trim().toLowerCase()===tag.toLowerCase()) tp.classList.add('sel');
-        });
-      });
+      setStyleTags('ward',w.tags || []);
     }
     if(titleEl) titleEl.textContent='Edit Item';
     if(saveBtn) saveBtn.textContent='Update Item';
@@ -6179,6 +6114,7 @@ async function saveWardrobeItem(){
   if(existing) w.created = existing.created;
   if(!await changeStyleItem('wardrobe', w, false)) return;
   closeWardrobeModal();
+  refreshStyleDiscovery();
   loadWardrobe();
   showToast(existing ? 'Item updated' : 'Item added to your wardrobe');
 }
@@ -6422,22 +6358,18 @@ function _renderFragDiscovery(recs, isColdStart){
 }
 
 /* ── Pre-fill fragrance modal from a discover card ── */
-function addFragFromDiscover(btn){
-  var data; try{data=JSON.parse(btn.getAttribute('data-frag'));}catch(e){return;}
-  navigate('fragrances');
-  setTimeout(function(){
-    openFragranceModal();
-    setTimeout(function(){
-      var ni=document.getElementById('frag-name');   if(ni) ni.value=data.name||'';
-      var hi=document.getElementById('frag-house');  if(hi) hi.value=data.house||'';
-      var ci=document.getElementById('frag-char');   if(ci) ci.value=data.character||'';
-      var ps=document.getElementById('frag-proj');   if(ps) ps.value=data.projection||'Moderate';
-      var ss=document.getElementById('frag-season'); if(ss) ss.value=data.season||'Year-round';
-      var ti=document.getElementById('frag-top');    if(ti) ti.value=data.top||'';
-      var mi=document.getElementById('frag-mid');    if(mi) mi.value=data.mid||'';
-      var bi=document.getElementById('frag-base');   if(bi) bi.value=data.base||'';
-    },120);
-  },60);
+function addFragFromDiscover(button){
+  var rec = JSON.parse(button.dataset.frag);
+  var detail = styleRecommendationDetails('fragrance',rec);
+  openFragranceModal();
+  document.getElementById('frag-name').value = detail.name;
+  document.getElementById('frag-house').value = detail.house;
+  document.getElementById('frag-char').value = detail.character;
+  document.getElementById('frag-proj').value = detail.projection;
+  document.getElementById('frag-season').value = detail.season;
+  document.getElementById('frag-top').value = detail.notesTop;
+  document.getElementById('frag-mid').value = detail.notesMid;
+  document.getElementById('frag-base').value = detail.notesBase;
 }
 
 /* ────────────────────────────────────── Style Discovery ── */
@@ -6563,22 +6495,17 @@ function _renderStyleDiscovery(recs, isColdStart){
 }
 
 /* ── Pre-fill wardrobe modal from a discover card ── */
-function addWardFromDiscover(btn){
-  var data; try{data=JSON.parse(btn.getAttribute('data-ward'));}catch(e){return;}
-  navigate('wardrobe');
-  setTimeout(function(){
-    openWardrobeModal();
-    setTimeout(function(){
-      var ni=document.getElementById('ward-name');   if(ni) ni.value=data.name||'';
-      var bi=document.getElementById('ward-brand');  if(bi) bi.value=data.brand||'';
-      var ss=document.getElementById('ward-season'); if(ss) ss.value=data.season||'Year-round';
-      var cs=document.getElementById('ward-cat');
-      if(cs&&data.category){
-        var cats=['Tops','Bottoms','Outerwear','Shoes','Accessories','Bags','Knitwear','Dresses','Tailoring'];
-        cats.forEach(function(c){ if(c.toLowerCase()===data.category.toLowerCase()) cs.value=c; });
-      }
-    },120);
-  },60);
+function addWardFromDiscover(button){
+  var rec = JSON.parse(button.dataset.ward);
+  var detail = styleRecommendationDetails('wardrobe',rec);
+  openWardrobeModal();
+  document.getElementById('ward-name').value = detail.name;
+  document.getElementById('ward-brand').value = detail.brand;
+  document.getElementById('ward-cat').value = detail.category;
+  document.getElementById('ward-season').value = detail.season;
+  document.getElementById('ward-pairing').value = detail.pairing;
+  setStyleChoice('ward-occasion',detail.occasion || 'Everyday');
+  setStyleTags('ward',detail.tags);
 }
 
 /* ── Catalogue autocomplete ── */

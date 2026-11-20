@@ -50,7 +50,10 @@ test('authenticated Discovery excludes all history pages and requires verified, 
       assert.equal(url.searchParams.get('user_id'), 'eq.' + userId);
       const offset = Number(url.searchParams.get('offset'));
       if (url.pathname.endsWith('/entries_with_tags')) return Response.json(history.slice(offset, offset + 500));
-      if (url.pathname.endsWith('/watchlist')) return Response.json(offset ? [] : [{title:'Already Saved',format:'book'}]);
+      if (url.pathname.endsWith('/watchlist')) {
+        assert.equal(url.searchParams.get('added_to_collection'), 'eq.false');
+        return Response.json(offset ? [] : [{title:'Already Saved',format:'book'}]);
+      }
       return Response.json(offset ? [] : [{title:'Déjà Vu',format:'book'}]);
     }
     if (url.hostname === 'api.anthropic.com') {

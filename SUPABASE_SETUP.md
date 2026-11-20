@@ -15,6 +15,7 @@ Editor or your migration runner.
 5. `migrations/004_discovery_quota.sql`
 6. `migrations/005_style_items.sql`
 7. `migrations/006_discovery_feedback.sql`
+8. `migrations/007_journal_workflows.sql`
 
 For an existing database, verify which historical scripts have already been
 applied and start at the first unapplied migration. The historical scripts add
@@ -27,6 +28,11 @@ Enable the email provider in Supabase Auth. Set the Site URL and add the
 app origins used for signup confirmation and password recovery to the
 redirect allow list. For a hosted test, use disposable test accounts with
 mailboxes that can receive the links.
+
+Apply migration 007 before deploying the matching frontend. The migration
+adds authenticated database commands and is compatible with the previous
+frontend during the rollout. Roll back the app by restoring the previous
+deployment if necessary. The added commands can stay in place.
 
 ## Vercel environment variables
 

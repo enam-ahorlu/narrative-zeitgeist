@@ -44,6 +44,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/004_discovery_quota.sql');
   await apply('migrations/005_style_items.sql');
   await apply('migrations/006_discovery_feedback.sql');
+  await apply('migrations/007_journal_workflows.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -77,6 +78,53 @@ test('migrations protect journal data, enforce quota and cascade account removal
     const entriesB = await db.query('select title,tags from public.entries_with_tags');
     assert.deepEqual(entriesB.rows, [{ title: 'Private journal B', tags: ['private-theme'] }]);
     assert.equal((await db.query('select public.compute_fingerprint($1) as profile', [b])).rows[0].profile.total_entries, 1);
+  });
+
+  await t.test('entry and Watchlist commands preserve ownership, retries, and rollback', async () => {
+    const id = '00000000-0000-4000-8000-000000000010';
+    const alternate = '00000000-0000-4000-8000-000000000011';
+    const journal = (entry, edit, title, tags, watch = null) => db.query(
+      'select public.save_journal_entry($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) as id',
+      [entry,edit,title,'book',0,'test note',null,null,null,tags,watch]
+    );
+    const watch = async title => (await db.query(
+      "select public.save_watchlist_pick($1,'book','openlibrary:test','[]',null,'{}') as id",[title]
+    )).rows[0].id;
+
+    await actAs('', 'anon');
+    await assert.rejects(journal(id,false,'Unavailable',[]),denied);
+    await actAs(a);
+    const originalWatch = await watch('Queue Me');
+    assert.equal(await watch('  queue me  '),originalWatch);
+    await actAs(b);
+    await assert.rejects(journal(id,false,'Cross account',[],originalWatch),{code:'P0002'});
+    await assert.rejects(journal(entryA,true,'Cross account',[]),{code:'P0002'});
+    await assert.rejects(db.query('select public.dismiss_watchlist_pick($1)',[originalWatch]),{code:'P0002'});
+
+    await actAs(a);
+    await assert.rejects(journal(id,false,'Invalid tag',['x'.repeat(81)],originalWatch),{code:'22001'});
+    assert.equal((await db.query('select added_to_collection from public.watchlist where id=$1',[originalWatch])).rows[0].added_to_collection,false);
+    assert.equal((await db.query('select id from public.entries where id=$1',[id])).rows.length,0);
+    await journal(id,false,'Queue Me',['Mystery','mystery',' second '],originalWatch);
+    await journal(id,false,'Retry should not overwrite',['different'],originalWatch);
+    await assert.rejects(journal(alternate,false,'Duplicate move',[],originalWatch),{code:'P0002'});
+    await assert.rejects(journal(id,true,'Bad edit',['x'.repeat(81)]),{code:'22001'});
+    const saved = async () => (await db.query('select title,rating,tags from public.entries_with_tags where id=$1',[id])).rows[0];
+    assert.equal((await saved()).title,'Queue Me');
+    assert.equal(Number((await saved()).rating),0);
+    assert.deepEqual((await saved()).tags.sort(),['mystery','second']);
+    await db.query("select public.merge_journal_tags('second','mystery')");
+    assert.deepEqual((await saved()).tags,['mystery']);
+    assert.equal((await db.query("select name from public.tags where name='second'")).rows.length,0);
+    await assert.rejects(db.query("select public.merge_journal_tags('missing','unused')"),{code:'P0002'});
+    assert.equal((await db.query("select name from public.tags where name='unused'")).rows.length,0);
+    await journal(id,true,'Successful edit',[]);
+    assert.deepEqual((await saved()).tags,[]);
+    const active = await watch('Queue Me');
+    assert.notEqual(active,originalWatch);
+    await db.query('select public.dismiss_watchlist_pick($1)',[active]);
+    assert.equal((await db.query('select id from public.watchlist where id=$1',[active])).rows.length,0);
+    assert.equal((await db.query("select title from public.discovery_feedback where title='Queue Me'")).rows.length,1);
   });
 
   await t.test('quota is per account, includes a retry interval, and resets after an hour', async () => {

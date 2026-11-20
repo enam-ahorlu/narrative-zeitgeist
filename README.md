@@ -6,6 +6,7 @@ with suggestions from built-in catalogues.
 
 - [Live app](https://narrative-zeitgeist.vercel.app/)
 - [Supabase and Vercel setup](SUPABASE_SETUP.md)
+- [Workflow and architecture review](WORKFLOW-REVIEW.md)
 - [Review, catalogue sources and verification](REVIEW.md)
 - [Staging feedback checklist and recommendation behavior](STAGING-FEEDBACK.md)
 

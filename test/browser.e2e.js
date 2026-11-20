@@ -18,6 +18,12 @@ const entries = users.flatMap((user, index) => Array.from({ length: index ? 1 : 
   format: 'book', rating: 8 + position / 2, tags: ['afrofuturism'], date_completed: '2026-08-01',
   created_at: '2026-09-01'
 })));
+entries.push(...Array.from({length:9},(_,index)=>({
+  id:randomUUID(),user_id:users[0].id,title:'Older fixture '+index,format:index===8?'sports_match':'film',
+  rating:index===8?0:7,tags:['first','second','third-only'],created_at:'2026-01-01'
+})));
+const journalDrafts = [];
+let failJournalSave = true;
 const watchlist = [];
 const dismissals = [];
 const styleItems = [];
@@ -131,11 +137,28 @@ function createMocks(assets) {
         meta: 'Book', cover_color: null, catalog:{provider:'openlibrary',id:'/works/fixture2'}
       }] });
     }
-    if (path === '/rest/v1/entries_with_tags') return send(entries.filter(matchesUser));
-    if (path === '/rest/v1/entries' && method === 'POST') {
-      const entry = { ...body, id: randomUUID(), tags: [], created_at: '2026-10-01' };
-      entries.push(entry);
-      return send(entry, 201);
+    if (path === '/rest/v1/entries_with_tags') return send(entries.filter(matchesUser)
+      .sort((left,right)=>right.created_at.localeCompare(left.created_at)));
+    if (path === '/rest/v1/rpc/save_journal_entry') {
+      journalDrafts.push(body.p_entry_id);
+      if (failJournalSave) return send({message:'Synthetic transaction failure'},503);
+      const item = { title:body.p_title, format:body.p_format, rating:body.p_rating,
+        notes:body.p_notes, tags:body.p_tags, user_id:user.id, id:body.p_entry_id, created_at:'2026-10-01' };
+      const existing = entries.find(entry=>matchesUser(entry) && entry.id===item.id);
+      if(existing) Object.assign(existing,item);
+      else entries.push(item);
+      if(body.p_watchlist_id){
+        const saved = watchlist.find(row=>matchesUser(row) && row.id===body.p_watchlist_id);
+        assert.ok(saved);
+        saved.added_to_collection = true;
+      }
+      return send(item.id);
+    }
+    if (path === '/rest/v1/rpc/save_watchlist_pick') {
+      const row = {user_id:user.id,title:body.p_title,format:body.p_format,tags:body.p_tags,
+        id:randomUUID(),priority:'maybe',saved_at:'2026-10-01',added_to_collection:false};
+      watchlist.push(row);
+      return send(row.id);
     }
     if (path === '/rest/v1/tags') return send([]);
     if (path === '/rest/v1/discovery_feedback' && method === 'POST') {
@@ -143,7 +166,7 @@ function createMocks(assets) {
       return route.fulfill({ status:201 });
     }
     if (path === '/rest/v1/watchlist') {
-      if (method === 'GET') return send(watchlist.filter(matchesUser));
+      if (method === 'GET') return send(watchlist.filter(row=>matchesUser(row) && !row.added_to_collection));
       if (method === 'PATCH') {
         const row = watchlist.find(entry => matchesUser(entry) && 'eq.' + entry.id === url.searchParams.get('id'));
         assert.equal(url.searchParams.get('user_id'), 'eq.' + user.id);
@@ -249,6 +272,21 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await signIn(page, users[0].email);
   await page.locator('#s-collection').getByText('Journal A 1', { exact: true }).first().waitFor();
   assert.equal(await page.getByText('Journal B 1', { exact: true }).count(), 0);
+  const tableRows = page.locator('#s-collection tbody tr');
+  const pageStatus = page.locator('#col-pag-info');
+  await pageStatus.getByText('Showing 1–10 of 12 entries').waitFor();
+  assert.equal(await tableRows.count(),10);
+  assert.equal(await page.locator('#cg-grid .cg-card').count(),0);
+  await page.getByRole('button',{name:'Next page'}).click();
+  assert.equal(await tableRows.count(),2);
+  await page.getByRole('button',{name:'Previous page'}).click();
+  await page.locator('#col-search-inp').fill('third-only');
+  assert.equal(await tableRows.count(),9);
+  await page.locator('#col-search-inp').clear();
+  await page.locator('#s-collection .pills').getByText('Matches',{exact:true}).click();
+  assert.equal(await tableRows.count(),1);
+  await tableRows.getByText('Older fixture 8').waitFor();
+  await page.locator('#s-collection .pills').getByText('All',{exact:true}).click();
   await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
   const tagSearch = page.locator('#tp-search-inp');
   const tag = label => page.locator('#tag-picker').getByRole('button',{name:label,exact:true});
@@ -273,9 +311,14 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#add-title').fill('Synthetic new journal entry');
   await page.locator('#add-format').selectOption('Book');
   await page.locator('#add-save-btn').click();
+  await page.getByText('Could not save the entry.',{exact:false}).waitFor();
+  assert.equal(await page.locator('#add-notes').inputValue(),'Notes unique to this entry');
+  failJournalSave = false;
+  await page.locator('#add-save-btn').click();
   await page.locator('#s-collection').getByText('Synthetic new journal entry', { exact: true }).first().waitFor();
 
   await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  assert.equal(journalDrafts[0],journalDrafts[1]);
   assert.equal(await page.locator('#add-notes').inputValue(),'');
   assert.equal(await page.locator('#add-title').inputValue(),'');
   await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
@@ -327,7 +370,16 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.getByRole('button',{name:'Get a fresh batch'}).click();
   await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
   assert.ok(discoveryInputs.at(-1).recent.some(item => item.title === 'Synthetic discovery book'));
+  await visit('watchlist');
+  const savedRow = page.locator('#wl-list .wl-item').filter({hasText:'Synthetic discovery book'});
+  await savedRow.getByRole('button',{name:'Move to Collection'}).click();
+  assert.equal(await page.locator('#add-title').inputValue(),'Synthetic discovery book');
+  await page.locator('#add-save-btn').click();
+  await page.getByText('Moved to Collection',{exact:false}).waitFor();
+  assert.equal(await savedRow.count(),0);
+  assert.equal(watchlist[0].added_to_collection,true);
   await visit('collection');
+  await page.locator('#s-collection .tbl-wrap').getByText('Synthetic discovery book',{exact:true}).waitFor();
   await page.locator('#s-collection .tbl-wrap').getByText('Journal A 1', {exact:true}).click();
   await page.locator('#m-detail').getByRole('button', {name:'More like this'}).click();
   await page.locator('#disc-hero-wrap').getByText('Seeded synthetic book').waitFor();
@@ -415,6 +467,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await combined.getByRole('heading',{name:'Fragrance picks'}).waitFor();
   await combined.getByRole('heading',{name:'Wardrobe picks'}).waitFor();
   await combined.getByRole('img',{name:'CK One bottle'}).waitFor();
+  const ckCard = combined.locator('article').filter({hasText:'CK One'});
+  await ckCard.getByRole('button',{name:'Details'}).click();
+  assert.equal(await page.locator('#frag-name').inputValue(),'CK One');
+  assert.ok(await page.locator('#s-discover.active').isVisible());
+  await page.locator('#m-fragrance').getByRole('button',{name:'Cancel'}).click();
   await combined.getByRole('button',{name:'Wishlist · CK One'}).click();
   await page.getByText('CK One saved as wishlisted',{exact:false}).waitFor();
   await combined.locator('[data-kind="wardrobe"] [data-status="Owned"]').first().click();
