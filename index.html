@@ -17,6 +17,7 @@
 <script src="/catalogues/wardrobe.js"></script>
 <script src="/assets/journal-view.js"></script>
 <script src="/assets/discovery-session.js"></script>
+<script src="/assets/style-recommendations.js"></script>
 <script src="/catalogues/tags.js"></script>
 <style>
 :root {
@@ -2068,8 +2069,7 @@ var _allEntries  = [];   /* cached full entry list for Discovery */
 var _discRecs = null; /* Recommendations for the active view. */
 var _discoverySession = createDiscoverySession();
 var _activeDiscoveryView = null;
-var _fragDiscRecs  = null; /* cached fragrance discovery results (client-side) */
-var _styleDiscRecs = null; /* cached style discovery results (client-side) */
+var _styleModel = styleRecommendations.create(FRAG_DB,WARD_STYLE_DB,FRAGRANCE_PHOTOS);
 var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed on save */
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you';
@@ -3788,11 +3788,11 @@ function discSearch(val){
   if(!val){res.classList.remove('open');res.innerHTML='';return;}
   /* Fragrance search mode */
   if(_discPill==='fragrances'){
-    var fragPool=_fragDiscRecs||[];
-    var scentQuery = catalogueText(val);
+    var fragPool=_styleModel.scent(_loadFrags()).picks;
+    var scentQuery = styleRecommendations.catalogueText(val);
     var fragMatches=fragPool.filter(function(d){
       return [d.name,d.house,d.character,d.top,d.mid,d.base].some(function(field){
-        return catalogueText(field).includes(scentQuery);
+        return styleRecommendations.catalogueText(field).includes(scentQuery);
       });
     });
     if(!fragMatches.length){
@@ -3801,7 +3801,7 @@ function discSearch(val){
     }
     res.innerHTML=fragMatches.slice(0,5).map(function(d){
       return '<div class="disc-result-item">'+
-        '<div class="disc-result-thumb" style="background:'+d.gradient+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
+        '<div class="disc-result-thumb" style="background:'+_fragGradient(d.character,d.season)+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
         '<div class="disc-result-info">'+
           '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
           '<div class="disc-result-meta">'+escHtml(d.house)+' · '+escHtml(d.season)+'</div>'+
@@ -3814,10 +3814,11 @@ function discSearch(val){
   }
   /* Style search mode */
   if(_discPill==='style'){
-    var stylePool=_styleDiscRecs||[];
+    var stylePool=_styleModel.wardrobe(_loadWard()).picks;
+    var query = styleRecommendations.catalogueText(val);
     var styleMatches=stylePool.filter(function(d){
       return [d.name,d.category,d.brand,d.style,d.occasions,d.season].some(function(field){
-        return catalogueText(field).includes(catalogueText(val));
+        return styleRecommendations.catalogueText(field).includes(query);
       });
     });
     if(!styleMatches.length){
@@ -3826,7 +3827,7 @@ function discSearch(val){
     }
     res.innerHTML=styleMatches.slice(0,5).map(function(d){
       return '<div class="disc-result-item">'+
-        '<div class="disc-result-thumb" style="background:'+d.gradient+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
+        '<div class="disc-result-thumb" style="background:'+_styleGradient(d.style)+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
         '<div class="disc-result-info">'+
           '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
           '<div class="disc-result-meta">'+escHtml(d.category)+(d.brand?' · '+escHtml(d.brand):'')+'</div>'+
@@ -4099,8 +4100,8 @@ async function renderCombinedDiscovery(){
   try {
     await ensureStyleItems();
     if(currentUser?.id !== owner || _discPill !== 'all' || _discTabName !== 'for-you') return;
-    var scents = cataloguePage(fragranceRecommendations().recs,_catalogueOffset.all,3);
-    var style = cataloguePage(wardrobeRecommendations().recs,_catalogueOffset.all,3);
+    var scents = stylePickPage('fragrance',_catalogueOffset.all,3).picks;
+    var style = stylePickPage('wardrobe',_catalogueOffset.all,3).picks;
     wrap.innerHTML = (scents.length ? combinedCatalogueSection('Fragrance picks','fragrance',scents) : '')
       + (style.length ? combinedCatalogueSection('Wardrobe picks','wardrobe',style) : '');
     wrap.hidden = !wrap.innerHTML;
@@ -4110,12 +4111,6 @@ async function renderCombinedDiscovery(){
       wrap.hidden = false;
     }
   }
-}
-
-function cataloguePage(recs, offset, size){
-  if(!recs.length) return [];
-  var start = offset % recs.length;
-  return recs.slice(start,start+size).concat(recs.slice(0,Math.max(0,start+size-recs.length))).slice(0,recs.length);
 }
 
 function combinedCatalogueSection(title, kind, recs){
@@ -4875,21 +4870,18 @@ async function renderStyleFingerprint(){
   try {
     await ensureStyleItems();
     if(currentUser?.id !== owner) return;
-    var scents = _loadFrags();
-    var wardrobe = _loadWard();
-    var scentProfile = _buildScentProfile();
-    var styleProfile = _buildStyleProfile();
-    function count(items, status){
-      return items.filter(function(item){return (item.status || 'owned').toLowerCase() === status;}).length;
-    }
+    var scentProfile = _styleModel.scent(_loadFrags()).profile;
+    var styleProfile = _styleModel.wardrobe(_loadWard()).profile;
+    var scentCounts = scentProfile.statuses;
+    var wardrobeCounts = styleProfile.statuses;
     function trait(label, weights){
       var names = topStyleTraits(weights);
       return names ? '<div><strong>'+label+'</strong> '+escHtml(names)+'</div>' : '';
     }
     panel.innerHTML = '<div class="ct">Scent &amp; Wardrobe Fingerprint</div><div class="style-fingerprint-grid">'
-      + '<div><h3>Fragrances</h3><p>'+count(scents,'owned')+' owned · '+count(scents,'wishlisted')+' wishlisted · '+count(scents,'tried')+' tried</p>'
+      + '<div><h3>Fragrances</h3><p>'+scentCounts.owned+' owned · '+scentCounts.wishlisted+' wishlisted · '+scentCounts.tried+' tried</p>'
       + trait('Recurring notes',scentProfile.notes) + trait('Common houses',scentProfile.houses) + '</div>'
-      + '<div><h3>Wardrobe</h3><p>'+count(wardrobe,'owned')+' owned · '+count(wardrobe,'wishlisted')+' wishlisted</p>'
+      + '<div><h3>Wardrobe</h3><p>'+wardrobeCounts.owned+' owned · '+wardrobeCounts.wishlisted+' wishlisted</p>'
       + trait('Common categories',styleProfile.categories) + trait('Recurring styles',styleProfile.tags) + '</div></div>';
     panel.hidden = false;
   } catch {
@@ -5307,7 +5299,7 @@ function safeFragrancePhoto(url){
 }
 
 function fragranceCataloguePhoto(rec){
-  return FRAGRANCE_PHOTOS[catalogueText(rec.name) + '|' + catalogueText(rec.house)];
+  return FRAGRANCE_PHOTOS[styleRecommendations.fragranceKey(rec.name,rec.house)];
 }
 
 function fragrancePoster(rec){
@@ -5386,8 +5378,7 @@ async function saveDiscoveryStyle(button){
   var scent = kind === 'fragrance';
   var status = button.dataset.status;
   var saved = (scent ? _loadFrags() : _loadWard()).find(function(item){
-    return catalogueText(item.name) === catalogueText(rec.name) &&
-      (!scent || !item.house || catalogueText(item.house) === catalogueText(rec.house));
+    return styleRecommendations.matchesSaved(kind,item,rec);
   });
   var details = styleRecommendationDetails(kind,rec);
   var item = {...details, id:crypto.randomUUID(), created:Date.now(), ...saved, status:status};
@@ -5417,8 +5408,6 @@ function resetStyleState(){
   _styleRequest = null;
   _styleLoaded = false;
   _styleBusy = false;
-  _fragDiscRecs = null;
-  _styleDiscRecs = null;
   closeFragranceModal();
   closeWardrobeModal();
   _fragEditId = null;
@@ -5521,8 +5510,6 @@ function updateStyleCache(kind, items, replacedId){
   _styleItems[kind] = items.concat(_styleItems[kind].filter(function(item){
     return item.id !== replacedId && !savedIds.has(item.id);
   })).sort(function(a,b){ return b.created - a.created; });
-  _fragDiscRecs = null;
-  _styleDiscRecs = null;
   _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
   if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
 }
@@ -6014,103 +6001,21 @@ function _styleGradient(styleWords){
   return 'linear-gradient(135deg,#1A2030,#3A5070)';
 }
 
-/* ── Build scent profile from user's saved fragrances ── */
-function _buildScentProfile(){
-  var frags=_loadFrags();
-  var p={count:frags.length,ownedKeys:new Set(),seasons:{},projections:{},characters:{},houses:{},notes:{},tags:{},occasions:{}};
-  frags.forEach(function(f){
-    p.ownedKeys.add(catalogueText(f.name) + '|' + catalogueText(f.house));
-    var r=parseFloat(f.rating); var w=(!isNaN(r)&&r>0)?r/10:f.status==='wishlisted'?0.25:0.5;
-    var season=(f.season||'').toLowerCase();
-    season.split('/').filter(Boolean).forEach(function(part){p.seasons[part]=(p.seasons[part]||0)+w;});
-    var proj=(f.projection||'').toLowerCase();
-    if(proj) p.projections[proj]=(p.projections[proj]||0)+w;
-    var house=(f.house||'').toLowerCase().trim();
-    if(house) p.houses[house]=(p.houses[house]||0)+w;
-    var occ=(f.occasion||'').toLowerCase().trim();
-    if(occ) p.occasions[occ]=(p.occasions[occ]||0)+w;
-    (f.character||'').toLowerCase().split(/[,\s]+/).forEach(function(c){
-      c=c.trim(); if(c.length>2) p.characters[c]=(p.characters[c]||0)+w;
-    });
-    [(f.notesTop||''),(f.notesMid||''),(f.notesBase||'')].join(',').toLowerCase().split(/,\s*/).forEach(function(n){
-      n=n.trim(); if(n.length>2) p.notes[n]=(p.notes[n]||0)+w;
-    });
-    (f.tags||[]).forEach(function(t){
-      var tl=t.toLowerCase(); p.tags[tl]=(p.tags[tl]||0)+w;
-    });
-    /* Enrich from FRAG_DB if name matched */
-    var db=FRAG_DB.find(function(e){ return catalogueText(e[0])===catalogueText(f.name) && (!f.house || catalogueText(e[1])===catalogueText(f.house)); });
-    if(db && ![f.notesTop,f.notesMid,f.notesBase].some(Boolean)){
-      (db[2]+','+db[3]+','+db[4]).toLowerCase().split(/,\s*/).forEach(function(n){
-        n=n.trim(); if(n.length>2) p.notes[n]=(p.notes[n]||0)+w*0.4;
-      });
-      db[5].toLowerCase().split(/[,\s]+/).forEach(function(c){
-        c=c.trim(); if(c.length>2) p.characters[c]=(p.characters[c]||0)+w*0.4;
-      });
-    }
-  });
-  return p;
+function stylePickPage(kind,offset,size){
+  var isFragrance = kind === 'fragrance';
+  var snapshot = isFragrance ? _styleModel.scent(_loadFrags()) : _styleModel.wardrobe(_loadWard());
+  return {
+    cold:!snapshot.profile.count,
+    picks:styleRecommendations.page(snapshot.picks,offset,size).map(function(pick){
+      var gradient = isFragrance ? _fragGradient(pick.character,pick.season) : _styleGradient(pick.style);
+      return {...pick,gradient:gradient};
+    })
+  };
 }
 
-/* ── Score a single FRAG_DB entry against the scent profile ── */
-function _scoreFrag(entry, p){
-  var score=0, reasons=[];
-  /* 1. Character (35 pts) */
-  var cWords=entry[5].toLowerCase().split(/[,\s]+/).filter(function(w){return w.length>2;});
-  var cVals=Object.values(p.characters); var maxC=cVals.length?Math.max.apply(null,cVals):1;
-  var cMatch=0, cHits=[];
-  cWords.forEach(function(w){ if(p.characters[w]){cMatch+=p.characters[w];cHits.push(w);} });
-  score+=cWords.length?Math.min(cMatch/(maxC*cWords.length)*35,35):0;
-  if(cHits.length) reasons.push('Character aligns: '+cHits.slice(0,2).join(', '));
-  /* 2. Notes (30 pts) */
-  var nList=(entry[2]+','+entry[3]+','+entry[4]).toLowerCase().split(/,\s*/).filter(function(n){return n.trim().length>2;});
-  var nVals=Object.values(p.notes); var maxN=nVals.length?Math.max.apply(null,nVals):1;
-  var nMatch=0, nHits=[];
-  nList.forEach(function(n){ n=n.trim(); if(p.notes[n]){nMatch+=p.notes[n];nHits.push(n);} });
-  score+=nList.length?Math.min(nMatch/(maxN*nList.length)*30,30):0;
-  if(nHits.length) reasons.push('Shares notes you love: '+nHits.slice(0,3).join(', '));
-  /* 3. Season (15 pts) */
-  var eSea=entry[7].toLowerCase(); var sVals=Object.values(p.seasons); var maxS=sVals.length?Math.max.apply(null,sVals):1;
-  var sMatch=0;
-  eSea.split('/').forEach(function(s){ if(p.seasons[s.trim()]) sMatch=Math.max(sMatch,p.seasons[s.trim()]); });
-  if(eSea.includes('year-round')) sMatch=Math.max(sMatch,maxS*0.5);
-  score+=Math.min(sMatch/maxS*15,15);
-  var topSea=Object.keys(p.seasons).sort(function(a,b){return p.seasons[b]-p.seasons[a];})[0];
-  if(topSea&&eSea.includes(topSea.split('/')[0])) reasons.push('Right for your favourite season');
-  /* 4. Projection (10 pts) */
-  var eProj=entry[6].toLowerCase(); var pVals=Object.values(p.projections); var maxP=pVals.length?Math.max.apply(null,pVals):1;
-  if(p.projections[eProj]) score+=Math.min(p.projections[eProj]/maxP*10,10);
-  /* 5. House bonus (10 pts) */
-  var hKey=entry[1].toLowerCase(); var hVals=Object.values(p.houses); var maxH=hVals.length?Math.max.apply(null,hVals):1;
-  if(p.houses[hKey]){ score+=Math.min(p.houses[hKey]/maxH*10,10); reasons.push('You already enjoy '+entry[1]); }
-  /* Normalize to 55–97 */
-  var final=Math.min(97,Math.max(55,Math.round(55+score/100*42)));
-  if(!reasons.length) reasons.push('Explore this scent from the catalogue');
-  return {score:final,reasons:reasons};
-}
-
-/* ── Load & render fragrance discovery ── */
-function hasSavedFragrance(profile, entry){
-  var name = catalogueText(entry[0]);
-  return profile.ownedKeys.has(name + '|' + catalogueText(entry[1])) || profile.ownedKeys.has(name + '|');
-}
-
-function fragranceRecommendations(){
-  var p=_buildScentProfile();
-  var scored=FRAG_DB.map(function(e){
-    if(hasSavedFragrance(p, e)) return null;
-    var r=_scoreFrag(e,p);
-    return {name:e[0],house:e[1],top:e[2],mid:e[3],base:e[4],character:e[5],projection:e[6],season:e[7],score:r.score,reasons:r.reasons,gradient:_fragGradient(e[5],e[7])};
-  }).filter(Boolean);
-  scored.sort(function(a,b){
-    return p.count ? b.score-a.score : Number(!!fragranceCataloguePhoto(b))-Number(!!fragranceCataloguePhoto(a));
-  });
-  return {recs:scored, cold:p.count===0};
-}
 function loadFragDiscovery(){
-  var result = fragranceRecommendations();
-  _fragDiscRecs = result.recs;
-  _renderFragDiscovery(cataloguePage(result.recs,_catalogueOffset.fragrances,25),result.cold);
+  var result = stylePickPage('fragrance',_catalogueOffset.fragrances,25);
+  _renderFragDiscovery(result.picks,result.cold);
 }
 
 function _renderFragDiscovery(recs, isColdStart){
@@ -6185,68 +6090,9 @@ function addFragFromDiscover(button){
 
 /* ────────────────────────────────────── Style Discovery ── */
 
-function _buildStyleProfile(){
-  var items=_loadWard();
-  var p={count:items.length,ownedNames:{},categories:{},occasions:{},seasons:{},tags:{}};
-  items.forEach(function(w){
-    p.ownedNames[(w.name||'').toLowerCase()]=true;
-    var cat=(w.category||'').toLowerCase(); if(cat) p.categories[cat]=(p.categories[cat]||0)+1;
-    var occ=(w.occasion||'').toLowerCase(); if(occ) p.occasions[occ]=(p.occasions[occ]||0)+1;
-    var sea=(w.season||'').toLowerCase(); if(sea) p.seasons[sea]=(p.seasons[sea]||0)+1;
-    (w.tags||[]).forEach(function(t){ var tl=t.toLowerCase(); p.tags[tl]=(p.tags[tl]||0)+1; });
-  });
-  return p;
-}
-
-function _scoreStyleItem(entry, p){
-  var score=0, reasons=[];
-  /* 1. Style tag alignment (40 pts) */
-  var eStyle=(entry[3]||'').toLowerCase();
-  var tVals=Object.values(p.tags); var maxT=tVals.length?Math.max.apply(null,tVals):1;
-  var tMatch=0, tHits=[];
-  Object.keys(p.tags).forEach(function(tag){ if(eStyle.includes(tag)){tMatch+=p.tags[tag];tHits.push(tag);} });
-  score+=tMatch>0?Math.min(tMatch/maxT*40,40):8;
-  if(tHits.length) reasons.push('Fits your style: '+tHits.slice(0,2).join(', '));
-  /* 2. Occasion alignment (25 pts) */
-  var eOcc=(entry[4]||'').toLowerCase();
-  var oVals=Object.values(p.occasions); var maxO=oVals.length?Math.max.apply(null,oVals):1;
-  var oMatch=0;
-  Object.keys(p.occasions).forEach(function(occ){ if(eOcc.includes(occ)) oMatch=Math.max(oMatch,p.occasions[occ]); });
-  score+=Math.min(oMatch/maxO*25,25);
-  var topOcc=Object.keys(p.occasions).sort(function(a,b){return p.occasions[b]-p.occasions[a];})[0];
-  if(topOcc&&eOcc.includes(topOcc)) reasons.push('Perfect for your '+topOcc+' wardrobe');
-  /* 3. Category diversity bonus (20 pts) */
-  var eCat=(entry[1]||'').toLowerCase();
-  var catCount=p.categories[eCat]||0; var total=p.count||1;
-  var catRatio=catCount/total;
-  var divScore=catRatio<0.1?20:catRatio<0.2?12:catRatio<0.3?6:2;
-  score+=divScore;
-  if(catRatio<0.1&&p.count>3) reasons.push('Fills a wardrobe gap: '+escHtml(entry[1]||''));
-  /* 4. Season (15 pts) */
-  var eSea=(entry[5]||'').toLowerCase();
-  var sVals=Object.values(p.seasons); var maxS=sVals.length?Math.max.apply(null,sVals):1;
-  var sMatch=0;
-  Object.keys(p.seasons).forEach(function(s){ if(eSea.includes(s.split('/')[0])) sMatch=Math.max(sMatch,p.seasons[s]); });
-  if(eSea.includes('year-round')) sMatch=Math.max(sMatch,maxS*0.7);
-  score+=Math.min(sMatch/maxS*15,15);
-  var final=Math.min(97,Math.max(55,Math.round(55+score/100*42)));
-  if(!reasons.length) reasons.push('Complements your existing wardrobe style');
-  return {score:final,reasons:reasons};
-}
-
-function wardrobeRecommendations(){
-  var p=_buildStyleProfile();
-  var scored=WARD_STYLE_DB.map(function(e){
-    if(p.ownedNames[e[0].toLowerCase()]) return null;
-    var r=_scoreStyleItem(e,p);
-    return {name:e[0],category:e[1],brand:e[2],style:e[3],occasions:e[4],season:e[5],description:e[6],score:r.score,reasons:r.reasons,gradient:_styleGradient(e[3])};
-  }).filter(Boolean).sort(function(a,b){return b.score-a.score;});
-  return {recs:scored, cold:p.count===0};
-}
 function loadStyleDiscovery(){
-  var result = wardrobeRecommendations();
-  _styleDiscRecs = result.recs;
-  _renderStyleDiscovery(cataloguePage(result.recs,_catalogueOffset.style,25),result.cold);
+  var result = stylePickPage('wardrobe',_catalogueOffset.style,25);
+  _renderStyleDiscovery(result.picks,result.cold);
 }
 
 function _renderStyleDiscovery(recs, isColdStart){
@@ -6320,10 +6166,6 @@ function addWardFromDiscover(button){
 }
 
 /* ── Catalogue autocomplete ── */
-function catalogueText(value){
-  return String(value || '').normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[’']/g,'').trim();
-}
-
 function clearCatalogueResults(prefix){
   var drop = document.getElementById(prefix + '-cs-drop');
   drop.replaceChildren();
@@ -6332,13 +6174,13 @@ function clearCatalogueResults(prefix){
 
 function renderCatalogueResults(prefix, value, rows, select){
   clearCatalogueResults(prefix);
-  var query = catalogueText(value);
+  var query = styleRecommendations.catalogueText(value);
   if(query.length < 2) return;
   var drop = document.getElementById(prefix + '-cs-drop');
   var candidates = rows.filter(function(row){
-    return row.slice(0,3).some(function(field){return catalogueText(field).includes(query);});
+    return row.slice(0,3).some(function(field){return styleRecommendations.catalogueText(field).includes(query);});
   }).sort(function(a,b){
-    return Number(catalogueText(b[0]).startsWith(query)) - Number(catalogueText(a[0]).startsWith(query));
+    return Number(styleRecommendations.catalogueText(b[0]).startsWith(query)) - Number(styleRecommendations.catalogueText(a[0]).startsWith(query));
   });
   candidates.slice(0,8).forEach(function(row){
     var button = document.createElement('button');

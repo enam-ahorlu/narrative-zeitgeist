@@ -56,4 +56,4 @@ consistency problems below.
 4. **Browser structure.** Collection and Watchlist view rules, media recommendation session state, and
    tag lookup now have separate modules and focused tests. The application
    script owns rendering and screen selection. Style & Scent still combines
-   form, catalogue ranking, and storage code in that script.
+   forms and storage in the application script. Its recommendation module now shares one profile and ranking per saved collection between Discover, search, and Insights.
