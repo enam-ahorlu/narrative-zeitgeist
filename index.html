@@ -15,6 +15,9 @@
 <script src="/supabase.js"></script>
 <script src="/catalogues/fragrances.js"></script>
 <script src="/catalogues/wardrobe.js"></script>
+<script src="/assets/journal-view.js"></script>
+<script src="/assets/discovery-session.js"></script>
+<script src="/catalogues/tags.js"></script>
 <style>
 :root {
   color-scheme: light;
@@ -1318,9 +1321,9 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <div class="wl-content">
         <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
           <div class="wl-status-tabs">
-            <div class="wl-stab active" onclick="setWlTab(this)">All</div>
-            <div class="wl-stab" onclick="setWlTab(this)">Up Next</div>
-            <div class="wl-stab" onclick="setWlTab(this)">Maybe</div>
+            <div class="wl-stab active" data-priority="all" onclick="setWlTab(this)">All</div>
+            <div class="wl-stab" data-priority="up_next" onclick="setWlTab(this)">Up Next</div>
+            <div class="wl-stab" data-priority="maybe" onclick="setWlTab(this)">Maybe</div>
           </div>
           <select class="fsel" style="margin-left:auto" onchange="wlSort(this.value)">
             <option value="date">Sort: Date Added</option>
@@ -2062,25 +2065,22 @@ var currentEntry = null; /* entry currently open in the detail modal */
 var _fp          = null; /* cached taste fingerprint JSON */
 var _charts      = {};   /* Chart.js instances keyed by name */
 var _allEntries  = [];   /* cached full entry list for Discovery */
-var _discRecs    = null; /* cached Discovery recommendations */
-var _discFetchedAt = 0;  /* timestamp of last Discovery fetch */
+var _discRecs = null; /* Recommendations for the active view. */
+var _discoverySession = createDiscoverySession();
+var _activeDiscoveryView = null;
 var _fragDiscRecs  = null; /* cached fragrance discovery results (client-side) */
 var _styleDiscRecs = null; /* cached style discovery results (client-side) */
 var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed on save */
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you';
 var _discSeedId = '';
-var _discRecent = [];
-var _discRefreshRounds = new Map();
 var _catalogueOffset = {all:0, fragrances:0, style:0};
-var _discCacheKey = '';
 var _discCompare = null;
 var _discSortVal = 'match';  /* current sort: match | newest | reviewed */
 
 /* ── Lookup tables ── */
-var FMT_LABEL = {show:'Show', film:'Film', book:'Book', sports_match:'Match', music:'Music'};
-var FMT_BADGE = {show:'b-show', film:'b-film', book:'b-book', sports_match:'b-match', music:'b-music'};
-var FMT_TO_DB = {Show:'show', Film:'film', Book:'book', Match:'sports_match', Music:'music'};
+var FMT_LABEL = Object.fromEntries(Object.entries(journalView.formats).map(function(pair){return [pair[0],pair[1].label];}));
+var FMT_BADGE = Object.fromEntries(Object.entries(journalView.formats).map(function(pair){return [pair[0],pair[1].badge];}));
 var MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function escHtml(s){
@@ -2151,8 +2151,9 @@ function handleAuthChange(event, session){
     });
   } else if(event === 'SIGNED_OUT'){
     currentUser = null;
-    _fp = null; _allEntries = []; _wlItems = []; _discRecs = null; _discFetchedAt = 0;
-    _discoveryRequest = null;
+    _fp = null; _allEntries = []; _wlItems = []; _discRecs = null;
+    _activeDiscoveryView = null;
+    _discoverySession = createDiscoverySession();
     _showAuthScreen();
     currentEntry = null;
     _discAddRec = null;
@@ -2176,9 +2177,6 @@ function handleAuthChange(event, session){
     _entryDraftId = null;
     _wlMoveId = null;
     tagPickerVersion++;
-    _discCacheKey = '';
-    _discRecent = [];
-    _discRefreshRounds.clear();
     _catalogueOffset = {all:0, fragrances:0, style:0};
     document.getElementById('disc-style-picks').replaceChildren();
     _discCompare = null;
@@ -2248,7 +2246,6 @@ async function loadEntries(){
   loadTimelineData();
   if(_discSeedId && !entries.some(function(entry){return entry.id === _discSeedId;})) _discSeedId = '';
   showDiscoverySeeds(document.getElementById('disc-seed-query').value);
-  _discCacheKey = '';
   return true;
 }
 
@@ -2499,146 +2496,11 @@ function _openRelatedEntry(id){
 
 
 
-var sportsTags = [
-    'final','semifinal','quarterfinal','derby','rivalry','upset',
-    'comeback','dominant performance','title decider','group stage',
-    'knockout stage','playoff','championship','league match','cup tie',
-    'el clasico','local derby','international','friendly',
-    'individual sport','team sport','combat sport','endurance',
-    'record-breaking','hat trick','shutout','overtime','penalty shootout',
-    'tactics','pressing','possession','counter-attack','set piece',
-    'relegation battle','title race','historic','iconic',
-    'football','soccer','basketball','tennis','cricket',
-    'rugby','american football','baseball','golf','formula 1',
-    'athletics','swimming','cycling','boxing','mma','wrestling',
-    'olympic','world cup','champions league','grand slam'
-];
-
-var musicGenreTags = [
-    'hip-hop','rap','trap','drill','boom bap','conscious rap',
-    'r&b','neo soul','soul','funk','gospel','blues',
-    'pop','indie pop','synth-pop','electropop','k-pop','j-pop',
-    'rock','indie rock','alternative','grunge','punk','post-punk',
-    'metal','heavy metal','death metal','black metal','doom metal',
-    'jazz','bebop','free jazz','fusion jazz','smooth jazz','big band',
-    'classical','orchestral','chamber music','opera','choral',
-    'electronic','house','techno','ambient','drone','edm',
-    'drum & bass','jungle','garage','grime','dubstep',
-    'folk','singer-songwriter','country','americana','bluegrass',
-    'reggae','dancehall','afrobeats','afropop','highlife','amapiano',
-    'latin','salsa','bossa nova','cumbia','reggaeton',
-    'world music','experimental','noise','lo-fi','vaporwave'
-];
-
-var entryTagPresets = [
-    /* ── Narrative Themes & Storytelling ── */
-    'antihero','moral complexity','character-driven','world-building',
-    'ensemble cast','slow burn','twist ending','political drama','psychological',
-    'redemption','identity','power & corruption','survival','love & loss',
-    'family','betrayal','justice','grief','trauma','isolation',
-    'coming-of-age','satire','dark comedy','based on true events',
-    'unreliable narrator','nonlinear narrative','dual timeline','epistolary',
-    'mythology','folklore','magical realism','dystopia','utopia',
-    'revenge','obsession','forbidden love','second chances','found family',
-    'class struggle','race & identity','gender & sexuality','religion & faith',
-    'war & conflict','colonialism','immigration','addiction',
-    'memory & nostalgia','time','death & dying','rebirth','legacy',
-
-    /* ── Vibes & Atmosphere ── */
-    'atmospheric','cinematic','lyrical','immersive','meditative',
-    'dark & gritty','cozy','melancholic','euphoric','tense',
-    'haunting','hopeful','bleak','whimsical','surreal',
-    'minimalist','maximalist','dreamlike','unsettling','warm',
-    'cold & clinical','chaotic','quiet','intense','playful',
-
-    /* ── Emotional Responses ── */
-    'made me cry','made me think','felt seen','disturbing',
-    'laugh-out-loud','cathartic','inspiring','infuriating','heartwarming',
-    'devastating','uplifting','comforting','challenging','nostalgic',
-    'exhilarating','anxious','hopeful','bitter','bittersweet',
-
-    /* ── Film Genres ── */
-    'action','adventure','thriller','horror','psychological horror',
-    'slasher','crime','film noir','heist','spy','neo-noir',
-    'drama','romance','rom-com','comedy','animation','documentary',
-    'biopic','historical','period piece','war film','western',
-    'sci-fi','fantasy','superhero','martial arts','body horror',
-    'found footage','mockumentary','arthouse','experimental',
-
-    /* ── TV Show Genres ── */
-    'prestige drama','limited series','procedural','legal drama',
-    'medical drama','police procedural','true crime','docuseries',
-    'reality tv','talk show','sitcom','animated series',
-    'soap opera','mini-series','anthology','telenovela',
-
-    /* ── Book Genres ── */
-    'literary fiction','contemporary fiction','historical fiction',
-    'short stories','novella','poetry','essay collection',
-    'memoir','autobiography','biography','narrative nonfiction',
-    'self-help','philosophy','psychology','sociology','economics',
-    'science','nature writing','travel writing','food writing',
-    'graphic novel','manga','young adult','middle grade','children',
-    'hard sci-fi','space opera','cli-fi','weird fiction',
-    'gothic','horror fiction','cozy mystery','police procedural fiction',
-    'legal thriller','medical thriller','techno-thriller',
-    'romance fiction','paranormal romance','epic fantasy',
-    'urban fantasy','high fantasy','low fantasy','grimdark',
-
-    /* ── Quality & Craft ── */
-    'masterpiece','underrated','overrated','cult classic','hidden gem',
-    'awards bait','crowd pleaser','slow starter','strong finish',
-    'great performances','weak ending','uneven','consistent',
-    'visually stunning','great soundtrack','poor pacing','tight writing',
-    'quotable','re-watchable','re-readable','long but worth it',
-
-    /* Regional traditions, formats and more specific themes */
-    'diaspora','postcolonial','oral history','coming home','environmental justice',
-    'intergenerational','workplace drama','quiet horror','speculative fiction',
-    'african cinema','nollywood','ghallywood','korean cinema','slow cinema',
-    'afrofuturism','solarpunk','translated fiction','microhistory','reportage',
-    'afro-jazz','hiplife','azonto','gqom','fuji','soukous','morna','mbalax',
-    'trip-hop','post-rock','dream pop','minimal techno','field recording',
-    'women’s football','afcon','paralympics','esports','rugby sevens','photo finish'
-  ];
-
-var tagFormatAliases = {
-  film:'film', films:'film', movie:'film', movies:'film', cinema:'film',
-  show:'show', shows:'show', tv:'show', television:'show', series:'show',
-  book:'book', books:'book', reading:'book', literature:'book',
-  music:'music', album:'music', albums:'music', song:'music', songs:'music',
-  sport:'sports_match', sports:'sports_match', match:'sports_match', matches:'sports_match'
-};
-
-var tagScopes = {
-  'film show book':'mystery|cliffhanger|espionage|whodunit|locked-room mystery|political thriller|investigation|moral complexity|slow burn|thriller|crime|drama|horror|sci-fi|fantasy|romance|adventure|world-building|character-driven|antihero|twist ending|unreliable narrator|nonlinear narrative|dual timeline|magical realism|dystopia|utopia|found family|revenge|obsession|forbidden love|ensemble cast|political drama|comedy|historical|period piece|western|psychological horror|legal drama|medical drama|police procedural|true crime|anthology|rom-com|superhero|body horror|satire|dark comedy|based on true events|strong finish|slow starter|weak ending|tight writing|poor pacing|speculative fiction|quiet horror|afrofuturism|solarpunk',
-  'film show':'action|heist|spy|animation|documentary|biopic|mockumentary|visually stunning|great soundtrack|great performances|re-watchable|found footage|martial arts|slasher|neo-noir|documentary series|cult classic',
-  'film':'film noir|war film|arthouse|african cinema|nollywood|ghallywood|korean cinema|slow cinema',
-  'show':'prestige drama|limited series|procedural|docuseries|reality tv|talk show|sitcom|animated series|soap opera|mini-series|telenovela|bottle episode|season finale|serialized',
-  'book':'literary fiction|contemporary fiction|historical fiction|short stories|novella|poetry|essay collection|memoir|autobiography|biography|narrative nonfiction|self-help|philosophy|psychology|sociology|economics|science|nature writing|travel writing|food writing|graphic novel|manga|young adult|middle grade|children|hard sci-fi|space opera|cli-fi|weird fiction|gothic|horror fiction|cozy mystery|police procedural fiction|legal thriller|medical thriller|techno-thriller|romance fiction|paranormal romance|epic fantasy|urban fantasy|high fantasy|low fantasy|grimdark|epistolary|re-readable|translated fiction|microhistory|reportage|unreliable narration',
-  'film show music':'experimental|cinematic',
-  'film show sports_match':'comeback|rivalry|record-breaking|underdog',
-  'music':'live album|concept album|instrumental|acoustic|sampling|storytelling rap|alté|afro-jazz|hiplife|azonto|gqom|fuji|soukous|morna|mbalax|trip-hop|post-rock|dream pop|minimal techno|field recording',
-  'sports_match':'women’s football|afcon|paralympics|esports|rugby sevens|photo finish|extra time|clean sheet|counter-pressing'
-};
-function normalizeEntryTag(value){
-  return value.trim().toLowerCase().replace(/\bcliff[ -]+hanger\b/g,'cliffhanger').replace(/\bhip[ -]+hop\b/g,'hip-hop');
-}
-var entryTagScope = new Map();
-Object.keys(tagScopes).forEach(function(scope){
-  tagScopes[scope].split('|').forEach(function(tag){entryTagScope.set(tag, scope.split(' '));});
-});
-
-musicGenreTags.forEach(function(tag){
-  if(!entryTagScope.has(tag) && !['iconic','historic'].includes(tag)) entryTagScope.set(tag,['music']);
-});
-sportsTags.forEach(function(tag){
-  if(!entryTagScope.has(tag) && !['iconic','historic'].includes(tag)) entryTagScope.set(tag,['sports_match']);
-});
 var tagPickerVersion = 0;
 function renderEntryTags(tags, preselected){
   var picker = document.getElementById('tag-picker');
-  var selected = new Set(preselected.map(normalizeEntryTag));
-  var unique = new Map(tags.concat(preselected).map(function(tag){return [normalizeEntryTag(tag), tag];}));
+  var selected = new Set(preselected.map(journalTags.normalize));
+  var unique = new Map(tags.concat(preselected).map(function(tag){return [journalTags.normalize(tag), tag];}));
   picker.replaceChildren(...Array.from(unique.keys()).sort().map(function(key){
     var tag = document.createElement('button');
     tag.type = 'button';
@@ -2655,7 +2517,7 @@ function renderEntryTags(tags, preselected){
 async function loadTagPicker(preselected){
   var userId = currentUser?.id;
   var version = ++tagPickerVersion;
-  var presets = entryTagPresets.concat(musicGenreTags,sportsTags,Array.from(entryTagScope.keys()));
+  var presets = journalTags.presets;
   renderEntryTags(presets, preselected);
   if(!userId) return;
   var res = await SUPA.from('tags').select('name').eq('user_id', userId).order('name');
@@ -3039,7 +2901,9 @@ function resetEntryForm(){
 }
 
 function openModal(id){
-  document.getElementById('m-'+id).classList.add('open');
+  var modal = document.getElementById('m-'+id);
+  if(modal.classList.contains('open')) return;
+  modal.classList.add('open');
   if(id==='add' && !editMode){
     _entryDraftId = crypto.randomUUID();
     resetEntryForm();
@@ -3076,7 +2940,8 @@ function openDiscoverScreen(){
 }
 
 async function loadCatalogDiscovery(pill){
-  _discoveryRequest = null;
+  _activeDiscoveryView = null;
+  _discRecs = null;
   renderCombinedDiscovery();
   document.getElementById('disc-refresh').disabled = false;
   var userId = currentUser?.id;
@@ -3397,7 +3262,7 @@ async function saveEntry(){
   if(!entryId) return;
   var title = document.getElementById('add-title').value.trim();
   if(!title){showToast('Please enter a title');return;}
-  var format = FMT_TO_DB[document.getElementById('add-format').value];
+  var format = journalView.formatKey(document.getElementById('add-format').value);
   if(!format){showToast('Please select a format');return;}
   var watchlistId = _wlMoveId;
   var recommendation = _discAddRec;
@@ -3424,7 +3289,7 @@ async function saveEntry(){
     showToast(editing ? 'Entry updated' : watchlistId ? 'Moved to Collection' : 'Entry saved to your collection');
     if(recommendation) removeDiscoveryPick(recommendation);
     if(watchlistId) removeWatchlistRow(watchlistId);
-    refreshJournal();
+    refreshJournal(Boolean(recommendation));
   } catch {
     if(currentUser?.id === owner) showToast('Could not confirm the save. Retry this form to check.', '⚠');
   } finally {
@@ -3453,8 +3318,7 @@ function openEditModal(){
   if(titleInp) titleInp.value=title;
 
   /* Pre-fill format — match DB value to dropdown option */
-  var DB_TO_FMT={'show':'Show','film':'Film','book':'Book','music':'Music','sports_match':'Match'};
-  var fmt=DB_TO_FMT[format]||'Show';
+  var fmt=FMT_LABEL[format]||'Show';
   var fmtSel=document.getElementById('add-format');
   if(fmtSel){for(var i=0;i<fmtSel.options.length;i++){if(fmtSel.options[i].text===fmt){fmtSel.selectedIndex=i;break;}}}
 
@@ -3560,14 +3424,10 @@ document.addEventListener('keydown',function(e){
       if(_act){e.preventDefault();_act.click();}
     }
   }
-  /* Escape → close command palette + any open modal overlay */
   if(e.key==='Escape'){
-    closeCmdPalette();
-    document.querySelectorAll('.overlay.open').forEach(function(ov){
-      ov.classList.remove('open');
-    });
-    /* also dismiss any in-progress delete confirms */
-    if(typeof cancelDelete==='function')cancelDelete();
+    var overlay = Array.from(document.querySelectorAll('.overlay.open')).at(-1);
+    if(overlay?.id === 'm-cmd') closeCmdPalette();
+    else if(overlay) closeModal(overlay.id.slice(2));
   }
 });
 
@@ -3579,18 +3439,14 @@ function chooseTagFormat(format){
 }
 
 function tagSearch(value){
-  var query = normalizeEntryTag(value);
-  var parts = query.split(/\s+/);
-  var format = Object.hasOwn(tagFormatAliases,parts[0]) ? tagFormatAliases[parts.shift()] : null;
-  var terms = format ? parts.join(' ') : query;
+  var filter = journalTags.search(value);
   var count = 0;
   document.querySelectorAll('#tag-picker .tp').forEach(function(tag){
-    var key = normalizeEntryTag(tag.textContent);
-    var scope = entryTagScope.get(key);
-    tag.hidden = !(key.includes(terms) && (!format || !scope || scope.includes(format)));
+    tag.hidden = !filter.matches(tag.textContent);
     if(!tag.hidden) count++;
   });
-  document.getElementById('tp-scope').textContent = count ? (format ? count + ' tags for ' + FMT_LABEL[format] : '') : 'No matching tags';
+  document.getElementById('tp-scope').textContent = count
+    ? (filter.format ? count + ' tags for ' + FMT_LABEL[filter.format] : '') : 'No matching tags';
 }
 
 /* ── A2: Cover/thumbnail colour picker ── */
@@ -3718,15 +3574,8 @@ function cmdSearch(val){
 }
 
 /* ── Collection filter engine (C1–C5) ── */
-var colFilter={search:'',format:'All',tags:[],ratingMin:0,ratingMax:10,yearFrom:0,yearTo:9999};
-
+var colFilter = journalView.defaultFilters();
 var _colSortVal = 'date_desc';
-var collectionFormats = {Films:'film',Shows:'show',Books:'book',Matches:'sports_match',Music:'music'};
-
-function hasCollectionFilter(){
-  return Boolean(colFilter.search || colFilter.format !== 'All' || colFilter.tags.length ||
-    colFilter.ratingMin > 0 || colFilter.ratingMax < 10 || colFilter.yearFrom || colFilter.yearTo < 9999);
-}
 
 function applyCollectionFilter(){
   _collectionPage = 1;
@@ -3734,31 +3583,14 @@ function applyCollectionFilter(){
 }
 
 function renderCollectionPage(){
-  var query = colFilter.search.toLowerCase();
-  var format = collectionFormats[colFilter.format];
-  var dateFilter = colFilter.yearFrom || colFilter.yearTo < 9999;
-  var results = _allEntries.filter(function(entry){
-    if(format && entry.format !== format) return false;
-    var rating = Number(entry.rating);
-    if(rating < colFilter.ratingMin || rating > colFilter.ratingMax) return false;
-    var tags = (entry.tags || []).map(function(tag){return tag.toLowerCase();});
-    if(!colFilter.tags.every(function(tag){return tags.includes(tag);})) return false;
-    if(query && ![entry.title.toLowerCase(),...tags].some(function(value){return value.includes(query);})) return false;
-    var year = Number((entry.date_completed || entry.created_at || '').slice(0,4));
-    return !dateFilter || (year && year >= colFilter.yearFrom && year <= colFilter.yearTo);
-  });
-  if(_colSortVal === 'rating_desc') results.sort(function(a,b){return Number(b.rating)-Number(a.rating);});
-  if(_colSortVal === 'title_asc') results.sort(function(a,b){return a.title.localeCompare(b.title);});
-  var pages = Math.max(1, Math.ceil(results.length / COLLECTION_PAGE_SIZE));
-  _collectionPage = Math.min(pages, Math.max(1,_collectionPage));
-  var start = (_collectionPage - 1) * COLLECTION_PAGE_SIZE;
-  var visible = results.slice(start,start + COLLECTION_PAGE_SIZE);
-  renderEntriesTable(collectionView === 'table' ? visible : []);
-  renderEntriesGrid(collectionView === 'grid' ? visible : []);
-  updateColPagination(results.length,start,visible.length,pages);
+  var view = journalView.collectionPage(_allEntries,colFilter,_colSortVal,_collectionPage,COLLECTION_PAGE_SIZE);
+  _collectionPage = view.page;
+  renderEntriesTable(collectionView === 'table' ? view.visible : []);
+  renderEntriesGrid(collectionView === 'grid' ? view.visible : []);
+  updateColPagination(view.count,view.start,view.visible.length,view.pages);
   updateColChips();
   updateColFilterBtn();
-  _renderColSS(query,colFilter.format);
+  _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
 }
 
 function colSort(value){
@@ -3820,7 +3652,7 @@ function colUpdateDate(){
   applyCollectionFilter();
 }
 function clearColFilters(){
-  colFilter={search:'',format:'All',tags:[],ratingMin:0,ratingMax:10,yearFrom:0,yearTo:9999};
+  colFilter=journalView.defaultFilters();
   document.getElementById('col-search-inp').value='';
   document.getElementById('col-rmin').value=0;
   document.getElementById('col-rmax').value=10;
@@ -3931,7 +3763,7 @@ function changeCollectionPage(delta){
 function updateColPagination(count,start,length,pages){
   var info = document.getElementById('col-pag-info');
   var nav = document.getElementById('col-page-nav');
-  var filtered = hasCollectionFilter();
+  var filtered = journalView.hasFilters(colFilter);
   info.textContent = count ? 'Showing ' + (start+1) + '–' + (start+length) + ' of ' + count + (filtered ? ' matching entries' : ' entries')
     : filtered ? 'No matching media entries' : 'No media entries yet';
   nav.hidden = pages < 2;
@@ -3946,7 +3778,7 @@ function updateColPagination(count,start,length,pages){
 function updateColFilterBtn(){
   var btn=document.getElementById('col-filter-btn');
   if(!btn)return;
-  btn.classList.toggle('col-filter-on',hasCollectionFilter());
+  btn.classList.toggle('col-filter-on',journalView.hasFilters(colFilter));
 }
 
 /* ── Discover: search within real _discRecs ── */
@@ -4070,8 +3902,6 @@ function _discState(state, msg){
   if(state==='error' && msg) document.getElementById('disc-err-msg').textContent = msg;
 }
 
-var _discoveryRequest = null;
-
 function refreshDiscovery(){
   if(_discPill === 'fragrances' || _discPill === 'style'){
     _catalogueOffset[_discPill] += 25;
@@ -4086,8 +3916,6 @@ function retryDiscovery(){
   if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
   else loadDiscovery(true);
 }
-
-var DISCOVERY_FORMATS = {films:'film', shows:'show', books:'book', matches:'sports_match', music:'music'};
 
 async function fetchDiscovery(userId, payload){
   var token = await accountToken(userId);
@@ -4104,61 +3932,54 @@ async function loadDiscovery(force){
   if(!currentUser || _discPill === 'fragrances' || _discPill === 'style') return;
   var userId = currentUser.id;
   var tab = _discTabName;
-  var focus = tab === 'because-loved' ? null : DISCOVERY_FORMATS[_discPill] || null;
+  var focus = tab === 'because-loved' ? null : journalView.formatKey(_discPill);
   var seedId = tab === 'because-loved' ? _discSeedId : null;
-  var key = JSON.stringify([tab, focus, seedId]);
-  if(_discoveryRequest?.key === key) return;
+  var key = JSON.stringify([tab,focus,seedId]);
+  if(_activeDiscoveryView?.key === key && _activeDiscoveryView.loading) return;
+
+  var view = {key:key,loading:false};
+  _activeDiscoveryView = view;
+  _discRecs = null;
   var refresh = document.getElementById('disc-refresh');
-  refresh.disabled = !seedId && tab === 'because-loved';
-  if(!force && _discCacheKey === key && Array.isArray(_discRecs) && Date.now() - _discFetchedAt < 1800000){
-    _discoveryRequest = null;
-    renderCombinedDiscovery();
-    _renderDiscovery(_discRecs);
-    return;
-  }
+  var missingSeed = tab === 'because-loved' && !seedId;
+  refresh.disabled = missingSeed;
   renderCombinedDiscovery();
-  if(tab === 'because-loved' && !seedId){
-    _discoveryRequest = null;
+
+  if(missingSeed){
     _discState('results');
-    _discRecs = null;
     document.getElementById('disc-hero-wrap').replaceChildren();
     document.getElementById('disc-grid-wrap').innerHTML = '<p class="disc-empty">Choose a work to get recommendations connected to it.</p>';
     return;
   }
   if(!_allEntries.length){
-    _discoveryRequest = null;
     _discState('nofp');
     return;
   }
-  var round = _discRefreshRounds.get(key) || 0;
-  if(force) _discRefreshRounds.set(key,++round);
-  var request = {key:key};
-  _discoveryRequest = request;
+  var session = _discoverySession;
+  var cached = force ? null : session.read(key);
+  if(cached){
+    _discRecs = cached;
+    session.shown(cached,seedId);
+    _renderDiscovery(cached);
+    return;
+  }
+
+  view.loading = true;
   refresh.disabled = true;
-  _discRecs = null;
   _discState('loading');
   try {
-    var recent = _discRecent.filter(function(item){
-      return (!focus || item.format === focus) &&
-        (tab !== 'because-loved' || item.seed === seedId);
-    }).slice(0,48);
-    var recs = await fetchDiscovery(userId, {strategy:'grounded', tab:tab, seedId:seedId, focus:focus, recent:recent, round:round});
-
-    if(_discoveryRequest !== request || currentUser?.id !== userId) return;
-    _discRecent = recs.map(function(item){return {title:item.title,format:item.format,seed:seedId};}).concat(_discRecent).slice(0,120);
-    _discRecs = recs;
-    _discCacheKey = key;
-    _discFetchedAt = Date.now();
-    if(_discPill !== 'fragrances' && _discPill !== 'style') _renderDiscovery(_discRecs);
-  } catch(e) {
-    if(_discoveryRequest === request && currentUser?.id === userId && _discPill !== 'fragrances' && _discPill !== 'style'){
-      _discState('error', e.message);
-    }
+    var picks = await session.load(key,{force:force,tab:tab,focus:focus,seedId:seedId},function(payload){
+      return fetchDiscovery(userId,{strategy:'grounded',...payload});
+    });
+    if(_activeDiscoveryView !== view || currentUser?.id !== userId) return;
+    _discRecs = picks;
+    session.shown(picks,seedId);
+    _renderDiscovery(picks);
+  } catch(error) {
+    if(_activeDiscoveryView === view && currentUser?.id === userId) _discState('error',error.message);
   } finally {
-    if(_discoveryRequest === request){
-      _discoveryRequest = null;
-      refresh.disabled = false;
-    }
+    view.loading = false;
+    if(_activeDiscoveryView === view) refresh.disabled = false;
   }
 }
 
@@ -4235,8 +4056,7 @@ function revealDiscoveryComparison(button){
 
 function _filterDisc(recs){
   if(_discPill === 'all' || _discTabName === 'because-loved') return recs;
-  var map = {films:'film', shows:'show', books:'book', matches:'sports_match', music:'music'};
-  var fmt = map[_discPill] || _discPill;
+  var fmt = journalView.formatKey(_discPill);
   return recs.filter(function(r){ return r.format === fmt; });
 }
 
@@ -4419,11 +4239,12 @@ async function saveRecommendation(rec){
 }
 
 function removeDiscoveryPick(item){
+  _discoverySession.remove(item);
   if(!Array.isArray(_discRecs)) return;
   var remaining = _discRecs.filter(function(rec){return rec.title !== item.title || rec.format !== item.format;});
   if(remaining.length === _discRecs.length) return;
   _discRecs = remaining;
-  if(document.getElementById('s-discover').classList.contains('active') && !_discoveryRequest &&
+  if(document.getElementById('s-discover').classList.contains('active') && !_activeDiscoveryView?.loading &&
     _discPill !== 'fragrances' && _discPill !== 'style') _renderDiscovery(remaining);
 }
 
@@ -4436,20 +4257,18 @@ async function saveToWatchlist(button){
   button.disabled = saved;
 }
 
-function addFromDiscover(btn){
-  var rec = JSON.parse(btn.getAttribute('data-rec'));
-  _discAddRec = rec; /* remember so saveEntry() can dismiss this card */
+function openEntryFromPick(pick){
   openModal('add');
-  var titleInp = document.getElementById('add-title');
-  if(titleInp) titleInp.value = rec.title;
-  var fmtMap = {film:'Film', show:'Show', book:'Book', sports_match:'Match', music:'Music'};
-  var fmtLabel = fmtMap[rec.format] || 'Show';
-  var formatSelect = document.getElementById('add-format');
-  formatSelect.value = fmtLabel;
-  updateSportField(formatSelect);
+  document.getElementById('add-title').value = pick.title;
+  var select = document.getElementById('add-format');
+  select.value = FMT_LABEL[pick.format] || 'Show';
+  updateSportField(select);
 }
 
-/* (wl-actions btn-p listener removed — wlMoveToCollection onclick handles this inline) */
+function addFromDiscover(button){
+  _discAddRec = JSON.parse(button.dataset.rec);
+  openEntryFromPick(_discAddRec);
+}
 
 /* ── Watchlist: load, render, actions ──────────────────────── */
 var _wlItems       = [];    /* cached watchlist rows */
@@ -4496,7 +4315,7 @@ async function setWatchlistPriority(select){
     showToast(priority === 'up_next' ? 'Moved to Up Next' : 'Moved to Maybe');
   } catch(error) {
     if(currentUser?.id === owner){
-      select.value = item.priority || 'maybe';
+      select.value = journalView.watchlistPriority(item);
       showToast('Could not change priority. Try again.', '⚠  ');
     }
   } finally {
@@ -4505,13 +4324,7 @@ async function setWatchlistPriority(select){
 }
 
 function renderWatchlist(){
-  var items = _wlItems.filter(function(it){
-    if(_wlTab === 'up_next') return it.priority === 'up_next';
-    if(_wlTab === 'maybe')   return it.priority === 'maybe';
-    return true;
-  });
-  if(_watchlistSort === 'alpha') items.sort(function(a,b){return a.title.localeCompare(b.title);});
-  if(_watchlistSort === 'match') items.sort(function(a,b){return (b.match_score || 0)-(a.match_score || 0);});
+  var items = journalView.watchlistView(_wlItems,_wlTab,_watchlistSort);
 
   var listEl  = document.getElementById('wl-list');
   var emptyEl = document.getElementById('wl-empty');
@@ -4548,7 +4361,6 @@ function renderWatchlist(){
   if(emptyEl) emptyEl.style.display = 'none';
 
   /* Group by format */
-  var FMT_SECTION = { film:'FILMS', show:'SHOWS', book:'BOOKS', sports_match:'MATCHES', music:'MUSIC' };
   var groups = {};
   var groupOrder = [];
   items.forEach(function(it){
@@ -4560,12 +4372,12 @@ function renderWatchlist(){
   var html = '';
   groupOrder.forEach(function(fmt, gi){
     html += '<div class="wl-section"' + (gi > 0 ? ' style="margin-top:18px"' : '') + '>'
-          + (FMT_SECTION[fmt] || fmt.toUpperCase()) + '</div>';
+          + (journalView.formats[fmt]?.plural || fmt).toUpperCase() + '</div>';
     groups[fmt].forEach(function(it, idx){
       var bg      = it.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
       var initials = it.title.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
       var score   = it.match_score ? Math.round(it.match_score) + '%' : '—';
-      var priCls  = it.priority === 'up_next' ? 'p-next' : 'p-maybe';
+      var priCls  = journalView.watchlistPriority(it) === 'up_next' ? 'p-next' : 'p-maybe';
       var tags    = (it.tags || []).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
       var savedAgo = _timeAgo(it.saved_at);
       var delay   = idx < 5 ? ' anim-delay-' + idx : '';
@@ -4580,8 +4392,8 @@ function renderWatchlist(){
         +   '<div class="wl-tags">'+tags+'</div>'
         + '</div>'
         + '<select class="wl-priority '+priCls+'" aria-label="Priority for '+escHtml(it.title)+'" onchange="setWatchlistPriority(this)">'
-        + '<option value="maybe"'+(it.priority !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
-        + '<option value="up_next"'+(it.priority === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
+        + '<option value="maybe"'+(journalView.watchlistPriority(it) !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
+        + '<option value="up_next"'+(journalView.watchlistPriority(it) === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
         + '<div class="wl-match">'+score+'</div>'
         + '<div class="wl-actions">'
         +   '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlMoveToCollection(\''+it.id+'\')">Move to Collection</button>'
@@ -4615,8 +4427,7 @@ function _timeAgo(iso){
 function setWlTab(el){
   document.querySelectorAll('.wl-stab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  var txt = el.textContent.trim().toLowerCase().replace(' ', '_');
-  _wlTab = txt === 'up_next' ? 'up_next' : txt === 'maybe' ? 'maybe' : 'all';
+  _wlTab = el.dataset.priority;
   renderWatchlist();
 }
 
@@ -4825,8 +4636,14 @@ async function refreshFingerprint(){
   renderInsights(_fp);
 }
 
-function refreshJournal(){
-  loadEntries();
+function refreshJournal(keepVisibleBatch){
+  if(!keepVisibleBatch){
+    _discoverySession.invalidate();
+    _activeDiscoveryView = null;
+  }
+  loadEntries().then(function(loaded){
+    if(loaded && !keepVisibleBatch && document.getElementById('s-discover').classList.contains('active')) openDiscoverScreen();
+  });
   refreshFingerprint();
 }
 
@@ -5307,17 +5124,10 @@ function _animateRemove(el, cb){
 
 
 function wlMoveToCollection(id){
-  var it = _wlItems.find(function(x){ return x.id == id; });
-  if(!it) return;
+  var item = _wlItems.find(function(row){return row.id === id;});
+  if(!item) return;
   _wlMoveId = id;
-  openModal('add');
-  var titleInp = document.getElementById('add-title');
-  if(titleInp) titleInp.value = it.title;
-  var fmtMap = {film:'Film',show:'Show',book:'Book',sports_match:'Match',music:'Music'};
-  var fmtLabel = fmtMap[it.format] || 'Show';
-  var formatSelect = document.getElementById('add-format');
-  formatSelect.value = fmtLabel;
-  updateSportField(formatSelect);
+  openEntryFromPick(item);
 }
 
 /* ── O2: Toggle fingerprint building/sparse state ── */
@@ -5359,8 +5169,8 @@ function onTitleInput(value){
 
 function _doContentSearch(q){
   var fmtVal = document.getElementById('add-format').value;
-  var format = FMT_TO_DB[fmtVal];
-  var type = format === 'sports_match' ? 'match' : format || 'all';
+  var format = journalView.formatKey(fmtVal);
+  var type = journalView.formats[format]?.search || 'all';
   var request = new AbortController();
   _csRequest = request;
   var drop = document.getElementById('cs-drop');
@@ -5375,7 +5185,6 @@ function _doContentSearch(q){
     .then(function(list){
       if(_csRequest !== request) return;
       _csResults = Array.isArray(list) ? list : [];
-      var _TYPE_LABEL = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
       var isAll = (type === 'all');
       var manualRow = '<div class="cs-item cs-manual-row" onclick="_closeSearchDrop()">'
         +'<div class="cs-poster-ph" style="font-size:14px">✏️</div>'
@@ -5387,11 +5196,12 @@ function _doContentSearch(q){
       }
       var icon = _FMT_ICONS[fmtVal] || '🔍';
       drop.innerHTML = _csResults.map(function(r, i){
-        var fmtIcon = _FMT_ICONS[({film:'Film',show:'Show',book:'Book',music:'Music',match:'Match'})[r._type]] || icon;
+        var formatLabel = FMT_LABEL[journalView.formatKey(r._type)] || '';
+        var fmtIcon = _FMT_ICONS[formatLabel] || icon;
         var posterHtml = r.poster_url
           ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
           : '<div class="cs-poster-ph">'+fmtIcon+'</div>';
-        var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+(_TYPE_LABEL[r._type]||'')+'</span>' : '';
+        var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+formatLabel+'</span>' : '';
         var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,55):'');
         return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
           +posterHtml
@@ -5416,10 +5226,11 @@ function _pickSearchResult(idx){
   var titleInp = document.getElementById('add-title');
   if(titleInp) titleInp.value = r.title;
   /* Auto-set format from result type */
-  var _typeToFmt = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
-  if(r._type && _typeToFmt[r._type]){
-    var fmtSel = document.getElementById('add-format');
-    if(fmtSel){ fmtSel.value = _typeToFmt[r._type]; updateSportField(fmtSel); }
+  var formatLabel = FMT_LABEL[journalView.formatKey(r._type)];
+  if(formatLabel){
+    var formatSelect = document.getElementById('add-format');
+    formatSelect.value = formatLabel;
+    updateSportField(formatSelect);
   }
   /* Clear old poster first, then apply new one */
   clearPoster();

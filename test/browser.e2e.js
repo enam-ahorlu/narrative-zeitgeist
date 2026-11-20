@@ -40,8 +40,11 @@ let limitDiscovery = true;
 
 const fixtures = {
   '/': ['index.html', 'text/html; charset=utf-8'],
+  '/assets/discovery-session.js': ['assets/discovery-session.js', 'text/javascript; charset=utf-8'],
+  '/assets/journal-view.js': ['assets/journal-view.js', 'text/javascript; charset=utf-8'],
   '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
   '/catalogues/fragrances.js': ['catalogues/fragrances.js', 'text/javascript; charset=utf-8'],
+  '/catalogues/tags.js': ['catalogues/tags.js', 'text/javascript; charset=utf-8'],
   '/catalogues/wardrobe.js': ['catalogues/wardrobe.js', 'text/javascript; charset=utf-8']
 };
 
@@ -325,6 +328,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#s-collection .tbl-wrap').getByText('Synthetic new journal entry',{exact:true}).click();
   await page.locator('#m-detail').getByRole('button',{name:'Edit',exact:false}).click();
   assert.equal(await page.locator('#add-notes').inputValue(),'Notes unique to this entry');
+  await page.keyboard.press('Escape');
+  await page.locator('#m-add').waitFor({state:'hidden'});
+  await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  assert.equal(await page.locator('#add-modal-title').textContent(),'Add Entry');
+  assert.equal(await page.locator('#add-notes').inputValue(),'');
   await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
 
   await visit('designsystem');
@@ -391,6 +399,16 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(await page.locator('#disc-seed-entry').inputValue(),'');
   await page.getByText('Choose a work to get recommendations connected to it.').waitFor();
   assert.ok(await page.getByRole('button',{name:'Refresh picks'}).isDisabled());
+  const forYou = page.locator('.disc-tabs').getByText('For You',{exact:true});
+  const hiddenGems = page.locator('.disc-tabs').getByText('Hidden Gems',{exact:true});
+  await forYou.click();
+  await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
+  await hiddenGems.click();
+  await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
+  const requestsBeforeReturn = discoveryRequests;
+  await forYou.click();
+  await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
+  assert.equal(discoveryRequests,requestsBeforeReturn);
   await page.getByRole('button', {name:'Compare picks'}).click();
   const comparison = page.locator('#m-disc-compare');
   await comparison.getByRole('heading', {name:'Set A',exact:true}).waitFor();

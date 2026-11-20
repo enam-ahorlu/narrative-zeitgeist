@@ -15,7 +15,8 @@ consistency problems below.
 | Watchlist priority and order | Reorder arrows only move DOM nodes and their effect disappears on reload. | Use explicit Up Next and Maybe priorities and consistent sorting. Manual cross-device ordering needs a separate product decision. |
 | Insights | Recomputing the fingerprint immediately reads it back from the cache, and the timeline fetches a truncated second copy of journal data. | Render the computed snapshot directly. Build the timeline from the account journal already loaded. |
 | Style & Scent | Discovery Details routes away and repeats prefill logic. Some saved tags and occasions have no matching edit control. | Open details in place and preserve values when editing. Use the same catalogue defaults for quick and detailed saves. |
-| Search and Discovery | Older title-search results can replace newer ones. Recommendations exclude archived Watchlist rows even after the journal entry is removed. | Ignore obsolete searches. Exclude active Watchlist items, journal entries, and explicit dismissals. |
+| Entry modal | Closing an edit with Escape bypasses cleanup and can leave the next Add Entry in edit mode. | Route keyboard, button and backdrop dismissal through the same cleanup. Keep a saving form open until its write finishes. |
+| Search and Discovery | Older searches could replace newer results. Archived Watchlist rows could hide picks after an entry was removed. Switching views discarded the last batch and spent another provider request. | Ignore obsolete searches, exclude only active Watchlist items, journal entries, and dismissals, and reuse each view’s batch for up to 30 minutes. |
 
 ## Boundaries for the next pass
 
@@ -52,8 +53,7 @@ consistency problems below.
    history while generating a new batch. Measure account sizes, payloads,
    and provider latency before adding server-side search, incremental
    retrieval, or cached candidate pools.
-4. **Browser structure.** Screen-level state remains in the static
-   application script. Extract Collection, Watchlist, Discovery and Style
-   behind clear interfaces in small steps, leaving the integration tests
-   in place to catch regressions. Keep the static deployment while this
-   boundary changes.
+4. **Browser structure.** Collection and Watchlist view rules, media recommendation session state, and
+   tag lookup now have separate modules and focused tests. The application
+   script owns rendering and screen selection. Style & Scent still combines
+   form, catalogue ranking, and storage code in that script.
