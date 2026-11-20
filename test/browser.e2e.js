@@ -19,6 +19,7 @@ const entries = users.flatMap((user, index) => Array.from({ length: index ? 1 : 
   created_at: '2026-09-01'
 })));
 const watchlist = [];
+const dismissals = [];
 const styleItems = [];
 const resetRecipients = [];
 const stylesCreated = [];
@@ -101,11 +102,26 @@ function createMocks(assets) {
     if (path === '/api/discover') {
       discoveryRequests++;
       if (limitDiscovery) return send({ error: 'Discovery limit reached. Try again later.' }, 429);
-      if (!body.entryTitles.includes('Journal A 1')) return send({ error: 'Missing journal data' }, 400);
+      if (body.strategy === 'baseline') {
+        if (!body.entryTitles.includes('Journal A 1')) return send({ error: 'Missing journal data' }, 400);
+        return send({ recommendations: [{
+          title:'Original synthetic book',format:'book',reasons:['Original reason']
+        }] });
+      }
+      if (body.strategy !== 'grounded') return send({ error:'Grounded strategy required' }, 400);
+      if (body.tab === 'because-loved') {
+        const seed = entries.find(entry => entry.id === body.seedId && matchesUser(entry));
+        if (!seed) return send({ error:'Unknown selected entry' }, 404);
+        return send({ recommendations: [{
+          title:'Seeded synthetic book',format:'book',reasons:['Seeded reason'],
+          anchor:{title:seed.title,rating:seed.rating},match_hook:'Because you logged ' + seed.title,
+          catalog:{provider:'openlibrary',id:'/works/fixture'}
+        }] });
+      }
       return send({ recommendations: [{
-        title: 'Synthetic discovery book', format: 'book', match_score: 91,
+        title: 'Synthetic discovery book', format: 'book',
         reasons: ['Theme match', 'Format match', 'Rating match'], tags: ['afrofuturism'],
-        meta: 'Book', cover_color: null
+        meta: 'Book', cover_color: null, catalog:{provider:'openlibrary',id:'/works/fixture2'}
       }] });
     }
     if (path === '/rest/v1/entries_with_tags') return send(entries.filter(matchesUser));
@@ -115,6 +131,10 @@ function createMocks(assets) {
       return send(entry, 201);
     }
     if (path === '/rest/v1/tags') return send([]);
+    if (path === '/rest/v1/discovery_feedback' && method === 'POST') {
+      dismissals.push(body);
+      return route.fulfill({ status:201 });
+    }
     if (path === '/rest/v1/watchlist') {
       if (method === 'GET') return send(watchlist.filter(matchesUser));
       if (method === 'POST') {
@@ -230,6 +250,23 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await visit('watchlist');
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
   assert.equal(discoveryRequests, 2);
+  await visit('collection');
+  await page.locator('#s-collection .tbl-wrap').getByText('Journal A 1', {exact:true}).click();
+  await page.locator('#m-detail').getByRole('button', {name:'More like this'}).click();
+  await page.locator('#disc-hero-wrap').getByText('Seeded synthetic book').waitFor();
+  await page.locator('#disc-hero-wrap').getByText('Because you logged Journal A 1', {exact:false}).waitFor();
+  await page.locator('#disc-hero-wrap').getByRole('button', {name:'Not for me'}).click();
+  await page.getByText('Dismissed from future recommendations.', {exact:false}).waitFor();
+  assert.equal(dismissals[0].title, 'Seeded synthetic book');
+  await page.getByRole('button', {name:'Compare picks'}).click();
+  const comparison = page.locator('#m-disc-compare');
+  await comparison.getByRole('heading', {name:'Set A',exact:true}).waitFor();
+  await comparison.getByRole('heading', {name:'Set B',exact:true}).waitFor();
+  await comparison.getByLabel('Would try it').first().check();
+  await comparison.getByRole('button', {name:'Reveal results'}).click();
+  await comparison.getByRole('heading', {name:/Updated/}).waitFor();
+  await comparison.getByRole('heading', {name:/Original/}).waitFor();
+  await comparison.getByRole('button', {name:'Close comparison'}).click();
 
   await visit('fragrances');
   await page.getByText('No fragrances yet', { exact: true }).waitFor();

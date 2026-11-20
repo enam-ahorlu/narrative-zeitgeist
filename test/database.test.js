@@ -43,6 +43,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/003_account_isolation.sql');
   await apply('migrations/004_discovery_quota.sql');
   await apply('migrations/005_style_items.sql');
+  await apply('migrations/006_discovery_feedback.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -98,14 +99,17 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await actAs(a);
     await db.query("insert into public.style_items values ($1,'fragrance','f1',$2)", [a, { name: 'Private fragrance' }]);
     await db.query("insert into public.watchlist (user_id,title,format) values ($1,'Saved Book','book')", [a]);
+    await db.query("insert into public.discovery_feedback (title,format) values ('Dismissed Book','book')");
     await assert.rejects(db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Unowned' }]), denied);
     await actAs(b);
+    assert.equal((await db.query('select * from public.discovery_feedback')).rows.length, 0);
+    await assert.rejects(db.query("insert into public.discovery_feedback values ($1,'book','Wrong account')", [a]), denied);
     assert.deepEqual((await db.query('select * from public.style_items')).rows, []);
     assert.equal((await db.query("delete from public.style_items where item_id='f1' returning item_id")).rows.length, 0);
     await db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Private wardrobe' }]);
     await db.exec('reset role');
     await db.query('delete from auth.users where id=$1', [a]);
-    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items']) {
+    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','discovery_feedback']) {
       assert.equal((await db.query('select * from public.' + table + ' where user_id=$1', [a])).rows.length, 0);
     }
     assert.equal((await db.query('select * from public.profiles where id=$1', [a])).rows.length, 0);

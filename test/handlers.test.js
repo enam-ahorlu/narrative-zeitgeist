@@ -107,3 +107,31 @@ test('account removal targets the verified user and requires upstream success', 
   assert.equal(calls[5].options.headers.apikey, 'sb_secret_synthetic');
   assert.equal(calls[5].options.headers.Authorization, undefined);
 });
+
+test('Preview fails closed without its own Supabase settings', async t => {
+  const env = process.env;
+  t.mock.method(globalThis, 'fetch', async () => { throw new Error('Unexpected credential use'); });
+  const { publicConfig, adminKey } = require('../lib/supabase-server');
+  const original = {...env};
+  try {
+    env.VERCEL_ENV = 'preview';
+    env.SUPABASE_URL = 'https://prod.example.test';
+    env.SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_prod';
+    env.SUPABASE_SECRET_KEY = 'sb_secret_prod';
+    assert.equal(publicConfig(), null);
+    assert.equal(adminKey(), undefined);
+    env.PREVIEW_SUPABASE_URL = env.SUPABASE_URL;
+    env.PREVIEW_SUPABASE_ANON_KEY = 'sb_publishable_stage';
+    assert.equal(publicConfig(), null);
+    env.PREVIEW_SUPABASE_URL = 'https://stage.example.test';
+    env.PREVIEW_SUPABASE_SECRET_KEY = 'sb_secret_stage';
+    assert.deepEqual(publicConfig(), {url:env.PREVIEW_SUPABASE_URL,key:'sb_publishable_stage'});
+    assert.equal(adminKey(), 'sb_secret_stage');
+  } finally {
+    for (const name of ['VERCEL_ENV','SUPABASE_URL','SUPABASE_PUBLISHABLE_KEY','SUPABASE_SECRET_KEY',
+      'PREVIEW_SUPABASE_URL','PREVIEW_SUPABASE_ANON_KEY','PREVIEW_SUPABASE_SECRET_KEY']) {
+      if (original[name] === undefined) delete env[name];
+      else env[name] = original[name];
+    }
+  }
+});

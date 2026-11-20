@@ -1,4 +1,4 @@
-const { authContext } = require('../lib/supabase-server');
+const { authContext, adminKey } = require('../lib/supabase-server');
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
@@ -7,7 +7,7 @@ module.exports = async function handler(req, res) {
   const auth = await authContext(req);
   if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
 
-  const secret = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secret = adminKey();
   if (!secret) return res.status(503).json({ error: 'Account deletion is unavailable.' });
 
   try {

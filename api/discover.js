@@ -3,6 +3,7 @@
 // Set ANTHROPIC_API_KEY in Vercel → Project Settings → Environment Variables.
 
 const { authContext } = require('../lib/supabase-server');
+const { loadHistory, selectAnchors, makePrompt, verifyRecommendations } = require('../lib/grounded-discovery');
 
 const FORMATS = ['film', 'show', 'book', 'sports_match', 'music'];
 const TABS = ['for-you', 'hidden', 'trending', 'because-loved'];
@@ -15,9 +16,11 @@ module.exports = async function handler(req, res) {
   const auth = await authContext(req);
   if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
 
-  const input = normalizeInput(req.body);
+  const grounded = req.body?.strategy === 'grounded';
+  const input = grounded ? await groundedInput(auth, req.body) : normalizeInput(req.body);
+  if (input?.error) return res.status(input.status).json({ error: input.error });
   if (!input) return res.status(400).json({ error: 'A valid taste fingerprint with at least 3 entries is required.' });
-  const { fingerprint, entryTitles, tab, becauseTitle } = input;
+  const { fingerprint, entryTitles, tab, becauseTitle, anchors, known } = input;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Discovery is unavailable.' });
@@ -52,10 +55,10 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 8192,
-        messages: [{ role: 'user', content: buildPrompt(fingerprint, entryTitles, tab, becauseTitle) }]
+        max_tokens: grounded ? 3500 : 8192,
+        messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab) : buildPrompt(fingerprint, entryTitles, tab, becauseTitle) }]
       }),
-      signal: AbortSignal.timeout(40000)
+      signal: AbortSignal.timeout(grounded ? 24000 : 40000)
     });
     if (!response.ok) {
       console.error('Anthropic Discovery returned status', response.status);
@@ -66,13 +69,37 @@ module.exports = async function handler(req, res) {
     const text = (result.content || []).find(block => block.type === 'text')?.text || '';
     const payload = text.match(/\x60\x60\x60(?:json)?\s*([\s\S]*?)\x60\x60\x60/i)?.[1]
       || text.match(/(\[[\s\S]*\])/)?.[1];
-    const recommendations = normalizeRecommendations(JSON.parse(payload), entryTitles);
+    const parsed = JSON.parse(payload);
+    const recommendations = grounded
+      ? await verifyRecommendations(parsed, anchors, known, tab)
+      : normalizeRecommendations(parsed, entryTitles);
+    if (grounded && !recommendations.length) {
+      return res.status(422).json({ error: 'No unseen catalogue matches could be verified this time. Try again or choose another favorite.' });
+    }
     if (!recommendations.length) throw new Error('No usable recommendations');
     return res.status(200).json({ recommendations });
   } catch {
     return res.status(502).json({ error: 'Discovery could not generate recommendations. Try again shortly.' });
   }
 };
+
+async function groundedInput(auth, body) {
+  const tab = TABS.includes(body.tab) ? body.tab : 'for-you';
+  const seedId = body.seedId;
+  if (tab === 'because-loved' && (typeof seedId !== 'string' || !/^[0-9a-f-]{36}$/i.test(seedId))) {
+    return { status:400, error:'Choose an entry from your collection first.' };
+  }
+  try {
+    const history = await loadHistory(auth);
+    const focus = FORMATS.includes(body.focus) ? body.focus : null;
+    const anchors = selectAnchors(history.entries, tab === 'because-loved' ? seedId : null, focus);
+    if (!anchors.length && tab === 'because-loved') return { status:404, error:'That entry is no longer in your collection.' };
+    if (!anchors.length) return { status:422, error:'Rate something at least 7 out of 10 in this format, or pick any logged work in More Like This.' };
+    return { tab, anchors, known:history.known };
+  } catch {
+    return { status:503, error:'Discovery could not read your saved collection. Try again shortly.' };
+  }
+}
 
 function boundedStrings(value, count, length) {
   return Array.isArray(value)
@@ -161,7 +188,7 @@ function buildPrompt(fp, entryTitles, tab, becauseTitle) {
   const avgRating    = fp.overall_avg_rating != null ? parseFloat(fp.overall_avg_rating).toFixed(1) : 'varied';
 
   const themeLines = themes.map(t =>
-    `  • "${t.tag}": avg rating ${t.avg_rating}, in ${t.frequency} entries, weight ${(t.weight * 100).toFixed(0)}/100`
+    `  • "${t.tag}": avg rating ${t.avg_rating}, in ${t.frequency} entries, weight ${(t.weight * 10).toFixed(0)}/100`
   ).join('\n');
 
   const formatLines = Object.entries(formats)

@@ -2,7 +2,7 @@
 // Returns IMDb, Rotten Tomatoes, and Metacritic scores for a film or show.
 // Requires OMDB_API_KEY environment variable (free at omdbapi.com).
 
-const OMDB_KEY = process.env.OMDB_API_KEY;
+const OMDB_KEY = process.env.OMDB_API_KEY || process.env.OMDb_API;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');

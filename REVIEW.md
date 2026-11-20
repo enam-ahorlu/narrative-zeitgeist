@@ -81,3 +81,24 @@ GitHub commit relative to the device copy.
   client with synthetic accounts and HTTP responses.
 - See [the staging checklist](SUPABASE_SETUP.md#preview-checks-and-promotion)
   for hosted Auth, email and billed Anthropic verification.
+
+## Recommendation changes
+
+- **More like this** uses an entry you select, including an entry with a low
+  rating. **For You** chooses up to three favorites rated at least 7/10 per
+  format, or stays within the selected format. Results rotate across formats
+  so a long album history cannot monopolize the first page.
+- Claude receives a limited set of anchor titles, personal ratings, tags
+  and completion dates. Free-form reviews stay in the journal. The server
+  checks candidate identity in the relevant media catalogue, removes works
+  already collected, saved to Watchlist or dismissed, and ties each reason to a
+  supplied anchor. A catalogue check verifies the work and its metadata.
+  The similarity explanation is Claude’s interpretation.
+- **Not for me** persists an account-owned exclusion for later recommendations.
+  **Compare picks** shows two randomly ordered sets of equal size, up to five
+  per group, and tracks intent to try, familiarity and clarity of the reason
+  before revealing the original and updated methods. A comparison uses two
+  quota reservations and stays in the current browser session.
+- Tests cover old entries beyond the first history page, a library heavily
+  skewed toward one format, a chosen seed, fabricated or mismatched candidates,
+  blind comparison and account-owned dismissals.

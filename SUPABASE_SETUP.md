@@ -14,6 +14,7 @@ Editor or your migration runner.
 4. `migrations/003_account_isolation.sql`
 5. `migrations/004_discovery_quota.sql`
 6. `migrations/005_style_items.sql`
+7. `migrations/006_discovery_feedback.sql`
 
 For an existing database, verify which historical scripts have already been
 applied and start at the first unapplied migration. The historical scripts add
@@ -30,15 +31,21 @@ mailboxes that can receive the links.
 ## Vercel environment variables
 
 Set the variables in Vercel for the target environment, using separate Supabase
-projects and Anthropic keys for Preview and Production. Use the same Supabase
-project for its URL, public key and admin key.
+projects for Preview and Production. Enable Vercel’s system environment variables
+so the server can identify the deployment environment. Use the same Supabase
+project for its URL, public key and admin key. A preview uses only the
+`PREVIEW_SUPABASE_*` settings for Supabase, even if an integration also syncs
+the production settings.
 
 | Name | Purpose |
 | --- | --- |
 | `SUPABASE_URL` | Supabase project URL. |
-| `SUPABASE_ANON_KEY` | Browser-safe publishable key or legacy anon JWT. This and the URL are served by `/api/config`. |
+| `SUPABASE_PUBLISHABLE_KEY` | Browser-safe publishable key. `SUPABASE_ANON_KEY` is supported as a legacy alternative. The key and URL are served by `/api/config`. |
 | `SUPABASE_SECRET_KEY` | Server-only Supabase secret key used for account deletion. `SUPABASE_SERVICE_ROLE_KEY` is supported as a legacy alternative. |
-| `ANTHROPIC_API_KEY` | Server-only key for media recommendations. Requests include the taste fingerprint, selected tab and up to 100 journal or watchlist titles. |
+| `PREVIEW_SUPABASE_URL` | Staging Supabase project URL. Set only in Preview. |
+| `PREVIEW_SUPABASE_ANON_KEY` | Staging publishable key or legacy anon JWT. Set only in Preview. |
+| `PREVIEW_SUPABASE_SECRET_KEY` | Staging server-only secret key for account deletion. Set only in Preview. |
+| `ANTHROPIC_API_KEY` | Server-only key for media recommendations. Use distinct keys per environment when available. |
 | `TMDB_API_KEY` | Film and TV title search. |
 | `GOOGLE_BOOKS_API_KEY` | Optional Google Books title search. Open Library provides a fallback. |
 | `OMDB_API_KEY` | External film and TV ratings. |
@@ -56,7 +63,10 @@ quota of 12 requests per hour.
    disposable accounts. Confirm signup, sign-in, password recovery, title
    search, collection tagging and the Taste Fingerprint.
 3. With at least three synthetic entries, request a Claude recommendation, save
-   it to Watchlist, and verify the recommendation output. Check that Discovery
+   it to Watchlist, and verify the recommendation output. Open More like this,
+   confirm each displayed reason cites the chosen entry, and dismiss one pick.
+   Check that the dismissed title stays excluded from later requests. Use
+   Compare picks to assess five or fewer suggestions from each method. Check that Discovery
    rejects signed-out requests and that the thirteenth request within an hour
    is limited. Use local tests to exercise quota repeatedly without buying
    provider calls.

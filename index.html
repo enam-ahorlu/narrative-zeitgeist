@@ -306,6 +306,11 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .wl-pass-btn:hover{color:var(--a-burg)!important;background:var(--a-burg-lt)!important}
 [data-theme="dark"] .wl-ob{background:rgba(255,255,255,.05);border-color:rgba(200,225,245,.1)}
 [data-theme="dark"] .wl-ob:hover{background:rgba(74,173,186,.18);border-color:var(--p-light)}
+.disc-seed{padding:14px clamp(16px,4vw,30px);display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:8px 12px}
+.disc-seed[hidden]{display:none}
+.disc-compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.disc-compare-item{border:1px solid var(--n-border);border-radius:var(--r-sm);padding:10px;margin:8px 0}
+.disc-compare-item label{display:block;margin-top:5px;font-size:12px}
 .disc-tabs{display:flex;gap:2px;padding:14px 30px 0;border-bottom:1px solid var(--n-border);flex-shrink:0}
 .dtab{padding:8px 14px;font-size:12.5px;font-weight:500;color:var(--t-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;user-select:none}
 .dtab.active{color:var(--p-rich);border-bottom-color:var(--p-light)}
@@ -1215,9 +1220,10 @@ textarea.fi{resize:vertical;min-height:64px}
     <!-- DISCOVER -->
     <div class="screen" id="s-discover">
       <div class="ph">
-        <div><div class="ph-title">Discover</div><div class="ph-sub">Personalized from your taste fingerprint</div></div>
+        <div><div class="ph-title">Discover</div><div class="ph-sub">Find your next favorite</div></div>
         <div class="ph-actions">
-          <select class="fsel" id="disc-sort-sel" onchange="discSort(this.value)"><option value="match">Best Match</option><option value="newest">Newest</option><option value="reviewed">Most Reviewed</option></select>
+          <button class="btn btn-glass btn-sm" onclick="compareDiscovery()">Compare picks</button>
+          <select class="fsel" id="disc-sort-sel" aria-label="Recommendation order" onchange="discSort(this.value)"><option value="match">Recommended</option><option value="newest">Newest</option></select>
         </div>
       </div>
       <!-- D1: Search with on-demand match scoring -->
@@ -1241,22 +1247,28 @@ textarea.fi{resize:vertical;min-height:64px}
       </div>
       <div class="disc-tabs">
         <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
-        <div class="dtab" id="dtab-because" onclick="setDiscTab(this,'because-loved')">Because You Loved…</div>
+        <div class="dtab" id="dtab-because" onclick="setDiscTab(this,'because-loved')">More like this</div>
         <div class="dtab" onclick="setDiscTab(this,'hidden')">Hidden Gems</div>
-        <div class="dtab" onclick="setDiscTab(this,'trending')">Trending in Your Genres</div>
+        <div class="dtab" onclick="setDiscTab(this,'trending')">New releases</div>
+      </div>
+      <div class="disc-seed" id="disc-seed" hidden>
+        <label for="disc-seed-query">Find a work in your collection</label>
+        <input class="fi" id="disc-seed-query" type="search" placeholder="Filter by title" oninput="showDiscoverySeeds(this.value)">
+        <label for="disc-seed-entry">Start from</label>
+        <select class="fi fsel" id="disc-seed-entry" onchange="chooseDiscoverySeed(this.value)"></select>
       </div>
       <div class="disc-content" id="disc-content">
         <!-- Loading -->
         <div id="disc-loading" style="display:none;text-align:center;padding:64px 20px">
           <div style="width:36px;height:36px;border:3px solid var(--n-border);border-top-color:var(--p-light);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
           <div style="font-size:13px;color:var(--t-2);font-weight:500">Finding your next obsession…</div>
-          <div style="font-size:11.5px;color:var(--t-3);margin-top:4px">Claude is reading your taste fingerprint</div>
+          <div style="font-size:11.5px;color:var(--t-3);margin-top:4px">Checking suggestions against media catalogues</div>
         </div>
         <!-- Not enough data -->
         <div id="disc-nofp" style="display:none;text-align:center;padding:64px 20px">
           <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="var(--t-3)" stroke-width="1.2" style="margin-bottom:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-          <div style="font-size:14px;font-weight:600;color:var(--t-1);margin-bottom:6px">Add more entries to unlock Discovery</div>
-          <div style="font-size:12.5px;color:var(--t-3);margin-bottom:16px">Add at least 3 entries to unlock Discovery.</div>
+          <div style="font-size:14px;font-weight:600;color:var(--t-1);margin-bottom:6px">Add an entry to start discovering</div>
+          <div style="font-size:12.5px;color:var(--t-3);margin-bottom:16px">Rate a favorite for For You, or select a logged work in More like this.</div>
           <button class="btn btn-p btn-sm" onclick="openModal('add')">+ Add Entry</button>
         </div>
         <!-- Error -->
@@ -1577,6 +1589,13 @@ textarea.fi{resize:vertical;min-height:64px}
 
 <div class="toast-container" id="toast-c" role="status" aria-live="polite"></div>
 
+<div class="overlay" id="m-disc-compare">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-h"><div class="modal-title">Compare recommendations</div><button class="modal-x" aria-label="Close comparison" onclick="closeModal('disc-compare')">×</button></div>
+    <div class="modal-body" id="disc-compare-body"></div>
+  </div>
+</div>
+
 <!-- ADD ENTRY MODAL -->
 <div class="overlay" id="m-add">
   <div class="modal">
@@ -1884,6 +1903,7 @@ textarea.fi{resize:vertical;min-height:64px}
         <div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;color:var(--t-2);margin-bottom:6px">NOTES</div>
         <div style="font-size:13px;color:var(--t-2);line-height:1.65;padding:12px;background:var(--n-bg);border-radius:var(--r-sm)">The writing is exceptional — every character is deeply flawed but completely compelling. The finale was devastating in the best way. Logan Roy is the definitive antihero of the decade.</div>
       </div>
+      <button class="btn btn-p btn-sm" style="margin-bottom:14px" onclick="discoverFromEntry()">More like this</button>
       <div class="detail-influence">
         <div class="di-label">Taste Influence</div>
         <div class="di-text">This entry contributes significantly to your <strong>antihero</strong> and <strong>political drama</strong> fingerprint scores. Weighted impact: <strong>high</strong> — top 3 most influential entries in your collection.</div>
@@ -2237,7 +2257,10 @@ var _fragDiscRecs  = null; /* cached fragrance discovery results (client-side) *
 var _styleDiscRecs = null; /* cached style discovery results (client-side) */
 var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed on save */
 var _discPill    = 'all';/* current format pill filter */
-var _discTabName = 'for-you'; /* current Discovery tab */
+var _discTabName = 'for-you';
+var _discSeedId = '';
+var _discCacheKey = '';
+var _discCompare = null;
 var _discSortVal = 'match';  /* current sort: match | newest | reviewed */
 
 /* ── Lookup tables ── */
@@ -2328,7 +2351,13 @@ function handleAuthChange(event, session){
     updateCollectionStats([]);
     renderWatchlist();
     renderInsights(null);
-    document.getElementById('dtab-because').textContent = 'Because You Loved…';
+    _discSeedId = '';
+    _discCacheKey = '';
+    _discCompare = null;
+    document.getElementById('disc-compare-body').replaceChildren();
+    document.getElementById('disc-seed-query').value = '';
+    document.getElementById('disc-seed-entry').replaceChildren();
+    selectDiscoveryMode(document.querySelector('.dtab'), 'for-you');
     ['disc-search-res','disc-hero-wrap','disc-grid-wrap','tag-mgmt-list'].forEach(function(id){
       document.getElementById(id)?.replaceChildren();
     });
@@ -2372,23 +2401,21 @@ function _showAuthScreen(){
 async function loadEntries(){
   if(!currentUser) return;
   var userId = currentUser.id;
-  var res = await SUPA
-    .from('entries_with_tags')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', {ascending: false});
-  if(currentUser?.id !== userId) return;
-  if(res.error){ console.error('loadEntries:', res.error); return; }
-  var entries = res.data || [];
+  var entries = [];
+  var pageSize = 500;
+  for(var offset = 0; ; offset += pageSize){
+    var res = await SUPA.from('entries_with_tags').select('*').eq('user_id', userId)
+      .order('created_at', {ascending:false}).order('id').range(offset, offset + pageSize - 1);
+    if(currentUser?.id !== userId) return;
+    if(res.error){ console.error('loadEntries:', res.error); return; }
+    entries.push(...(res.data || []));
+    if(!res.data || res.data.length < pageSize) break;
+  }
   renderEntriesTable(entries);
   renderEntriesGrid(entries);
   updateCollectionStats(entries);
-  /* Update "Because You Loved…" tab with top-rated entry title */
-  if(entries.length){
-    var top = entries.slice().sort(function(a,b){ return b.rating - a.rating; })[0];
-    var tab = document.getElementById('dtab-because');
-    if(tab && top) tab.textContent = 'Because You Loved ' + top.title.split(':')[0].trim();
-  }
+  showDiscoverySeeds(document.getElementById('disc-seed-query').value);
+  _discCacheKey = '';
   return true;
 }
 
@@ -3236,6 +3263,10 @@ function setDiscPill(el, pill){
   el.closest('.disc-format-pills').querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
   el.classList.add('active');
   _discPill = pill;
+  if(_discTabName === 'because-loved' && pill !== 'all' && pill !== 'fragrances' && pill !== 'style'){
+    selectDiscoveryMode(document.querySelector('.dtab'), 'for-you');
+  }
+  document.getElementById('disc-seed').hidden = _discTabName !== 'because-loved' || pill === 'fragrances' || pill === 'style';
   var tabsEl  = document.querySelector('.disc-tabs');
   var sortSel = document.getElementById('disc-sort-sel');
   if(pill === 'fragrances'){
@@ -3294,21 +3325,51 @@ function wlSort(val){
   }
   renderWatchlist();
 }
-function setDiscTab(el,name){
-  document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('active')});
-  el.classList.add('active');
-  _discTabName = name || 'for-you';
-  /* For "Because You Loved…" tab: surface the user's top-rated entry in the label */
-  if(name === 'because-loved' && _allEntries.length){
-    var top = _allEntries.slice().sort(function(a,b){
-      return parseFloat(b.rating||0) - parseFloat(a.rating||0);
-    })[0];
-    var tabEl = document.getElementById('dtab-because');
-    if(tabEl && top) tabEl.textContent = 'Because You Loved: ' + top.title;
-  }
-  _discRecs = null; /* invalidate cache so tab change fetches fresh results */
+function selectDiscoveryMode(el, name){
+  document.querySelectorAll('.dtab').forEach(function(tab){tab.classList.toggle('active', tab === el);});
+  _discTabName = name;
+  document.getElementById('disc-seed').hidden = name !== 'because-loved';
+}
+
+function setDiscTab(el, name){
+  selectDiscoveryMode(el, name);
   loadDiscovery();
 }
+
+function showDiscoverySeeds(query){
+  var select = document.getElementById('disc-seed-entry');
+  var search = query.trim().toLowerCase();
+  var options = _allEntries.filter(function(entry){
+    return entry.id === _discSeedId || entry.title.toLowerCase().includes(search);
+  });
+  select.replaceChildren(new Option('Choose an entry', ''));
+  options.forEach(function(entry){
+    var format = FMT_LABEL[entry.format] || entry.format;
+    select.add(new Option(entry.title + ' · ' + format + ' · ' + entry.rating + '/10', entry.id));
+  });
+  select.value = _discSeedId;
+}
+
+function chooseDiscoverySeed(id){
+  _discSeedId = id;
+  loadDiscovery();
+}
+
+function discoverFromEntry(){
+  if(!currentEntry) return;
+  _discSeedId = currentEntry.id;
+  document.getElementById('disc-seed-query').value = '';
+  showDiscoverySeeds('');
+  closeModal('detail');
+  var pills = document.querySelectorAll('.disc-format-pills .pill');
+  pills.forEach(function(pill, index){pill.classList.toggle('active', index === 0);});
+  _discPill = 'all';
+  document.querySelector('.disc-tabs').style.display = '';
+  document.getElementById('disc-sort-sel').style.display = '';
+  selectDiscoveryMode(document.getElementById('dtab-because'), 'because-loved');
+  navigate('discover');
+}
+
 /* setWlTab defined below with full _wlTab logic */
 function updateSportField(sel){document.getElementById('sport-field').style.display=sel.value==='Match'?'block':'none'}
 
@@ -4134,23 +4195,21 @@ function discSearch(val){
       ||(d.tags||[]).some(function(t){return t.toLowerCase().includes(val);});
   });
   if(!matches.length){
-    res.innerHTML='<div class="disc-no-result">No results for "'+val+'" in your recommendations</div>';
+    res.innerHTML='<div class="disc-no-result">No results for "'+escHtml(val)+'" in your recommendations</div>';
     res.classList.add('open');return;
   }
-  var scoreClass=function(s){return s>=90?'mh':s>=75?'mm':'ml';};
   res.innerHTML=matches.slice(0,5).map(function(d){
     var bg=d.cover_color||'linear-gradient(135deg,#1A1A2E,#2A2A4E)';
     var initials=(d.title||'').split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
-    var sc=d.match_score||0;
     var recJson=escHtml(JSON.stringify(d));
     return '<div class="disc-result-item" style="cursor:pointer" title="Save to Watchlist" onclick="saveSearchResult(this)" data-rec="'+recJson+'">'+
-      '<div class="disc-result-thumb" style="background:'+bg+'">'+initials+'</div>'+
+      '<div class="disc-result-thumb" style="background:'+bg+'">'+escHtml(initials)+'</div>'+
       '<div class="disc-result-info">'+
-        '<div class="disc-result-title">'+d.title+'</div>'+
-        '<div class="disc-result-meta">'+(d.meta||d.format||'')+'</div>'+
-        '<div class="disc-result-because">'+(d.match_hook||'')+'</div>'+
+        '<div class="disc-result-title">'+escHtml(d.title)+'</div>'+
+        '<div class="disc-result-meta">'+escHtml(d.meta||d.format||'')+'</div>'+
+        '<div class="disc-result-because">'+escHtml(d.match_hook||'')+'</div>'+
       '</div>'+
-      '<div class="disc-result-score"><div class="disc-result-pct '+scoreClass(sc)+'">'+sc+'%</div><div class="disc-result-label">+ save</div></div>'+
+      '<div class="disc-result-score"><div class="disc-result-label">+ save</div></div>'+
     '</div>';
   }).join('');
   res.classList.add('open');
@@ -4174,7 +4233,7 @@ function saveSearchResult(el){
     title:         rec.title,
     format:        rec.format,
     source:        'claude_ai',
-    match_score:   rec.match_score,
+    match_score:   rec.match_score ?? null,
     match_reasons: rec.reasons || [],
     cover_color:   rec.cover_color || null,
     tags:          rec.tags || [],
@@ -4210,97 +4269,55 @@ function _discState(state, msg){
 
 var _discoveryRequest = null;
 
+var DISCOVERY_FORMATS = {films:'film', shows:'show', books:'book', matches:'sports_match', music:'music'};
+
+async function fetchDiscovery(userId, payload){
+  var token = await accountToken(userId);
+  var response = await fetch('/api/discover', {
+    method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer ' + token},
+    body:JSON.stringify(payload)
+  });
+  var data = await response.json();
+  if(!response.ok) throw new Error(data.error || 'Could not load recommendations.');
+  return data.recommendations;
+}
+
 async function loadDiscovery(force){
   if(!currentUser || _discPill === 'fragrances' || _discPill === 'style') return;
   var userId = currentUser.id;
-  var activeTab = _discTabName;
-  if(_discoveryRequest?.userId === userId && _discoveryRequest.tab === activeTab) return;
-  var CACHE_MS = 30 * 60 * 1000; /* 30 min in-memory cache */
-  if(!force && _discRecs && Date.now() - _discFetchedAt < CACHE_MS){
-    _renderDiscovery(_discRecs); return;
+  var tab = _discTabName;
+  var focus = tab === 'because-loved' ? null : DISCOVERY_FORMATS[_discPill] || null;
+  var seedId = tab === 'because-loved' ? _discSeedId : null;
+  var key = JSON.stringify([tab, focus, seedId]);
+  if(_discoveryRequest?.key === key) return;
+  if(!force && _discCacheKey === key && _discRecs?.length && Date.now() - _discFetchedAt < 1800000){
+    _renderDiscovery(_discRecs);
+    return;
   }
-  /* Gate on raw entry count — doesn't require tags */
-  if(_allEntries.length < 3){
-    _discState('nofp'); return;
+  if(!_allEntries.length){
+    _discoveryRequest = null;
+    _discState('nofp');
+    return;
   }
-  var request = {userId: userId, tab: activeTab};
+  if(tab === 'because-loved' && !seedId){
+    _discoveryRequest = null;
+    _discState('results');
+    document.getElementById('disc-hero-wrap').replaceChildren();
+    document.getElementById('disc-grid-wrap').replaceChildren();
+    return;
+  }
+  var request = {key:key};
   _discoveryRequest = request;
-  try { await ensureStyleItems(); } catch(e) { /* Media discovery works independently. */ }
-  if(_discoveryRequest !== request || currentUser?.id !== userId) return;
-  /* Best-effort: try to load fingerprint if not yet available */
-  if(!_fp){
-    try { await refreshFingerprint(); } catch(e){ console.warn('Fingerprint load failed:', e); }
-  }
-  if(_discoveryRequest !== request || currentUser?.id !== userId) return;
-  if(_discPill !== 'fragrances' && _discPill !== 'style') _discState('loading');
-  /* Exclude both logged entries AND watchlist items so Claude never re-suggests them */
-  var wlTitles    = (_wlItems||[]).map(function(it){ return it.title; });
-  var entryTitles = _allEntries.map(function(e){ return e.title; }).concat(wlTitles);
-  /* Build a minimal synthetic fingerprint if the real one isn't available yet */
-  var fpToSend = _fp;
-  if(!fpToSend){
-    /* Build a rich synthetic fingerprint directly from _allEntries */
-    var sumRating = 0, ratedCount = 0;
-    var fmtMap = {};
-    var tagFreq = {}, tagRating = {};
-    _allEntries.forEach(function(e){
-      var r = parseFloat(e.rating);
-      if(!isNaN(r)){ sumRating += r; ratedCount++; }
-      var fmt = e.format || 'unknown';
-      if(!fmtMap[fmt]) fmtMap[fmt] = {count:0, sum:0, rated:0};
-      fmtMap[fmt].count++;
-      if(!isNaN(r)){ fmtMap[fmt].sum += r; fmtMap[fmt].rated++; }
-      (e.tags||[]).forEach(function(t){
-        var name = (t.name||t||'').toLowerCase();
-        if(!name) return;
-        tagFreq[name] = (tagFreq[name]||0) + 1;
-        if(!tagRating[name]) tagRating[name] = {sum:0,n:0};
-        if(!isNaN(r)){ tagRating[name].sum += r; tagRating[name].n++; }
-      });
-    });
-    /* Format breakdown */
-    var fmtBreak = {};
-    Object.keys(fmtMap).forEach(function(k){
-      var d = fmtMap[k];
-      fmtBreak[k] = {count: d.count, avg_rating: d.rated ? (d.sum/d.rated).toFixed(1) : '0'};
-    });
-    /* Primary themes sorted by frequency */
-    var maxFreq = Math.max.apply(null, Object.keys(tagFreq).map(function(k){return tagFreq[k];})) || 1;
-    var themes = Object.keys(tagFreq).map(function(tag){
-      var avg = tagRating[tag] && tagRating[tag].n ? tagRating[tag].sum/tagRating[tag].n : 0;
-      return {tag: tag, frequency: tagFreq[tag], avg_rating: avg.toFixed(1),
-              weight: (avg * tagFreq[tag] / maxFreq).toFixed(4)};
-    }).sort(function(a,b){ return parseFloat(b.weight)-parseFloat(a.weight); });
-    fpToSend = {
-      total_entries: _allEntries.length,
-      primary_themes: themes,
-      format_breakdown: fmtBreak,
-      overall_avg_rating: ratedCount ? (sumRating/ratedCount).toFixed(1) : '0'
-    };
-  }
-  /* Resolve top-rated entry for "because-loved" tab */
-  var becauseTitle = null;
-  if(_discTabName === 'because-loved' && _allEntries.length){
-    var _topEntry = _allEntries.slice().sort(function(a,b){
-      return parseFloat(b.rating||0) - parseFloat(a.rating||0);
-    })[0];
-    becauseTitle = _topEntry ? _topEntry.title : null;
-  }
+  _discRecs = null;
+  _discState('loading');
   try {
-    var token = await accountToken(userId);
-    if(_discoveryRequest !== request) return;
-    var resp = await fetch('/api/discover', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json', Authorization:'Bearer ' + token},
-      body: JSON.stringify({fingerprint: fpToSend, entryTitles: entryTitles.slice(0, 100), tab: activeTab, becauseTitle: becauseTitle})
-    });
-    var data = await resp.json();
+    var recs = await fetchDiscovery(userId, {strategy:'grounded', tab:tab, seedId:seedId, focus:focus});
     if(_discoveryRequest !== request || currentUser?.id !== userId) return;
-    if(!resp.ok) throw new Error(data.error || 'Could not load recommendations.');
-    _discRecs = data.recommendations;
+    _discRecs = recs;
+    _discCacheKey = key;
     _discFetchedAt = Date.now();
     if(_discPill !== 'fragrances' && _discPill !== 'style') _renderDiscovery(_discRecs);
-  } catch(e){
+  } catch(e) {
     if(_discoveryRequest === request && currentUser?.id === userId && _discPill !== 'fragrances' && _discPill !== 'style'){
       _discState('error', e.message);
     }
@@ -4309,8 +4326,79 @@ async function loadDiscovery(force){
   }
 }
 
+async function compareDiscovery(){
+  if(!currentUser || _discCompare?.pending) return;
+  var body = document.getElementById('disc-compare-body');
+  openModal('disc-compare');
+  if(_discCompare?.lists) return;
+  if(_allEntries.length < 3){
+    body.textContent = 'Log at least three entries to compare the original and updated recommenders.';
+    return;
+  }
+  var userId = currentUser.id;
+  var run = {pending:true};
+  _discCompare = run;
+  body.textContent = 'Building two anonymous sets from your collection…';
+  try {
+    await refreshFingerprint();
+    if(currentUser?.id !== userId || _discCompare !== run) return;
+    var titles = _allEntries.map(function(entry){return entry.title;}).concat(_wlItems.map(function(entry){return entry.title;}));
+    var outcomes = await Promise.all([
+      fetchDiscovery(userId, {strategy:'baseline', tab:'for-you', fingerprint:_fp, entryTitles:titles.slice(0,100)}),
+      fetchDiscovery(userId, {strategy:'grounded', tab:'for-you'})
+    ]);
+    if(currentUser?.id !== userId || _discCompare !== run) return;
+    var count = Math.min(5, outcomes[0].length, outcomes[1].length);
+    run.lists = [
+      {method:'Original', picks:outcomes[0].slice(0,count)},
+      {method:'Updated', picks:outcomes[1].slice(0,count)}
+    ];
+    if(crypto.getRandomValues(new Uint8Array(1))[0] % 2) run.lists.reverse();
+    renderDiscoveryComparison(run.lists, body);
+  } catch(e) {
+    if(_discCompare === run) body.textContent = e.message;
+  } finally {
+    run.pending = false;
+  }
+}
+
+function renderDiscoveryComparison(lists, body){
+  var checks = ['Would try it', 'Already know it', 'I can see why it fits'];
+  body.innerHTML = '<p>Mark any statements that apply to each pick. Reveal the methods when you finish.</p>'
+    + '<div class="disc-compare-grid">' + lists.map(function(list, index){
+      return '<section data-compare-list="' + index + '"><h3>Set ' + ['A','B'][index] + '</h3>'
+        + list.picks.map(function(pick){
+          return '<div class="disc-compare-item"><strong>' + escHtml(pick.title) + '</strong>'
+            + '<div>' + escHtml(FMT_LABEL[pick.format] || pick.format) + '</div>'
+            + '<p>' + escHtml((pick.reasons || [])[0]) + '</p>'
+            + checks.map(function(label, check){
+              return '<label><input type="checkbox" data-compare-metric="' + check + '"> ' + label + '</label>';
+            }).join('') + '</div>';
+        }).join('') + '</section>';
+    }).join('') + '</div>'
+    + '<button class="btn btn-p btn-sm" onclick="revealDiscoveryComparison(this)">Reveal results</button>'
+    + '<div id="disc-compare-summary" role="status"></div>';
+}
+
+function revealDiscoveryComparison(button){
+  if(!_discCompare?.lists) return;
+  var checks = ['would try', 'already known', 'clear reason'];
+  document.getElementById('disc-compare-summary').innerHTML = _discCompare.lists.map(function(list, index){
+    var panel = document.querySelector('[data-compare-list="' + index + '"]');
+    var heading = 'Set ' + ['A','B'][index] + ' · ' + list.method;
+    panel.querySelector('h3').textContent = heading;
+    var summary = checks.map(function(label, metric){
+      return panel.querySelectorAll('[data-compare-metric="' + metric + '"]:checked').length + '/' + list.picks.length + ' ' + label;
+    }).join(' · ');
+    return '<p>' + heading + ' · ' + summary + '</p>';
+  }).join('');
+  document.querySelectorAll('[data-compare-metric]').forEach(function(input){input.disabled = true;});
+  button.textContent = 'Compare again';
+  button.onclick = function(){_discCompare = null; compareDiscovery();};
+}
+
 function _filterDisc(recs){
-  if(_discPill === 'all') return recs;
+  if(_discPill === 'all' || _discTabName === 'because-loved') return recs;
   var map = {films:'film', shows:'show', books:'book', matches:'sports_match', music:'music'};
   var fmt = map[_discPill] || _discPill;
   return recs.filter(function(r){ return r.format === fmt; });
@@ -4321,20 +4409,14 @@ function discSort(val){
   var sel = document.getElementById('disc-sort-sel');
   if(sel) sel.value = val;
   if(!_discRecs || !_discRecs.length) return;
-  if(val === 'newest'){
-    _discRecs.sort(function(a,b){ return (parseInt(b.year)||0) - (parseInt(a.year)||0); });
-  } else if(val === 'reviewed'){
-    _discRecs.sort(function(a,b){ return (b.review_count||0) - (a.review_count||0); });
-  } else {
-    /* match (default) */
-    _discRecs.sort(function(a,b){ return (b.match_score||0) - (a.match_score||0); });
-  }
   _renderDiscovery(_discRecs);
+
 }
 
 function _renderDiscovery(recs){
   if(!recs || !recs.length){ _discState('error','No recommendations returned.'); return; }
-  var filtered = _filterDisc(recs);
+  var filtered = _filterDisc(recs).slice();
+  if(_discSortVal === 'newest') filtered.sort(function(a,b){return (parseInt(b.year)||0) - (parseInt(a.year)||0);});
   if(!filtered.length){
     /* Not an error — the AI just returned no items for this format pill */
     _discState('results');
@@ -4354,7 +4436,11 @@ function _renderDiscovery(recs){
   /* Grid = rest */
   _renderGrid(filtered.slice(1));
   /* Append scent & style picks at bottom of All feed */
-  if(_discPill==='all') setTimeout(_appendScentStyleToDiscover,0);
+  if(_discPill==='all' && _discTabName === 'for-you'){
+    ensureStyleItems().then(function(){
+      if(_discRecs === recs && _discPill === 'all' && _discTabName === 'for-you') _appendScentStyleToDiscover();
+    }).catch(function(){});
+  }
 }
 
 /* ── Append Scent & Style picks to the Discover All feed ── */
@@ -4431,16 +4517,17 @@ function _renderHero(rec){
     +'<div style="flex:1;position:relative;z-index:1">'
     +'<div class="disc-hero-badge">⭐ Top Pick</div>'
     +'<div class="disc-hero-title">'+escHtml(rec.title)+'</div>'
-    +'<div class="disc-hero-meta">'+escHtml(rec.meta||FMT_LABEL[rec.format]||rec.format)+'</div>'
+    +'<div class="disc-hero-meta">'+escHtml([FMT_LABEL[rec.format],rec.meta].filter(Boolean).join(' · '))+'</div>'
+    +(rec.anchor ? '<div class="disc-hero-meta">'+escHtml(rec.match_hook)+' · '+escHtml(rec.anchor.rating)+'/10</div>' : '')
     +'<div class="disc-hero-reasons">'+reasons+'</div>'
     +'<div class="disc-hero-tags">'+tags+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
     +'<button class="btn btn-p btn-sm" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
     +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collection</button>'
+    +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'">Not for me</button>'
     +'</div></div>'
     +'<div class="disc-hero-right" style="position:relative;z-index:1">'
-    +'<div class="disc-hero-match">'+rec.match_score+'%</div>'
-    +'<div class="disc-hero-match-label">taste match</div>'
+    +(rec.catalog ? '<div class="disc-hero-match-label">Catalogue checked</div>' : '')
     +'<div class="disc-hero-actions"><div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(initials)+'</div></div>'
     +'</div></div>';
 }
@@ -4454,7 +4541,6 @@ function _renderGrid(recs){
   recs.forEach(function(rec, i){
     var bg      = rec.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
     var initials = _recInitials(rec.title);
-    var mCls    = rec.match_score >= 90 ? 'mh' : rec.match_score >= 80 ? 'mm' : '';
     var reasons = (rec.reasons||[]).map(function(r){
       return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';
     }).join('');
@@ -4467,7 +4553,7 @@ function _renderGrid(recs){
       '<div class="rc anim-fadeup'+delay+'">'
       +'<div class="rc-poster" style="background:'+bg+'">'
       +'<div class="rc-initials">'+escHtml(initials)+'</div>'
-      +'<div class="rc-match '+mCls+'">'+rec.match_score+'%</div>'
+       +(rec.catalog ? '<div class="rc-match">Catalogue checked</div>' : '')
       +'</div>'
       +'<div class="rc-body">'
       +'<div class="rc-title">'+escHtml(rec.title)+'</div>'
@@ -4481,6 +4567,7 @@ function _renderGrid(recs){
       +'<div class="rc-foot">'
       +'<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
       +'<button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collect</button>'
+      +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'">Not for me</button>'
       +'</div></div></div>';
   });
   html += '</div>';
@@ -4502,7 +4589,7 @@ async function saveToWatchlist(btn){
     title:         rec.title,
     format:        rec.format,
     source:        'claude_ai',
-    match_score:   rec.match_score,
+    match_score:   rec.match_score ?? null,
     match_reasons: rec.reasons || [],
     cover_color:   rec.cover_color || null,
     tags:          rec.tags || [],
@@ -4712,17 +4799,45 @@ async function confirmWlRemove(btn){
   showToast(title + ' removed from Watchlist');
 }
 
-async function passWlItem(btn){
-  var item  = btn.closest('.wl-item');
-  var id    = item.dataset.wlId;
-  var title = (item.querySelector('.wl-title')||{}).textContent || 'Item';
-  if(id){
-    await SUPA.from('watchlist').delete().eq('id', id);
-    _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
+async function rememberDismissal(item, userId){
+  if(!currentUser || currentUser.id !== userId) return false;
+  var result = await SUPA.from('discovery_feedback').upsert(
+    {user_id:userId,title:item.title,format:item.format}, {onConflict:'user_id,format,title',ignoreDuplicates:true});
+  if(currentUser?.id !== userId) return false;
+  if(result.error){
+    showToast('Could not save this preference. Try again.', '⚠');
+    return false;
   }
-  _animateRemove(item, function(){ renderWatchlist(); });
-  showToast('Passed on ' + title, '✗  ');
+  return true;
 }
+
+async function dismissDiscovery(btn){
+  var item = JSON.parse(btn.dataset.rec);
+  btn.disabled = true;
+  if(await rememberDismissal(item, currentUser?.id)){
+    _discRecs = (_discRecs || []).filter(function(rec){return rec.title !== item.title || rec.format !== item.format;});
+    _renderDiscovery(_discRecs);
+    showToast('Dismissed from future recommendations.');
+  }
+  btn.disabled = false;
+}
+
+async function passWlItem(btn){
+  var row = btn.closest('.wl-item');
+  var item = _wlItems.find(function(candidate){return candidate.id === row.dataset.wlId;});
+  if(!item || !currentUser) return;
+  var userId = currentUser.id;
+  btn.disabled = true;
+  if(!await rememberDismissal(item, userId)){ btn.disabled = false; return; }
+  var result = await SUPA.from('watchlist').delete().eq('id', item.id);
+  if(currentUser?.id !== userId) return;
+  btn.disabled = false;
+  if(result.error){showToast('Preference saved. Could not remove the watchlist item.', '⚠'); return;}
+  _wlItems = _wlItems.filter(function(candidate){return candidate.id !== item.id;});
+  _animateRemove(row, function(){renderWatchlist();});
+  showToast('Removed and dismissed from future recommendations.');
+}
+
 
 /* ── Password show/hide toggle ── */
 function togglePassVis(inputId, btn){
@@ -6088,7 +6203,7 @@ function _buildScentProfile(){
     p.ownedKeys.add(catalogueText(f.name) + '|' + catalogueText(f.house));
     var r=parseFloat(f.rating); var w=(!isNaN(r)&&r>0)?r/10:0.5;
     var season=(f.season||'').toLowerCase();
-    if(season) p.seasons[season]=(p.seasons[season]||0)+w;
+    season.split('/').filter(Boolean).forEach(function(part){p.seasons[part]=(p.seasons[part]||0)+w;});
     var proj=(f.projection||'').toLowerCase();
     if(proj) p.projections[proj]=(p.projections[proj]||0)+w;
     var house=(f.house||'').toLowerCase().trim();
@@ -6151,7 +6266,7 @@ function _scoreFrag(entry, p){
   if(p.houses[hKey]){ score+=Math.min(p.houses[hKey]/maxH*10,10); reasons.push('You already enjoy '+entry[1]); }
   /* Normalize to 55–97 */
   var final=Math.min(97,Math.max(55,Math.round(55+score/100*42)));
-  if(!reasons.length) reasons.push('Matches your overall scent profile');
+  if(!reasons.length) reasons.push('Explore this scent from the catalogue');
   return {score:final,reasons:reasons};
 }
 
