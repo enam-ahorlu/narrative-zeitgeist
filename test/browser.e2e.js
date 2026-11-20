@@ -23,6 +23,7 @@ const dismissals = [];
 const styleItems = [];
 const resetRecipients = [];
 const stylesCreated = [];
+const discoveryInputs = [];
 const passwordUpdates = [];
 let discoveryRequests = 0;
 let deleteRequests = 0;
@@ -56,6 +57,10 @@ function createMocks(assets) {
     const path = url.pathname;
     const method = request.method();
     const send = (json, status = 200) => route.fulfill({ status, json });
+    if (url.hostname === 'upload.wikimedia.org') {
+      return route.fulfill({ contentType:'image/gif', body:Buffer.from(
+        'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') });
+    }
     if (url.origin !== origin) return route.abort();
     if (assets[path]) return route.fulfill(assets[path]);
     if (path === '/api/config') return send({ url: origin, key: 'sb_publishable_synthetic' });
@@ -101,6 +106,7 @@ function createMocks(assets) {
     }
     if (path === '/api/discover') {
       discoveryRequests++;
+      discoveryInputs.push(body);
       if (limitDiscovery) return send({ error: 'Discovery limit reached. Try again later.' }, 429);
       if (body.strategy === 'baseline') {
         if (!body.entryTitles.includes('Journal A 1')) return send({ error: 'Missing journal data' }, 400);
@@ -119,7 +125,8 @@ function createMocks(assets) {
         }] });
       }
       return send({ recommendations: [{
-        title: 'Synthetic discovery book', format: 'book',
+        title: body.recent?.some(item => item.title === 'Synthetic discovery book') ? 'Fresh synthetic book' : 'Synthetic discovery book',
+        format: 'book', affinity:{label:'Close match',sharedTags:['afrofuturism','mystery']},
         reasons: ['Theme match', 'Format match', 'Rating match'], tags: ['afrofuturism'],
         meta: 'Book', cover_color: null, catalog:{provider:'openlibrary',id:'/works/fixture2'}
       }] });
@@ -137,6 +144,13 @@ function createMocks(assets) {
     }
     if (path === '/rest/v1/watchlist') {
       if (method === 'GET') return send(watchlist.filter(matchesUser));
+      if (method === 'PATCH') {
+        const row = watchlist.find(entry => matchesUser(entry) && 'eq.' + entry.id === url.searchParams.get('id'));
+        assert.equal(url.searchParams.get('user_id'), 'eq.' + user.id);
+        if (!row) return send({ message: 'Watchlist item missing' },404);
+        row.priority = body.priority;
+        return send({id:row.id});
+      }
       if (method === 'POST') {
         const row = { ...body, id: randomUUID(), saved_at: '2026-10-01' };
         watchlist.push(row);
@@ -236,20 +250,83 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#s-collection').getByText('Journal A 1', { exact: true }).first().waitFor();
   assert.equal(await page.getByText('Journal B 1', { exact: true }).count(), 0);
   await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  const tagSearch = page.locator('#tp-search-inp');
+  const tag = label => page.locator('#tag-picker').getByRole('button',{name:label,exact:true});
+  await tagSearch.fill('music');
+  assert.ok(await tag('rap').isVisible());
+  assert.ok(await tag('iconic').isVisible());
+  assert.equal(await tag('mystery').count(),0);
+  await tag('rap').click();
+  await tagSearch.fill('movies');
+  assert.ok(await tag('mystery').isVisible());
+  assert.ok(await tag('espionage').isVisible());
+  assert.equal(await tag('rap').count(),0);
+  await tagSearch.fill('books cliff hanger');
+  assert.ok(await tag('cliffhanger').isVisible());
+  await tagSearch.fill('sports');
+  assert.ok(await tag('iconic').isVisible());
+  assert.ok(await tag('extra time').isVisible());
+  await tagSearch.clear();
+  assert.equal(await tag('rap').getAttribute('aria-pressed'),'true');
+  await tag('rap').click();
+  await page.locator('#add-notes').fill('Notes unique to this entry');
   await page.locator('#add-title').fill('Synthetic new journal entry');
   await page.locator('#add-format').selectOption('Book');
   await page.locator('#add-save-btn').click();
   await page.locator('#s-collection').getByText('Synthetic new journal entry', { exact: true }).first().waitFor();
+
+  await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  assert.equal(await page.locator('#add-notes').inputValue(),'');
+  assert.equal(await page.locator('#add-title').inputValue(),'');
+  await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
+  await page.locator('#s-collection .tbl-wrap').getByText('Synthetic new journal entry',{exact:true}).click();
+  await page.locator('#m-detail').getByRole('button',{name:'Edit',exact:false}).click();
+  assert.equal(await page.locator('#add-notes').inputValue(),'Notes unique to this entry');
+  await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
+
+  await visit('designsystem');
+  const appearance = page.locator('#s-designsystem');
+  const preview = appearance.locator('.appearance-preview');
+  const padding = await preview.evaluate(element => getComputedStyle(element).padding);
+  const accent = await preview.locator('.btn-glass').evaluate(element => getComputedStyle(element).borderColor);
+  await appearance.getByRole('button',{name:'Forest',exact:true}).click();
+  await appearance.getByRole('button',{name:'Lavender',exact:true}).click();
+  await appearance.getByRole('button',{name:'Compact',exact:true}).click();
+  assert.notEqual(await preview.evaluate(element => getComputedStyle(element).padding),padding);
+  assert.notEqual(await preview.locator('.btn-glass').evaluate(element => getComputedStyle(element).borderColor),accent);
+  await visit('settings');
+  await page.getByRole('switch',{name:'Dark mode'}).click();
+  await page.reload();
+  await page.locator('#s-settings.active').waitFor();
+  assert.equal(await page.getByRole('switch',{name:'Dark mode'}).getAttribute('aria-checked'),'true');
+  assert.equal(await page.locator('#density-select').inputValue(),'compact');
+  assert.equal(await page.locator('#s-settings [data-palette="#2A5A3A"]').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('#s-settings [data-accent="#9B94C0"]').getAttribute('aria-pressed'),'true');
 
   await visit('discover');
   await page.getByText('Discovery limit reached', { exact: false }).waitFor();
   limitDiscovery = false;
   await page.getByRole('button', { name: 'Try Again' }).click();
   await page.locator('#disc-hero-wrap').getByText('Synthetic discovery book').waitFor();
+  await page.locator('#disc-hero-wrap').getByText('Close match',{exact:true}).waitFor();
   await page.locator('#disc-hero-wrap').getByRole('button', { name: '+ Watchlist' }).click();
   await visit('watchlist');
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
   assert.equal(discoveryRequests, 2);
+  const priority = page.getByRole('combobox',{name:'Priority for Synthetic discovery book'});
+  await priority.selectOption('up_next');
+  await page.getByText('Moved to Up Next',{exact:false}).waitFor();
+  await page.locator('.wl-stab').getByText('Up Next',{exact:true}).click();
+  await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
+  assert.equal(watchlist[0].priority,'up_next');
+  await priority.selectOption('maybe');
+  await page.getByText('No Up Next items yet.',{exact:false}).waitFor();
+  await page.locator('.wl-stab').getByText('Maybe',{exact:true}).click();
+  assert.equal(await priority.inputValue(),'maybe');
+  await visit('discover');
+  await page.getByRole('button',{name:'Get a fresh batch'}).click();
+  await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
+  assert.ok(discoveryInputs.at(-1).recent.some(item => item.title === 'Synthetic discovery book'));
   await visit('collection');
   await page.locator('#s-collection .tbl-wrap').getByText('Journal A 1', {exact:true}).click();
   await page.locator('#m-detail').getByRole('button', {name:'More like this'}).click();
@@ -258,6 +335,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-hero-wrap').getByRole('button', {name:'Not for me'}).click();
   await page.getByText('Dismissed from future recommendations.', {exact:false}).waitFor();
   assert.equal(dismissals[0].title, 'Seeded synthetic book');
+  await page.getByRole('button',{name:'Clear starting entry'}).click();
+  assert.equal(await page.locator('#disc-seed-entry').inputValue(),'');
+  await page.getByText('Choose a work to get recommendations connected to it.').waitFor();
+  assert.ok(await page.getByRole('button',{name:'Refresh picks'}).isDisabled());
   await page.getByRole('button', {name:'Compare picks'}).click();
   const comparison = page.locator('#m-disc-compare');
   await comparison.getByRole('heading', {name:'Set A',exact:true}).waitFor();
@@ -329,6 +410,20 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.getByText('No fragrances yet', { exact: true }).waitFor();
   assert.equal(styleItems.filter(row => row.user_id === users[1].id).length, 0);
 
+  await visit('discover');
+  const combined = page.locator('#disc-style-picks');
+  await combined.getByRole('heading',{name:'Fragrance picks'}).waitFor();
+  await combined.getByRole('heading',{name:'Wardrobe picks'}).waitFor();
+  await combined.getByRole('img',{name:'CK One bottle'}).waitFor();
+  await combined.getByRole('button',{name:'Wishlist · CK One'}).click();
+  await page.getByText('CK One saved as wishlisted',{exact:false}).waitFor();
+  await combined.locator('[data-kind="wardrobe"] [data-status="Owned"]').first().click();
+  await page.getByText('saved as owned',{exact:false}).waitFor();
+  await visit('insights');
+  await page.locator('#insights-style').getByText('0 owned · 1 wishlisted · 0 tried').waitFor();
+  await page.locator('#insights-style').getByText('1 owned · 0 wishlisted',{exact:true}).waitFor();
+  await visit('fragrances');
+  await page.locator('#frag-grid').getByRole('img',{name:'CK One bottle'}).waitFor();
   await visit('discover');
   await page.locator('.disc-format-pills').getByText('Fragrances', { exact: false }).click();
   await page.locator('#disc-search-inp').fill('khamrah qahwa');

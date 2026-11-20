@@ -727,7 +727,9 @@ textarea.fi{resize:vertical;min-height:64px}
   /* Watchlist */
   .wl-content{padding:12px 16px 80px}
   .wl-header-row{gap:6px}
-  .wl-match,.wl-priority{display:none}
+  .wl-match{display:none}
+  .wl-item{flex-wrap:wrap}
+  .wl-actions{flex-wrap:wrap}
   .wl-item{gap:10px;padding:10px 12px}
 
   /* Modals: full-width on mobile */
@@ -938,6 +940,35 @@ textarea.fi{resize:vertical;min-height:64px}
 .col-ss-header{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);padding:20px 30px 10px;border-top:1px solid var(--n-border)}
 .col-ss-header:first-child{border-top:none;padding-top:4px}
 @media(max-width:768px){.col-ss-header{padding:16px 16px 8px}.col-ss-header:first-child{padding-top:4px}}
+.tag-format-controls{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}
+#tag-picker{max-height:10rem;overflow:auto;align-content:flex-start}
+#tag-picker .tp[hidden]{display:none}
+#tp-scope{color:var(--t-3);font-size:11px;margin-top:4px}
+.wl-priority{cursor:pointer;border:1px solid var(--n-border)}
+#disc-style-picks{margin:0 0 20px}
+#disc-style-picks h3{margin:14px 0 10px}
+.disc-method{font-size:12px;color:var(--t-2);margin-bottom:12px;max-width:68ch}
+.disc-method summary{cursor:pointer}
+.disc-affinity,.disc-empty{font-size:12px;margin:6px 0 10px;color:var(--t-2)}
+.disc-hero .disc-affinity{color:rgba(255,255,255,.85)}
+.disc-seed button{grid-column:2;justify-self:start}
+.style-quick-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+[data-density="compact"] .col-card,[data-density="compact"] .rc-body,[data-density="compact"] .frag-card,[data-density="compact"] .ward-card{padding:10px}
+.style-fingerprint-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;font-size:13px;color:var(--t-2)}
+.style-fingerprint-grid h3,.style-fingerprint-grid p{margin:8px 0}
+.fragrance-poster{position:relative;display:grid;place-items:center;min-height:88px;overflow:hidden;background:rgba(128,128,128,.12)}
+.rc-poster .fragrance-poster{width:100%;height:100%}
+.frag-card .fragrance-poster{height:125px;margin-bottom:12px;border-radius:var(--r-sm);background:var(--p-ghost)}
+.disc-hero .fragrance-poster{width:100px;height:115px;border-radius:var(--r-sm)}
+.fragrance-poster span{font-family:'Cormorant Garamond',serif;font-size:30px;opacity:.7}
+.fragrance-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--n-surface)}
+.fragrance-poster a{position:absolute;bottom:3px;right:4px;font-size:10px;padding:1px 4px;color:var(--t-1);background:var(--n-surface);border-radius:3px}
+button.theme-option,button.mini-theme,button.density-opt{font-family:inherit;background:var(--n-surface);color:var(--t-1)}
+button.density-opt.active{background:var(--p-ghost);color:var(--p-rich)}
+button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-offset:2px}
+.appearance-preview{gap:10px;padding:12px;background:var(--n-bg);color:var(--t-2);margin-top:12px}
+[data-density="compact"] .appearance-preview{padding:5px 8px}
+.btn-p{box-shadow:inset 0 -2px color-mix(in srgb,var(--theme-accent) 60%,transparent)}
 </style>
 </head>
 <body>
@@ -1194,7 +1225,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="ig">
         <div class="card anim-fadeup">
           <div class="ct">Taste Fingerprint</div>
-          <div class="cs">Weighted: theme frequency × avg rating</div>
+          <div class="cs">Tags you use often on highly rated entries rank higher.</div>
           <!-- O2: Building/sparse placeholder (hidden by default) -->
           <div class="fp-building" id="fp-building">
             <div class="fp-building-ring"><svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
@@ -1207,6 +1238,7 @@ textarea.fi{resize:vertical;min-height:64px}
           <div class="fp-list" id="fp-list"></div>
         </div>
         <div class="card anim-fadeup anim-delay-1"><div class="ct">Taste DNA</div><div class="cs">Your profile across 6 dimensions</div><canvas id="radarChart" style="max-height:200px"></canvas></div>
+        <section class="card card-full" id="insights-style" aria-label="Scent and wardrobe fingerprint" hidden></section>
         <div class="card card-full anim-fadeup anim-delay-2">
           <div class="ct">Patterns Discovered</div><div class="cs">Things about your taste you might not have noticed</div>
           <div class="patterns-grid" id="patterns-grid"></div>
@@ -1223,6 +1255,7 @@ textarea.fi{resize:vertical;min-height:64px}
         <div><div class="ph-title">Discover</div><div class="ph-sub">Find your next favorite</div></div>
         <div class="ph-actions">
           <button class="btn btn-glass btn-sm" onclick="compareDiscovery()">Compare picks</button>
+          <button class="btn btn-glass btn-sm" id="disc-refresh" onclick="refreshDiscovery()">Refresh picks</button>
           <select class="fsel" id="disc-sort-sel" aria-label="Recommendation order" onchange="discSort(this.value)"><option value="match">Recommended</option><option value="newest">Newest</option></select>
         </div>
       </div>
@@ -1256,8 +1289,14 @@ textarea.fi{resize:vertical;min-height:64px}
         <input class="fi" id="disc-seed-query" type="search" placeholder="Filter by title" oninput="showDiscoverySeeds(this.value)">
         <label for="disc-seed-entry">Start from</label>
         <select class="fi fsel" id="disc-seed-entry" onchange="chooseDiscoverySeed(this.value)"></select>
+        <button class="btn btn-ghost btn-sm" id="disc-seed-clear" onclick="clearDiscoverySeed()" disabled>Clear starting entry</button>
       </div>
       <div class="disc-content" id="disc-content">
+        <details class="disc-method">
+          <summary>How picks are matched</summary>
+          <p>For You, Hidden Gems and New releases look at a sample of works you rated 7/10 or higher across the relevant formats. More like this uses the entry you choose. Tags on those entries help identify specific qualities to look for.</p>
+          <p>Close match means the pick was linked to an entry you rated at least 8/10 and the recommender suggested two or more shared tags. Shared taste indicates some tag overlap. Explore gives you a connection to consider when there’s no suggested overlap.</p>
+        </details>
         <!-- Loading -->
         <div id="disc-loading" style="display:none;text-align:center;padding:64px 20px">
           <div style="width:36px;height:36px;border:3px solid var(--n-border);border-top-color:var(--p-light);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
@@ -1273,11 +1312,12 @@ textarea.fi{resize:vertical;min-height:64px}
         </div>
         <!-- Error -->
         <div id="disc-err" style="display:none;text-align:center;padding:64px 20px">
-          <div style="font-size:13px;color:var(--t-2);margin-bottom:8px" id="disc-err-msg">Something went wrong.</div>
-          <button class="btn btn-glass btn-sm" onclick="openDiscoverScreen()">Try Again</button>
+          <div style="font-size:13px;color:var(--t-2);margin-bottom:8px" id="disc-err-msg" role="status">Something went wrong.</div>
+          <button class="btn btn-glass btn-sm" onclick="retryDiscovery()">Try Again</button>
         </div>
         <!-- Hero + grid (populated by JS) -->
         <div id="disc-hero-wrap"></div>
+        <section id="disc-style-picks" aria-label="Scent and style picks" hidden></section>
         <div id="disc-grid-wrap"></div>
       </div>
     </div>
@@ -1326,31 +1366,32 @@ textarea.fi{resize:vertical;min-height:64px}
     <div class="screen" id="s-designsystem">
       <div class="ds-wrap">
         <div class="ds-pg-title">Design System</div>
-        <div class="ds-pg-sub">Narrative &amp; Zeitgeist · v1.1 · April 2026 — Interactive customization</div>
+        <div class="ds-pg-sub">Customize the app and preview its components</div>
         <div class="ds-section">
           <div class="ds-title">Customize</div>
           <div class="ds-sub">COLOR THEME</div>
           <div class="theme-grid">
-            <div class="theme-option active" onclick="applyTheme(this,'#1B5E76','#4AADBA','#092E3D')"><div class="theme-swatch" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"></div><div class="theme-name">Ocean Teal</div></div>
-            <div class="theme-option" onclick="applyTheme(this,'#2A4A7A','#5A8ABA','#0A1E3A')"><div class="theme-swatch" style="background:linear-gradient(135deg,#2A4A7A,#5A8ABA)"></div><div class="theme-name">Deep Blue</div></div>
-            <div class="theme-option" onclick="applyTheme(this,'#2A5A3A','#5A9A6A','#0A2A1A')"><div class="theme-swatch" style="background:linear-gradient(135deg,#2A5A3A,#5A9A6A)"></div><div class="theme-name">Forest</div></div>
-            <div class="theme-option" onclick="applyTheme(this,'#7A4A6A','#B07A9A','#2A0A1A')"><div class="theme-swatch" style="background:linear-gradient(135deg,#7A4A6A,#B07A9A)"></div><div class="theme-name">Mauve</div></div>
+            <button type="button" data-palette="#1B5E76" class="theme-option active" onclick="applyTheme(this,'#1B5E76','#4AADBA','#092E3D')"><div class="theme-swatch" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"></div><div class="theme-name">Ocean Teal</div></button>
+            <button type="button" data-palette="#2A4A7A" class="theme-option" onclick="applyTheme(this,'#2A4A7A','#5A8ABA','#0A1E3A')"><div class="theme-swatch" style="background:linear-gradient(135deg,#2A4A7A,#5A8ABA)"></div><div class="theme-name">Deep Blue</div></button>
+            <button type="button" data-palette="#2A5A3A" class="theme-option" onclick="applyTheme(this,'#2A5A3A','#5A9A6A','#0A2A1A')"><div class="theme-swatch" style="background:linear-gradient(135deg,#2A5A3A,#5A9A6A)"></div><div class="theme-name">Forest</div></button>
+            <button type="button" data-palette="#7A4A6A" class="theme-option" onclick="applyTheme(this,'#7A4A6A','#B07A9A','#2A0A1A')"><div class="theme-swatch" style="background:linear-gradient(135deg,#7A4A6A,#B07A9A)"></div><div class="theme-name">Mauve</div></button>
           </div>
           <div class="ds-sub" style="margin-top:16px">CONTENT DENSITY</div>
           <div class="density-row">
-            <div class="density-opt active" onclick="setDensity(this,'comfortable')">Comfortable</div>
-            <div class="density-opt" onclick="setDensity(this,'compact')">Compact</div>
+            <button type="button" data-density-choice="comfortable" class="density-opt active" onclick="setDensity(this,'comfortable')">Comfortable</button>
+            <button type="button" data-density-choice="compact" class="density-opt" onclick="setDensity(this,'compact')">Compact</button>
           </div>
           <div class="ds-sub" style="margin-top:16px">ACCENT COLOR</div>
           <div style="display:flex;gap:8px;margin-top:4px">
-            <div onclick="setAccent(this,'#4AADBA','#1B5E76')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1B5E76,#4AADBA);cursor:pointer;border:2px solid #1B5E76;transition:transform .15s" title="Teal"></div>
-            <div onclick="setAccent(this,'#9B94C0','#5A5490')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#5A5490,#9B94C0);cursor:pointer;border:2px solid transparent;transition:transform .15s" title="Lavender"></div>
-            <div onclick="setAccent(this,'#B89FAD','#7A5A6A')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7A5A6A,#B89FAD);cursor:pointer;border:2px solid transparent;transition:transform .15s" title="Mauve"></div>
-            <div onclick="setAccent(this,'#6A9A7A','#2A5A3A')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2A5A3A,#6A9A7A);cursor:pointer;border:2px solid transparent;transition:transform .15s" title="Sage"></div>
+            <button type="button" data-accent="#4AADBA" aria-label="Teal" onclick="setAccent(this,'#4AADBA','#1B5E76')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1B5E76,#4AADBA);cursor:pointer;border:2px solid #1B5E76;transition:transform .15s" title="Teal"></button>
+            <button type="button" data-accent="#9B94C0" aria-label="Lavender" onclick="setAccent(this,'#9B94C0','#5A5490')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#5A5490,#9B94C0);cursor:pointer;border:2px solid transparent;transition:transform .15s" title="Lavender"></button>
+            <button type="button" data-accent="#B89FAD" aria-label="Mauve" onclick="setAccent(this,'#B89FAD','#7A5A6A')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7A5A6A,#B89FAD);cursor:pointer;border:2px solid transparent;transition:transform .15s" title="Mauve"></button>
+            <button type="button" data-accent="#6A9A7A" aria-label="Sage" onclick="setAccent(this,'#6A9A7A','#2A5A3A')" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2A5A3A,#6A9A7A);cursor:pointer;border:2px solid transparent;transition:transform .15s" title="Sage"></button>
           </div>
+          <div class="comp-row appearance-preview"><span class="btn btn-p">Primary</span><span class="btn btn-glass">Accent</span><span>Appearance preview</span></div>
         </div>
         <div class="ds-section">
-          <div class="ds-title">Color Palette</div>
+          <div class="ds-title">Reference Palette</div>
           <div class="ds-sub">Primary — Blues &amp; Teals</div>
           <div class="swatches" style="margin-bottom:16px">
             <div class="swatch"><div class="sw-block" style="background:#0E4458"></div><div class="sw-name">Rich Deep</div><div class="sw-hex">#0E4458</div></div>
@@ -1391,10 +1432,10 @@ textarea.fi{resize:vertical;min-height:64px}
           </div>
         </div>
         <div class="ds-section">
-          <div class="ds-title">Components</div>
-          <div class="comp-row"><div class="comp-label">Solid</div><button class="btn btn-p">Primary</button></div>
-          <div class="comp-row"><div class="comp-label">Glass</div><button class="btn btn-glass">Glass Teal</button></div>
-          <div class="comp-row"><div class="comp-label">Ghost</div><button class="btn btn-g">Ghost</button><button class="btn btn-ghost">Bare Ghost</button></div>
+          <div class="ds-title">Component previews</div>
+          <div class="comp-row"><div class="comp-label">Solid</div><span class="btn btn-p">Primary</span></div>
+          <div class="comp-row"><div class="comp-label">Glass</div><span class="btn btn-glass">Glass Teal</span></div>
+          <div class="comp-row"><div class="comp-label">Ghost</div><span class="btn btn-g">Ghost</span><span class="btn btn-ghost">Bare Ghost</span></div>
           <div class="comp-row"><div class="comp-label">Badges</div><span class="badge b-show">Show</span><span class="badge b-book">Book</span><span class="badge b-match">Match</span><span class="badge b-music">Music</span></div>
           <div class="comp-row"><div class="comp-label">Ratings</div><div class="rating"><div class="rd rd-hi"></div>9.5</div><div class="rating" style="margin-left:12px"><div class="rd rd-mid"></div>7.8</div><div class="rating" style="margin-left:12px"><div class="rd rd-lo"></div>5.5</div></div>
           <div class="comp-row"><div class="comp-label">Tags</div><span class="tag">antihero</span><span class="tag">political drama</span><span class="tag">world-building</span><span class="tag">thriller</span></div>
@@ -1432,9 +1473,9 @@ textarea.fi{resize:vertical;min-height:64px}
           <div class="ss" id="s-appearance">
             <div class="ss-head"><div><div class="ss-title">Appearance</div><div class="ss-sub">Control how the app looks and feels</div></div></div>
             <div class="ss-body">
-              <div class="sr"><div class="sr-left"><div class="sr-label">Dark Mode</div><div class="sr-sub">Switch between light and dark interface</div></div><div class="sr-right"><div class="toggle" id="dm-setting-toggle" onclick="toggleDarkModeFromSettings(this)"></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Color Theme</div><div class="sr-sub">Sets the primary palette across the app</div></div><div class="sr-right"><div class="mini-theme-row"><div class="mini-theme active" onclick="applyThemeFromSettings(this,'#1B5E76','#4AADBA','#092E3D')" title="Ocean Teal"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"></div><div class="mini-theme-name">Teal</div></div><div class="mini-theme" onclick="applyThemeFromSettings(this,'#2A4A7A','#5A8ABA','#0A1E3A')" title="Deep Blue"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A4A7A,#5A8ABA)"></div><div class="mini-theme-name">Blue</div></div><div class="mini-theme" onclick="applyThemeFromSettings(this,'#2A5A3A','#5A9A6A','#0A2A1A')" title="Forest"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A5A3A,#5A9A6A)"></div><div class="mini-theme-name">Forest</div></div><div class="mini-theme" onclick="applyThemeFromSettings(this,'#7A4A6A','#B07A9A','#2A0A1A')" title="Mauve"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#7A4A6A,#B07A9A)"></div><div class="mini-theme-name">Mauve</div></div></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Accent Color</div><div class="sr-sub">Highlights, active states, and interactive elements</div></div><div class="sr-right"><div class="accent-row"><div class="accent-dot active" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)" onclick="setAccentFromSettings(this,'#4AADBA','#1B5E76')" title="Teal"></div><div class="accent-dot" style="background:linear-gradient(135deg,#5A5490,#9B94C0)" onclick="setAccentFromSettings(this,'#9B94C0','#5A5490')" title="Lavender"></div><div class="accent-dot" style="background:linear-gradient(135deg,#7A5A6A,#B89FAD)" onclick="setAccentFromSettings(this,'#B89FAD','#7A5A6A')" title="Mauve"></div><div class="accent-dot" style="background:linear-gradient(135deg,#2A5A3A,#6A9A7A)" onclick="setAccentFromSettings(this,'#6A9A7A','#2A5A3A')" title="Sage"></div></div></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Dark Mode</div><div class="sr-sub">Switch between light and dark interface</div></div><div class="sr-right"><button type="button" class="toggle" id="dm-setting-toggle" role="switch" aria-label="Dark mode" onclick="toggleDarkMode()"></button></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Color Theme</div><div class="sr-sub">Sets the primary palette across the app</div></div><div class="sr-right"><div class="mini-theme-row"><button type="button" data-palette="#1B5E76" class="mini-theme active" onclick="applyThemeFromSettings(this,'#1B5E76','#4AADBA','#092E3D')" title="Ocean Teal"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"></div><div class="mini-theme-name">Teal</div></button><button type="button" data-palette="#2A4A7A" class="mini-theme" onclick="applyThemeFromSettings(this,'#2A4A7A','#5A8ABA','#0A1E3A')" title="Deep Blue"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A4A7A,#5A8ABA)"></div><div class="mini-theme-name">Blue</div></button><button type="button" data-palette="#2A5A3A" class="mini-theme" onclick="applyThemeFromSettings(this,'#2A5A3A','#5A9A6A','#0A2A1A')" title="Forest"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A5A3A,#5A9A6A)"></div><div class="mini-theme-name">Forest</div></button><button type="button" data-palette="#7A4A6A" class="mini-theme" onclick="applyThemeFromSettings(this,'#7A4A6A','#B07A9A','#2A0A1A')" title="Mauve"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#7A4A6A,#B07A9A)"></div><div class="mini-theme-name">Mauve</div></button></div></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Accent Color</div><div class="sr-sub">Highlights, active states, and interactive elements</div></div><div class="sr-right"><div class="accent-row"><button type="button" data-accent="#4AADBA" aria-label="Teal" class="accent-dot active" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)" onclick="setAccentFromSettings(this,'#4AADBA','#1B5E76')" title="Teal"></button><button type="button" data-accent="#9B94C0" aria-label="Lavender" class="accent-dot" style="background:linear-gradient(135deg,#5A5490,#9B94C0)" onclick="setAccentFromSettings(this,'#9B94C0','#5A5490')" title="Lavender"></button><button type="button" data-accent="#B89FAD" aria-label="Mauve" class="accent-dot" style="background:linear-gradient(135deg,#7A5A6A,#B89FAD)" onclick="setAccentFromSettings(this,'#B89FAD','#7A5A6A')" title="Mauve"></button><button type="button" data-accent="#6A9A7A" aria-label="Sage" class="accent-dot" style="background:linear-gradient(135deg,#2A5A3A,#6A9A7A)" onclick="setAccentFromSettings(this,'#6A9A7A','#2A5A3A')" title="Sage"></button></div></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Content Density</div><div class="sr-sub">Compact reduces padding for more content on screen</div></div><div class="sr-right"><select class="sr-select" id="density-select" onchange="setDensityFromSelect(this)"><option value="comfortable">Comfortable</option><option value="compact">Compact</option></select></div></div>
             </div>
           </div>
@@ -1604,7 +1645,7 @@ textarea.fi{resize:vertical;min-height:64px}
       <div class="fgrid">
         <div class="fl ff"><label>TITLE</label><div class="cs-wrap"><input id="add-title" class="fi" type="text" placeholder="Type to search, or enter manually…" oninput="onTitleInput(this.value)" autocomplete="off"><div class="cs-drop" id="cs-drop"></div></div></div>
         <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="updateSportField(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
-        <div class="fl" id="sport-field" style="display:none"><label>SPORT</label><select class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
+        <div class="fl" id="sport-field" style="display:none"><label for="sport-select">SPORT</label><select id="sport-select" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
         <div class="fl"><label>DATE COMPLETED</label><input id="add-date" class="fi" type="date"></div>
         <div class="fl ff"><label>RATING</label>
           <div class="ri"><input id="add-rating" type="range" min="1" max="10" step="0.5" value="8" oninput="updateRatingRef(this.value)"><div class="rv" id="rv">8</div></div>
@@ -1631,235 +1672,20 @@ textarea.fi{resize:vertical;min-height:64px}
             <span style="font-size:11px;color:var(--t-3)">Sets the thumbnail colour</span>
           </div>
         </div>
-        <div class="fl ff"><label>TAGS</label>
+        <div class="fl ff"><label for="tp-search-inp">TAGS</label>
           <div class="tp-search-wrap">
             <svg class="tp-search-icon" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input class="tp-search" id="tp-search-inp" type="text" placeholder="Filter tags…" oninput="tagSearch(this.value)" autocomplete="off">
+            <input class="tp-search" id="tp-search-inp" type="text" placeholder="Filter tags, e.g. music or mystery" aria-label="Filter tags by name or format" oninput="tagSearch(this.value)" autocomplete="off">
           </div>
-          <div class="tag-picker" id="tag-picker">
-            <div class="tp sel" onclick="this.classList.toggle('sel')">antihero</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">moral complexity</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">character-driven</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">world-building</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">ensemble cast</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">slow burn</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">twist ending</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">political drama</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">psychological</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">redemption</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">identity</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">power & corruption</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">survival</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">love & loss</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">family</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">betrayal</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">justice</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">grief</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">trauma</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">isolation</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">obsession</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">addiction</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mental health</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">legacy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mortality</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sacrifice</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">revolution</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">memory</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">colonialism</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">class struggle</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">religion</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">war</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">found family</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">unreliable narrator</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">parallel timelines</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">satire</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">social commentary</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">coming-of-age</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">fish out of water</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">revenge</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">thriller</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">crime</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mystery</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">horror</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">dark comedy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">supernatural</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sci-fi</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">fantasy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">action-packed</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">romance</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">historical</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">dystopian</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">biographical</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">documentary</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">heist</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">spy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">western</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">animation</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">musical</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">war film</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sports film</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">road movie</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">martial arts</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">film noir</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">neo-noir</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">arthouse</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">foreign language</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mockumentary</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">anthology</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">limited series</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mini-series</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sitcom</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">procedural</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">legal drama</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">medical drama</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">superhero</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">true crime</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">reality TV</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">workplace comedy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">teen drama</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">literary fiction</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">memoir</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">science fiction</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">self-help</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">philosophy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">poetry</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">graphic novel</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">short stories</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">non-fiction</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">travel writing</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">magical realism</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">young adult</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">classic literature</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mythology</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">economics</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">spy fiction</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">nature writing</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">jazz</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">hip-hop</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">R&amp;B</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">soul</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">funk</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">blues</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">rock</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">metal</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">punk</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">indie</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">alternative</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">pop</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">classical</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">folk</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">country</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">reggae</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">gospel</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">afrobeats</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">dancehall</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">latin</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">house</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">techno</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">drum &amp; bass</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">ambient</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">lo-fi</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">bossa nova</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">orchestral</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">acoustic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">singer-songwriter</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">neo-soul</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">drill</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">trap</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">electronic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">experimental</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">clutch</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">tactical</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">underdog</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">comeback</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">rivalry</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">overtime</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">dominant performance</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">masterclass</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">last-minute</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">penalty shootout</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">hat-trick</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">knockout</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">upset</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">grand slam</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">championship final</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">derby</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">record-breaking</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">buzzer beater</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">photo finish</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">clean sheet</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">away win</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">disqualification</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">tiebreaker</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">slam dunk</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sprint finish</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">extra time</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">VAR controversy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">injury-time winner</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">atmospheric</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">introspective</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">lyrical depth</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">dark humor</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">cozy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">feel-good</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">heartwarming</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">bittersweet</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">melancholic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">nostalgic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">haunting</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">tense</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">eerie</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">whimsical</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">dreamy</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">gritty</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">raw</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">uplifting</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">cathartic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">thought-provoking</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">unsettling</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">surreal</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">immersive</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">intimate</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">cinematic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">minimalist</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">maximalist</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">bleak</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">hopeful</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">playful</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">earnest</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">vibrant</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">restrained</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">chaotic</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">serene</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">couldn't stop</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">mind-blown</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">felt seen</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">changed my perspective</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">needed to process</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">laugh-out-loud</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">edge of my seat</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">made me cry</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">speechless</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">deeply unsettling</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">instantly quotable</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">culturally important</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">re-watched immediately</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">recommended to everyone</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">fashion world</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sartorial</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">perfume &amp; scent</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">sensory</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">aesthetic-driven</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">costume design</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">scent memory</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">luxury lifestyle</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">body image</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">identity &amp; style</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">subculture</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">period drama</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">high fashion</div>
-            <div class="tp" onclick="this.classList.toggle('sel')">style icon</div>
+          <div class="tag-format-controls" aria-label="Tag formats">
+            <button type="button" class="btn btn-g btn-sm" onclick="chooseTagFormat('')">All</button>
+            <button type="button" class="btn btn-g btn-sm" onclick="chooseTagFormat('movies')">Movies</button>
+            <button type="button" class="btn btn-g btn-sm" onclick="chooseTagFormat('shows')">Shows</button>
+            <button type="button" class="btn btn-g btn-sm" onclick="chooseTagFormat('books')">Books</button>
+            <button type="button" class="btn btn-g btn-sm" onclick="chooseTagFormat('music')">Music</button>
+            <button type="button" class="btn btn-g btn-sm" onclick="chooseTagFormat('sports')">Sports</button>
           </div>
+          <div class="tag-picker" id="tag-picker" aria-label="Available tags"></div><div id="tp-scope" role="status"></div>
         </div>
         <div class="fl ff"><label>NOTES (OPTIONAL)</label><textarea id="add-notes" class="fi" placeholder="What stood out? Why this rating?"></textarea></div>
       </div>
@@ -2036,6 +1862,7 @@ textarea.fi{resize:vertical;min-height:64px}
         <div class="fl fl-full"><label>REVIEW / NOTES <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t-3)">(optional)</span></label>
           <textarea id="frag-review" class="fi" rows="3" placeholder="Personal impressions, when you reach for it, what it evokes…" style="resize:vertical;min-height:68px;font-family:inherit;font-size:13px"></textarea>
         </div>
+        <div class="fl"><label for="frag-photo">BOTTLE PHOTO URL</label><input id="frag-photo" type="url" maxlength="2048" class="fi" placeholder="https://…"></div>
         <div class="fl fl-full"><label>TAGS <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t-3)">(optional)</span></label>
           <div class="tp-search-wrap">
             <svg class="tp-search-icon" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
@@ -2259,6 +2086,9 @@ var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed 
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you';
 var _discSeedId = '';
+var _discRecent = [];
+var _discRefreshRounds = new Map();
+var _catalogueOffset = {all:0, fragrances:0, style:0};
 var _discCacheKey = '';
 var _discCompare = null;
 var _discSortVal = 'match';  /* current sort: match | newest | reviewed */
@@ -2352,7 +2182,14 @@ function handleAuthChange(event, session){
     renderWatchlist();
     renderInsights(null);
     _discSeedId = '';
+    editMode = false;
+    _wlMoveId = null;
+    tagPickerVersion++;
     _discCacheKey = '';
+    _discRecent = [];
+    _discRefreshRounds.clear();
+    _catalogueOffset = {all:0, fragrances:0, style:0};
+    document.getElementById('disc-style-picks').replaceChildren();
     _discCompare = null;
     document.getElementById('disc-compare-body').replaceChildren();
     document.getElementById('disc-seed-query').value = '';
@@ -2388,8 +2225,7 @@ function _showApp(){
   var hashScr = location.hash.replace('#','');
   var startScr = (_validScreens && _validScreens.indexOf(hashScr) >= 0) ? hashScr : 'collection';
   /* Restore density preference before first render */
-  var _savedDensity = localStorage.getItem('nz-density');
-  if(_savedDensity) document.body.setAttribute('data-density', _savedDensity);
+  restoreAppearance();
   navigate(startScr, {pushHash: false});
 }
 function _showAuthScreen(){
@@ -2701,18 +2537,38 @@ async function upsertEntryTags(entryId, tagNames){
 }
 /* ══════════════════════════════════════════════ */
 
-/* Load user's real tags from Supabase into the Add Entry tag picker */
-async function loadTagPicker(preselected){
-  if(!currentUser) return;
-  var picker = document.getElementById('tag-picker');
-  if(!picker) return;
-  var userId = currentUser.id;
-  var res = await SUPA.from('tags').select('name')
-    .eq('user_id', userId).order('name');
-  if(currentUser?.id !== userId) return;
-  var userTags = (res.data || []).map(function(r){ return r.name; });
-  /* Merge with preset tags so new users see something useful */
-  var presets = [
+var sportsTags = [
+    'final','semifinal','quarterfinal','derby','rivalry','upset',
+    'comeback','dominant performance','title decider','group stage',
+    'knockout stage','playoff','championship','league match','cup tie',
+    'el clasico','local derby','international','friendly',
+    'individual sport','team sport','combat sport','endurance',
+    'record-breaking','hat trick','shutout','overtime','penalty shootout',
+    'tactics','pressing','possession','counter-attack','set piece',
+    'relegation battle','title race','historic','iconic',
+    'football','soccer','basketball','tennis','cricket',
+    'rugby','american football','baseball','golf','formula 1',
+    'athletics','swimming','cycling','boxing','mma','wrestling',
+    'olympic','world cup','champions league','grand slam'
+];
+
+var musicGenreTags = [
+    'hip-hop','rap','trap','drill','boom bap','conscious rap',
+    'r&b','neo soul','soul','funk','gospel','blues',
+    'pop','indie pop','synth-pop','electropop','k-pop','j-pop',
+    'rock','indie rock','alternative','grunge','punk','post-punk',
+    'metal','heavy metal','death metal','black metal','doom metal',
+    'jazz','bebop','free jazz','fusion jazz','smooth jazz','big band',
+    'classical','orchestral','chamber music','opera','choral',
+    'electronic','house','techno','ambient','drone','edm',
+    'drum & bass','jungle','garage','grime','dubstep',
+    'folk','singer-songwriter','country','americana','bluegrass',
+    'reggae','dancehall','afrobeats','afropop','highlife','amapiano',
+    'latin','salsa','bossa nova','cumbia','reggaeton',
+    'world music','experimental','noise','lo-fi','vaporwave'
+];
+
+var entryTagPresets = [
     /* ── Narrative Themes & Storytelling ── */
     'antihero','moral complexity','character-driven','world-building',
     'ensemble cast','slow burn','twist ending','political drama','psychological',
@@ -2766,35 +2622,6 @@ async function loadTagPicker(preselected){
     'romance fiction','paranormal romance','epic fantasy',
     'urban fantasy','high fantasy','low fantasy','grimdark',
 
-    /* ── Music Genres ── */
-    'hip-hop','rap','trap','drill','boom bap','conscious rap',
-    'r&b','neo soul','soul','funk','gospel','blues',
-    'pop','indie pop','synth-pop','electropop','k-pop','j-pop',
-    'rock','indie rock','alternative','grunge','punk','post-punk',
-    'metal','heavy metal','death metal','black metal','doom metal',
-    'jazz','bebop','free jazz','fusion jazz','smooth jazz','big band',
-    'classical','orchestral','chamber music','opera','choral',
-    'electronic','house','techno','ambient','drone','edm',
-    'drum & bass','jungle','garage','grime','dubstep',
-    'folk','singer-songwriter','country','americana','bluegrass',
-    'reggae','dancehall','afrobeats','afropop','highlife','amapiano',
-    'latin','salsa','bossa nova','cumbia','reggaeton',
-    'world music','experimental','noise','lo-fi','vaporwave',
-
-    /* ── Sports & Match Terms ── */
-    'final','semifinal','quarterfinal','derby','rivalry','upset',
-    'comeback','dominant performance','title decider','group stage',
-    'knockout stage','playoff','championship','league match','cup tie',
-    'el clasico','local derby','international','friendly',
-    'individual sport','team sport','combat sport','endurance',
-    'record-breaking','hat trick','shutout','overtime','penalty shootout',
-    'tactics','pressing','possession','counter-attack','set piece',
-    'relegation battle','title race','historic','iconic',
-    'football','soccer','basketball','tennis','cricket',
-    'rugby','american football','baseball','golf','formula 1',
-    'athletics','swimming','cycling','boxing','mma','wrestling',
-    'olympic','world cup','champions league','grand slam',
-
     /* ── Quality & Craft ── */
     'masterpiece','underrated','overrated','cult classic','hidden gem',
     'awards bait','crowd pleaser','slow starter','strong finish',
@@ -2811,19 +2638,68 @@ async function loadTagPicker(preselected){
     'trip-hop','post-rock','dream pop','minimal techno','field recording',
     'women’s football','afcon','paralympics','esports','rugby sevens','photo finish'
   ];
-  var all = userTags.slice();
-  presets.forEach(function(p){
-    if(all.indexOf(p) < 0) all.push(p);
-  });
-  var sel = (preselected || []).map(function(t){ return t.toLowerCase(); });
-  var html = '';
-  all.forEach(function(tag){
-    var isSelected = sel.indexOf(tag.toLowerCase()) >= 0;
-    var cls = isSelected ? 'tp sel' : 'tp';
-    var safeTag = tag.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-    html += '<div class="'+cls+'" onclick="this.classList.toggle(\x27sel\x27)">'+safeTag+'</div>';
-  });
-  picker.innerHTML = html;
+
+var tagFormatAliases = {
+  film:'film', films:'film', movie:'film', movies:'film', cinema:'film',
+  show:'show', shows:'show', tv:'show', television:'show', series:'show',
+  book:'book', books:'book', reading:'book', literature:'book',
+  music:'music', album:'music', albums:'music', song:'music', songs:'music',
+  sport:'sports_match', sports:'sports_match', match:'sports_match', matches:'sports_match'
+};
+
+var tagScopes = {
+  'film show book':'mystery|cliffhanger|espionage|whodunit|locked-room mystery|political thriller|investigation|moral complexity|slow burn|thriller|crime|drama|horror|sci-fi|fantasy|romance|adventure|world-building|character-driven|antihero|twist ending|unreliable narrator|nonlinear narrative|dual timeline|magical realism|dystopia|utopia|found family|revenge|obsession|forbidden love|ensemble cast|political drama|comedy|historical|period piece|western|psychological horror|legal drama|medical drama|police procedural|true crime|anthology|rom-com|superhero|body horror|satire|dark comedy|based on true events|strong finish|slow starter|weak ending|tight writing|poor pacing|speculative fiction|quiet horror|afrofuturism|solarpunk',
+  'film show':'action|heist|spy|animation|documentary|biopic|mockumentary|visually stunning|great soundtrack|great performances|re-watchable|found footage|martial arts|slasher|neo-noir|documentary series|cult classic',
+  'film':'film noir|war film|arthouse|african cinema|nollywood|ghallywood|korean cinema|slow cinema',
+  'show':'prestige drama|limited series|procedural|docuseries|reality tv|talk show|sitcom|animated series|soap opera|mini-series|telenovela|bottle episode|season finale|serialized',
+  'book':'literary fiction|contemporary fiction|historical fiction|short stories|novella|poetry|essay collection|memoir|autobiography|biography|narrative nonfiction|self-help|philosophy|psychology|sociology|economics|science|nature writing|travel writing|food writing|graphic novel|manga|young adult|middle grade|children|hard sci-fi|space opera|cli-fi|weird fiction|gothic|horror fiction|cozy mystery|police procedural fiction|legal thriller|medical thriller|techno-thriller|romance fiction|paranormal romance|epic fantasy|urban fantasy|high fantasy|low fantasy|grimdark|epistolary|re-readable|translated fiction|microhistory|reportage|unreliable narration',
+  'film show music':'experimental|cinematic',
+  'film show sports_match':'comeback|rivalry|record-breaking|underdog',
+  'music':'live album|concept album|instrumental|acoustic|sampling|storytelling rap|alté|afro-jazz|hiplife|azonto|gqom|fuji|soukous|morna|mbalax|trip-hop|post-rock|dream pop|minimal techno|field recording',
+  'sports_match':'women’s football|afcon|paralympics|esports|rugby sevens|photo finish|extra time|clean sheet|counter-pressing'
+};
+function normalizeEntryTag(value){
+  return value.trim().toLowerCase().replace(/cliff[ -]+hanger/g,'cliffhanger');
+}
+var entryTagScope = new Map();
+Object.keys(tagScopes).forEach(function(scope){
+  tagScopes[scope].split('|').forEach(function(tag){entryTagScope.set(tag, scope.split(' '));});
+});
+
+musicGenreTags.forEach(function(tag){
+  if(!entryTagScope.has(tag) && !['iconic','historic'].includes(tag)) entryTagScope.set(tag,['music']);
+});
+sportsTags.forEach(function(tag){
+  if(!entryTagScope.has(tag) && !['iconic','historic'].includes(tag)) entryTagScope.set(tag,['sports_match']);
+});
+var tagPickerVersion = 0;
+function renderEntryTags(tags, preselected){
+  var picker = document.getElementById('tag-picker');
+  var selected = new Set(preselected.map(normalizeEntryTag));
+  var unique = new Map(tags.concat(preselected).map(function(tag){return [normalizeEntryTag(tag), tag];}));
+  picker.replaceChildren(...Array.from(unique.keys()).sort().map(function(key){
+    var tag = document.createElement('button');
+    tag.type = 'button';
+    tag.className = 'tp';
+    tag.textContent = unique.get(key);
+    tag.classList.toggle('sel',selected.has(key));
+    tag.setAttribute('aria-pressed',String(selected.has(key)));
+    tag.onclick = function(){tag.setAttribute('aria-pressed',String(tag.classList.toggle('sel')));};
+    return tag;
+  }));
+  tagSearch(document.getElementById('tp-search-inp').value);
+}
+
+async function loadTagPicker(preselected){
+  var userId = currentUser?.id;
+  var version = ++tagPickerVersion;
+  var presets = entryTagPresets.concat(musicGenreTags,sportsTags,Array.from(entryTagScope.keys()));
+  renderEntryTags(presets, preselected);
+  if(!userId) return;
+  var res = await SUPA.from('tags').select('name').eq('user_id', userId).order('name');
+  if(currentUser?.id !== userId || tagPickerVersion !== version || res.error) return;
+  var selected = Array.from(document.querySelectorAll('#tag-picker .sel'),function(tag){return tag.textContent;});
+  renderEntryTags(presets.concat(res.data.map(function(row){return row.name;})), selected);
 }
 
 var _validScreens = ['collection','watchlist','discover','insights','settings','designsystem','fragrances','wardrobe'];
@@ -2912,15 +2788,21 @@ document.querySelectorAll('.ni').forEach(function(item){
   });
 });
 
-function toggleDarkMode(){
-  var html=document.documentElement;
-  var dark=html.getAttribute('data-theme')==='dark';
-  html.setAttribute('data-theme',dark?'light':'dark');
-  var icon=document.getElementById('dm-icon');
-  if(icon){icon.innerHTML=dark?'<circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>':'<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';}
-  var btn=document.getElementById('dm-toggle');
-  if(btn)btn.title=dark?'Switch to dark mode':'Switch to light mode';
+function setDarkMode(dark){
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  document.getElementById('dm-setting-toggle').classList.toggle('on',dark);
+  document.getElementById('dm-setting-toggle').setAttribute('aria-checked',String(dark));
+  document.getElementById('dm-icon').innerHTML = dark
+    ? '<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>'
+    : '<circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>';
+  document.getElementById('dm-toggle').title = dark ? 'Switch to light mode' : 'Switch to dark mode';
   chartsReady=false;
+}
+
+function toggleDarkMode(){
+  var dark = document.documentElement.getAttribute('data-theme') !== 'dark';
+  setDarkMode(dark);
+  localStorage.setItem('nz-dark',String(dark));
 }
 
 function goToScreen(scr){navigate(scr);}
@@ -2933,40 +2815,16 @@ function scrollToSection(id,el){
   if(sec&&scroll){scroll.scrollTo({top:sec.offsetTop-16,behavior:'smooth'})}
 }
 
-function toggleDarkModeFromSettings(togEl){
-  togEl.classList.toggle('on');
-  var html=document.documentElement;
-  var nowDark=togEl.classList.contains('on');
-  html.setAttribute('data-theme',nowDark?'dark':'light');
-  var icon=document.getElementById('dm-icon');
-  if(icon){icon.innerHTML=nowDark?'<circle cx="12" cy="12" r="5"/><path stroke-linecap="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>':'<path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>';}
-  chartsReady=false;
-}
-
 function applyThemeFromSettings(el,deep,light,sbDeep){
-  document.querySelectorAll('.mini-theme').forEach(function(t){t.classList.remove('active')});
-  el.classList.add('active');
-  applyTheme({classList:{add:function(){},remove:function(){}}},deep,light,sbDeep);
+  applyTheme(el,deep,light,sbDeep);
 }
 
 function setAccentFromSettings(el,light,deep){
-  document.querySelectorAll('.accent-dot').forEach(function(d){d.classList.remove('active')});
-  el.classList.add('active');
-  /* Only accent variables — leave the full theme palette intact */
-  var r=document.documentElement.style;
-  r.setProperty('--theme-accent',light);
-  r.setProperty('--theme-accent-deep',deep);
+  setAccent(el,light,deep);
 }
 
 function setDensityFromSelect(sel){
-  var d = sel ? sel.value : 'comfortable';
-  document.body.setAttribute('data-density', d);
-  localStorage.setItem('nz-density', d);
-  /* Sync the Design System density buttons */
-  document.querySelectorAll('.density-opt').forEach(function(o){
-    o.classList.toggle('active', o.textContent.trim().toLowerCase() === d);
-  });
-  showToast('Density set to ' + d);
+  setDensity(sel,sel.value);
 }
 
 function saveColPref(key, val){
@@ -3213,11 +3071,28 @@ async function enterApp(){
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Create account' : 'Sign in'; btn.disabled = false; }
 }
 async function signOut(){ await SUPA.auth.signOut(); }
+function resetEntryForm(){
+  ['add-title','add-notes','add-date','add-year','tp-search-inp','sport-select'].forEach(function(id){
+    var field = document.getElementById(id);
+    if(field) field.value = field.tagName === 'SELECT' ? field.options[0].value : '';
+  });
+  var format = document.getElementById('add-format');
+  format.selectedIndex = 0;
+  updateSportField(format);
+  document.getElementById('add-rating').value = 8;
+  updateRatingRef(8);
+  clearPoster();
+  clearTimeout(_csTimer);
+  _closeSearchDrop();
+  var swatch = document.querySelector('.cover-swatch');
+  setCover(swatch, swatch.style.background);
+}
+
 function openModal(id){
   document.getElementById('m-'+id).classList.add('open');
-  if(id==='add'){
-    updateRatingRef(document.getElementById('add-rating').value);
-    loadTagPicker([]); /* always load fresh tags from Supabase */
+  if(id==='add' && !editMode){
+    resetEntryForm();
+    loadTagPicker(_discAddRec?.tags || _wlItems.find(function(item){return item.id === _wlMoveId;})?.tags || []);
   }
 }
 function closeModal(id){
@@ -3225,6 +3100,7 @@ function closeModal(id){
   if(id==='detail'){cancelDelete();}
   if(id==='add'){
     editMode=false;
+    tagPickerVersion++;
     document.getElementById('add-modal-title').textContent='Add Entry';
     document.getElementById('add-save-btn').textContent='Save Entry';
     /* Reset tag search */
@@ -3236,7 +3112,7 @@ function closeModal(id){
     _discAddRec = null; /* clear discover-dismiss context on cancel */
   }
 }
-document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open')})});
+document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)closeModal(this.id.slice(2))})});
 function setPill(el){el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});el.classList.add('active')}
 
 /* ── Discovery format pill (container class is disc-format-pills, not .pills) ── */
@@ -3246,6 +3122,9 @@ function openDiscoverScreen(){
 }
 
 async function loadCatalogDiscovery(pill){
+  _discoveryRequest = null;
+  renderCombinedDiscovery();
+  document.getElementById('disc-refresh').disabled = false;
   var userId = currentUser?.id;
   if(!userId) return;
   try {
@@ -3348,10 +3227,19 @@ function showDiscoverySeeds(query){
     select.add(new Option(entry.title + ' · ' + format + ' · ' + entry.rating + '/10', entry.id));
   });
   select.value = _discSeedId;
+  document.getElementById("disc-seed-clear").disabled = !_discSeedId;
 }
 
 function chooseDiscoverySeed(id){
   _discSeedId = id;
+  document.getElementById('disc-seed-clear').disabled = !id;
+  loadDiscovery();
+}
+
+function clearDiscoverySeed(){
+  document.getElementById('disc-seed-query').value = '';
+  _discSeedId = '';
+  showDiscoverySeeds('');
   loadDiscovery();
 }
 
@@ -3374,35 +3262,65 @@ function discoverFromEntry(){
 function updateSportField(sel){document.getElementById('sport-field').style.display=sel.value==='Match'?'block':'none'}
 
 function applyTheme(el,deep,light,sbDeep){
-  document.querySelectorAll('.theme-option').forEach(function(t){t.classList.remove('active')});
-  el.classList.add('active');
+  syncAppearanceChoice('data-palette',deep);
   var r=document.documentElement.style;
   r.setProperty('--p-rich',deep);r.setProperty('--p-light',light);r.setProperty('--p-mid',deep);
   r.setProperty('--p-ghost','rgba('+hexToRgb(light)+',.12)');r.setProperty('--p-subtle','rgba('+hexToRgb(light)+',.25)');
   r.setProperty('--sb-bg','linear-gradient(180deg,'+sbDeep+' 0%,'+deep+' 40%,'+deep+' 100%)');
   r.setProperty('--sb-active-bg','rgba('+hexToRgb(light)+',.2)');r.setProperty('--sb-text-active',light);
-  r.setProperty('--theme-accent',light);r.setProperty('--theme-accent-deep',deep);
-  var name=el.querySelector('.theme-name');
-  showToast('Theme updated to '+(name?name.textContent:'new theme'));
+  var accent = Array.from(document.querySelectorAll('[data-accent]')).some(function(control){
+    return control.dataset.accent === localStorage.getItem('nz-accent');
+  });
+  if(!accent){
+    r.setProperty('--theme-accent',light);r.setProperty('--theme-accent-deep',deep);
+  }
+  localStorage.setItem('nz-palette',deep);
+  if(el) showToast((el.title || el.textContent.trim())+' theme applied');
 }
+function syncAppearanceChoice(attribute,value){
+  document.querySelectorAll('['+attribute+']').forEach(function(control){
+    var selected = control.getAttribute(attribute) === value;
+    control.classList.toggle('active',selected);
+    control.setAttribute('aria-pressed',String(selected));
+  });
+}
+
 function setAccent(el,light,deep){
-  el.parentElement.querySelectorAll('div').forEach(function(d){d.style.border='2px solid transparent'});
-  el.style.border='2px solid '+deep;
-  /* Only update the accent variables — leave theme palette untouched */
   var r=document.documentElement.style;
   r.setProperty('--theme-accent',light);
   r.setProperty('--theme-accent-deep',deep);
+  syncAppearanceChoice('data-accent',light);
+  localStorage.setItem('nz-accent',light);
+  if(el) showToast((el.title || 'New')+' accent applied');
 }
+
 function setDensity(el,d){
-  document.querySelectorAll('.density-opt').forEach(function(o){o.classList.remove('active')});
-  el.classList.add('active');
-  document.body.setAttribute('data-density', d);
-  localStorage.setItem('nz-density', d);
-  /* Sync the Settings density select */
-  var _dsel = document.getElementById('density-select');
-  if(_dsel) _dsel.value = d;
-  showToast('Density set to ' + d);
+  document.body.setAttribute('data-density',d);
+  localStorage.setItem('nz-density',d);
+  syncAppearanceChoice('data-density-choice',d);
+  document.getElementById('density-select').value = d;
+  if(el) showToast('Density set to '+d);
 }
+
+function restoreAppearance(){
+  var dark = localStorage.getItem('nz-dark');
+  setDarkMode(dark === 'true');
+  var storedPalette = localStorage.getItem('nz-palette');
+  var storedAccent = localStorage.getItem('nz-accent');
+  var palettes = {
+    '#1B5E76':['#4AADBA','#092E3D'], '#2A4A7A':['#5A8ABA','#0A1E3A'],
+    '#2A5A3A':['#5A9A6A','#0A2A1A'], '#7A4A6A':['#B07A9A','#2A0A1A']
+  };
+  var accents = {
+    '#4AADBA':'#1B5E76', '#9B94C0':'#5A5490', '#B89FAD':'#7A5A6A', '#6A9A7A':'#2A5A3A'
+  };
+  var palette = Object.hasOwn(palettes,storedPalette) ? storedPalette : '#1B5E76';
+  applyTheme(null,palette,palettes[palette][0],palettes[palette][1]);
+  if(Object.hasOwn(accents,storedAccent)) setAccent(null,storedAccent,accents[storedAccent]);
+  var savedDensity = localStorage.getItem('nz-density');
+  setDensity(null,savedDensity === 'compact' ? 'compact' : 'comfortable');
+}
+
 function hexToRgb(hex){var r=hex.replace('#','');return[parseInt(r.substring(0,2),16),parseInt(r.substring(2,4),16),parseInt(r.substring(4,6),16)].join(',')}
 
 /* ── Toast notifications ── */
@@ -3559,6 +3477,7 @@ async function saveEntry(){
   }
 
   /* Reset modal */
+  tagPickerVersion++;
   editMode = false;
   document.getElementById('add-modal-title').textContent = 'Add Entry';
   if(saveBtn){ saveBtn.textContent = 'Save Entry'; saveBtn.disabled = false; }
@@ -3574,7 +3493,7 @@ async function saveEntry(){
   showToast(wasEdit ? 'Entry updated' : 'Entry saved to your collection');
   /* Dismiss the discover card that triggered this save (if any) */
   if(!wasEdit && _discAddRec){
-    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== _discAddRec.title; });
+    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== _discAddRec.title || r.format !== _discAddRec.format; });
     _discAddRec = null;
     _renderDiscovery(_discRecs);
   }
@@ -3594,6 +3513,7 @@ async function saveEntry(){
 /* ── Open Add modal pre-filled for editing (E1) ── */
 function openEditModal(){
   if(!currentEntry){ showToast('No entry selected'); return; }
+  resetEntryForm();
   editMode=true;
 
   /* Use currentEntry directly — no DOM scraping */
@@ -3615,10 +3535,11 @@ function openEditModal(){
   var fmtSel=document.getElementById('add-format');
   if(fmtSel){for(var i=0;i<fmtSel.options.length;i++){if(fmtSel.options[i].text===fmt){fmtSel.selectedIndex=i;break;}}}
 
+  updateSportField(fmtSel);
+
   /* Pre-fill rating */
   var ratingInp=document.getElementById('add-rating');
-  var rv=document.getElementById('rv');
-  if(ratingInp){ratingInp.value=rVal;if(rv)rv.textContent=rVal;}
+  if(ratingInp){ratingInp.value=rVal;updateRatingRef(rVal);}
 
   /* Pre-fill notes from currentEntry */
   var notesInp=document.getElementById('add-notes');
@@ -3728,11 +3649,25 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ── A1: Tag autocomplete filter ── */
-function tagSearch(val){
-  val=val.trim().toLowerCase();
-  document.querySelectorAll('#tag-picker .tp').forEach(function(tp){
-    tp.style.display=(!val||tp.textContent.trim().toLowerCase().indexOf(val)>=0)?'':'none';
+function chooseTagFormat(format){
+  var input = document.getElementById('tp-search-inp');
+  input.value = format;
+  tagSearch(format);
+}
+
+function tagSearch(value){
+  var query = normalizeEntryTag(value);
+  var parts = query.split(/\s+/);
+  var format = Object.hasOwn(tagFormatAliases,parts[0]) ? tagFormatAliases[parts.shift()] : null;
+  var terms = format ? parts.join(' ') : query;
+  var count = 0;
+  document.querySelectorAll('#tag-picker .tp').forEach(function(tag){
+    var key = normalizeEntryTag(tag.textContent);
+    var scope = entryTagScope.get(key);
+    tag.hidden = !(key.includes(terms) && (!format || !scope || scope.includes(format)));
+    if(!tag.hidden) count++;
   });
+  document.getElementById('tp-scope').textContent = count ? (format ? count + ' tags for ' + FMT_LABEL[format] : '') : 'No matching tags';
 }
 
 /* ── A2: Cover/thumbnail colour picker ── */
@@ -4141,17 +4076,15 @@ function discSearch(val){
       res.innerHTML='<div class="disc-no-result">No fragrance matches for "'+escHtml(val)+'"</div>';
       res.classList.add('open');return;
     }
-    var sC=function(s){return s>=90?'mh':s>=75?'mm':'ml';};
     res.innerHTML=fragMatches.slice(0,5).map(function(d){
-      var fd=escHtml(JSON.stringify({name:d.name,house:d.house,top:d.top,mid:d.mid,base:d.base,character:d.character,projection:d.projection,season:d.season}));
-      return '<div class="disc-result-item" style="cursor:pointer" onclick="addFragFromDiscover(this)" data-frag="'+fd+'">'+
+      return '<div class="disc-result-item">'+
         '<div class="disc-result-thumb" style="background:'+d.gradient+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
         '<div class="disc-result-info">'+
           '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
           '<div class="disc-result-meta">'+escHtml(d.house)+' · '+escHtml(d.season)+'</div>'+
           '<div class="disc-result-because">'+escHtml(d.character.split(',').slice(0,2).join(', '))+'</div>'+
+          styleDiscoveryActions('fragrance',d)+
         '</div>'+
-        '<div class="disc-result-score"><div class="disc-result-pct '+sC(d.score)+'">'+d.score+'%</div><div class="disc-result-label">+ add</div></div>'+
       '</div>';
     }).join('');
     res.classList.add('open');return;
@@ -4168,23 +4101,21 @@ function discSearch(val){
       res.innerHTML='<div class="disc-no-result">No style matches for "'+escHtml(val)+'"</div>';
       res.classList.add('open');return;
     }
-    var sC2=function(s){return s>=90?'mh':s>=75?'mm':'ml';};
     res.innerHTML=styleMatches.slice(0,5).map(function(d){
-      var wd=escHtml(JSON.stringify({name:d.name,brand:d.brand,category:d.category,season:d.season}));
-      return '<div class="disc-result-item" style="cursor:pointer" onclick="addWardFromDiscover(this)" data-ward="'+wd+'">'+
+      return '<div class="disc-result-item">'+
         '<div class="disc-result-thumb" style="background:'+d.gradient+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
         '<div class="disc-result-info">'+
           '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
           '<div class="disc-result-meta">'+escHtml(d.category)+(d.brand?' · '+escHtml(d.brand):'')+'</div>'+
           '<div class="disc-result-because">'+escHtml(d.description||'')+'</div>'+
+          styleDiscoveryActions('wardrobe',d)+
         '</div>'+
-        '<div class="disc-result-score"><div class="disc-result-pct '+sC2(d.score)+'">'+d.score+'%</div><div class="disc-result-label">+ add</div></div>'+
       '</div>';
     }).join('');
     res.classList.add('open');return;
   }
   /* Default: regular discover search */
-  var pool=_discRecs||[];
+  var pool=_filterDisc(_discRecs||[]);
   if(!pool.length){
     res.innerHTML='<div class="disc-no-result">Load recommendations first, then search within them</div>';
     res.classList.add('open');return;
@@ -4192,7 +4123,7 @@ function discSearch(val){
   var matches=pool.filter(function(d){
     return d.title.toLowerCase().includes(val)
       ||(d.match_hook||'').toLowerCase().includes(val)
-      ||(d.tags||[]).some(function(t){return t.toLowerCase().includes(val);});
+      ||(d.affinity?.sharedTags||[]).some(function(t){return t.toLowerCase().includes(val);});
   });
   if(!matches.length){
     res.innerHTML='<div class="disc-no-result">No results for "'+escHtml(val)+'" in your recommendations</div>';
@@ -4269,6 +4200,21 @@ function _discState(state, msg){
 
 var _discoveryRequest = null;
 
+function refreshDiscovery(){
+  if(_discPill === 'fragrances' || _discPill === 'style'){
+    _catalogueOffset[_discPill] += 25;
+    loadCatalogDiscovery(_discPill);
+    return;
+  }
+  if(_discPill === 'all' && _discTabName === 'for-you') _catalogueOffset.all += 3;
+  loadDiscovery(true);
+}
+
+function retryDiscovery(){
+  if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
+  else loadDiscovery(true);
+}
+
 var DISCOVERY_FORMATS = {films:'film', shows:'show', books:'book', matches:'sports_match', music:'music'};
 
 async function fetchDiscovery(userId, payload){
@@ -4290,8 +4236,21 @@ async function loadDiscovery(force){
   var seedId = tab === 'because-loved' ? _discSeedId : null;
   var key = JSON.stringify([tab, focus, seedId]);
   if(_discoveryRequest?.key === key) return;
-  if(!force && _discCacheKey === key && _discRecs?.length && Date.now() - _discFetchedAt < 1800000){
+  var refresh = document.getElementById('disc-refresh');
+  refresh.disabled = !seedId && tab === 'because-loved';
+  if(!force && _discCacheKey === key && Array.isArray(_discRecs) && Date.now() - _discFetchedAt < 1800000){
+    _discoveryRequest = null;
+    renderCombinedDiscovery();
     _renderDiscovery(_discRecs);
+    return;
+  }
+  renderCombinedDiscovery();
+  if(tab === 'because-loved' && !seedId){
+    _discoveryRequest = null;
+    _discState('results');
+    _discRecs = null;
+    document.getElementById('disc-hero-wrap').replaceChildren();
+    document.getElementById('disc-grid-wrap').innerHTML = '<p class="disc-empty">Choose a work to get recommendations connected to it.</p>';
     return;
   }
   if(!_allEntries.length){
@@ -4299,20 +4258,22 @@ async function loadDiscovery(force){
     _discState('nofp');
     return;
   }
-  if(tab === 'because-loved' && !seedId){
-    _discoveryRequest = null;
-    _discState('results');
-    document.getElementById('disc-hero-wrap').replaceChildren();
-    document.getElementById('disc-grid-wrap').replaceChildren();
-    return;
-  }
+  var round = _discRefreshRounds.get(key) || 0;
+  if(force) _discRefreshRounds.set(key,++round);
   var request = {key:key};
   _discoveryRequest = request;
+  refresh.disabled = true;
   _discRecs = null;
   _discState('loading');
   try {
-    var recs = await fetchDiscovery(userId, {strategy:'grounded', tab:tab, seedId:seedId, focus:focus});
+    var recent = _discRecent.filter(function(item){
+      return (!focus || item.format === focus) &&
+        (tab !== 'because-loved' || item.seed === seedId);
+    }).slice(0,48);
+    var recs = await fetchDiscovery(userId, {strategy:'grounded', tab:tab, seedId:seedId, focus:focus, recent:recent, round:round});
+
     if(_discoveryRequest !== request || currentUser?.id !== userId) return;
+    _discRecent = recs.map(function(item){return {title:item.title,format:item.format,seed:seedId};}).concat(_discRecent).slice(0,120);
     _discRecs = recs;
     _discCacheKey = key;
     _discFetchedAt = Date.now();
@@ -4322,7 +4283,10 @@ async function loadDiscovery(force){
       _discState('error', e.message);
     }
   } finally {
-    if(_discoveryRequest === request) _discoveryRequest = null;
+    if(_discoveryRequest === request){
+      _discoveryRequest = null;
+      refresh.disabled = false;
+    }
   }
 }
 
@@ -4414,86 +4378,64 @@ function discSort(val){
 }
 
 function _renderDiscovery(recs){
-  if(!recs || !recs.length){ _discState('error','No recommendations returned.'); return; }
-  var filtered = _filterDisc(recs).slice();
+  var filtered = _filterDisc(recs || []).slice();
   if(_discSortVal === 'newest') filtered.sort(function(a,b){return (parseInt(b.year)||0) - (parseInt(a.year)||0);});
+  _discState('results');
   if(!filtered.length){
-    /* Not an error — the AI just returned no items for this format pill */
-    _discState('results');
-    document.getElementById('disc-hero-wrap').innerHTML = '';
-    var pillLabel = _discPill.charAt(0).toUpperCase() + _discPill.slice(1);
+    document.getElementById('disc-hero-wrap').replaceChildren();
     document.getElementById('disc-grid-wrap').innerHTML =
-      '<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">'
-      + '<svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" style="margin-bottom:12px;opacity:.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
-      + '<div style="font-size:14px;font-weight:600;color:var(--t-1);margin-bottom:6px">No '+escHtml(pillLabel)+' picks this time</div>'
-      + '<div style="font-size:12px">Try a different format or switch tabs for more results.</div>'
-      + '</div>';
+      '<p class="disc-empty">No media picks left in this batch.</p>'
+      + '<button class="btn btn-glass btn-sm" onclick="refreshDiscovery()">Get a fresh batch</button>';
     return;
   }
-  _discState('results');
-  /* Hero = first (highest match) */
   _renderHero(filtered[0]);
-  /* Grid = rest */
   _renderGrid(filtered.slice(1));
-  /* Append scent & style picks at bottom of All feed */
-  if(_discPill==='all' && _discTabName === 'for-you'){
-    ensureStyleItems().then(function(){
-      if(_discRecs === recs && _discPill === 'all' && _discTabName === 'for-you') _appendScentStyleToDiscover();
-    }).catch(function(){});
+}
+
+function affinityLabel(rec){
+  if(!rec.affinity) return '';
+  var tags = rec.affinity.sharedTags || [];
+  var detail = tags.length ? 'Suggested shared tags: ' + tags.join(', ') : 'Based on the comparison with your logged work';
+  return '<div class="disc-affinity"><strong>'+escHtml(rec.affinity.label)+'</strong> · '+escHtml(detail)+'</div>';
+}
+
+async function renderCombinedDiscovery(){
+  var wrap = document.getElementById('disc-style-picks');
+  var owner = currentUser?.id;
+  wrap.hidden = true;
+  if(!owner || _discPill !== 'all' || _discTabName !== 'for-you') return;
+  try {
+    await ensureStyleItems();
+    if(currentUser?.id !== owner || _discPill !== 'all' || _discTabName !== 'for-you') return;
+    var scents = cataloguePage(fragranceRecommendations().recs,_catalogueOffset.all,3);
+    var style = cataloguePage(wardrobeRecommendations().recs,_catalogueOffset.all,3);
+    wrap.innerHTML = (scents.length ? combinedCatalogueSection('Fragrance picks','fragrance',scents) : '')
+      + (style.length ? combinedCatalogueSection('Wardrobe picks','wardrobe',style) : '');
+    wrap.hidden = !wrap.innerHTML;
+  } catch {
+    if(currentUser?.id === owner && _discPill === 'all' && _discTabName === 'for-you'){
+      wrap.textContent = 'Could not load scent and style picks. Refresh to retry.';
+      wrap.hidden = false;
+    }
   }
 }
 
-/* ── Append Scent & Style picks to the Discover All feed ── */
-function _appendScentStyleToDiscover(){
-  var wrap=document.getElementById('disc-grid-wrap');
-  if(!wrap || !currentUser || _discPill !== 'all') return;
-  /* Scent recs */
-  var sp=_buildScentProfile();
-  var fragRecs=FRAG_DB.filter(function(e){return !hasSavedFragrance(sp, e);})
-    .map(function(e){var r=_scoreFrag(e,sp);return{name:e[0],house:e[1],top:e[2],mid:e[3],base:e[4],character:e[5],projection:e[6],season:e[7],score:r.score,reasons:r.reasons,gradient:_fragGradient(e[5],e[7])};})
-    .filter(function(r){return r.score>=62;})
-    .sort(function(a,b){return b.score-a.score;})
-    .slice(0,3);
-  /* Style recs */
-  var wp=_buildStyleProfile();
-  var ownedW=_loadWard().map(function(w){return(w.name||'').toLowerCase();});
-  var styleRecs=WARD_STYLE_DB.filter(function(e){return ownedW.indexOf(e[0].toLowerCase())<0;})
-    .map(function(e){var r=_scoreStyleItem(e,wp);return{name:e[0],category:e[1],brand:e[2],style:e[3],occasions:e[4],season:e[5],description:e[6],score:r.score,reasons:r.reasons,gradient:_styleGradient(e[3])};})
-    .filter(function(r){return r.score>=62;})
-    .sort(function(a,b){return b.score-a.score;})
-    .slice(0,3);
-  if(!fragRecs.length&&!styleRecs.length)return;
-  var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin:24px 0 12px;padding-top:24px;border-top:1px solid var(--n-border)">✦ SCENT &amp; STYLE PICKS</div><div class="disc-grid">';
-  fragRecs.forEach(function(rec){
-    var init=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
-    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
-    var reas=rec.reasons.map(function(r){return'<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
-    var cTags=rec.character.split(',').slice(0,3).map(function(c){return'<span class="tag">'+escHtml(c.trim())+'</span>';}).join('');
-    var fd=escHtml(JSON.stringify({name:rec.name,house:rec.house,top:rec.top,mid:rec.mid,base:rec.base,character:rec.character,projection:rec.projection,season:rec.season}));
-    html+='<div class="rc"><div class="rc-poster" style="background:'+rec.gradient+'"><div class="rc-initials">'+escHtml(init)+'</div><div class="rc-match '+mCls+'">'+rec.score+'%</div></div>'
-      +'<div class="rc-body"><div class="rc-title">'+escHtml(rec.name)+'</div><div class="rc-meta">'+escHtml(rec.house)+' &nbsp;·&nbsp; '+escHtml(rec.season)+'</div>'
-      +'<div class="rc-because" style="font-size:11px;color:var(--t-3);margin:3px 0">'+escHtml(rec.top.split(',')[0].trim())+' · '+escHtml(rec.mid.split(',')[0].trim())+'</div>'
-      +'<button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button>'
-      +'<div class="rc-reasons">'+reas+'</div><div class="rc-tags">'+cTags+'</div>'
-      +'<div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addFragFromDiscover(this)" data-frag="'+fd+'">+ Fragrances</button></div>'
-      +'</div></div>';
-  });
-  styleRecs.forEach(function(rec){
-    var init=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
-    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
-    var reas=rec.reasons.map(function(r){return'<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
-    var sTags=rec.style.split(',').slice(0,3).map(function(s){return'<span class="tag">'+escHtml(s.trim())+'</span>';}).join('');
-    var wd=escHtml(JSON.stringify({name:rec.name,brand:rec.brand,category:rec.category,season:rec.season}));
-    html+='<div class="rc"><div class="rc-poster" style="background:'+rec.gradient+'"><div class="rc-initials">'+escHtml(init)+'</div><div class="rc-match '+mCls+'">'+rec.score+'%</div></div>'
-      +'<div class="rc-body"><div class="rc-title">'+escHtml(rec.name)+'</div><div class="rc-meta">'+escHtml(rec.category)+(rec.brand?' &nbsp;·&nbsp; '+escHtml(rec.brand):'')+' &nbsp;·&nbsp; '+escHtml(rec.season)+'</div>'
-      +'<div class="rc-because" style="font-size:11.5px;color:var(--t-3);margin:3px 0;font-style:italic">'+escHtml(rec.description)+'</div>'
-      +'<button class="rc-why-btn" onclick="toggleWhy(this)"><svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>Why this match?</button>'
-      +'<div class="rc-reasons">'+reas+'</div><div class="rc-tags">'+sTags+'</div>'
-      +'<div class="rc-foot"><button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addWardFromDiscover(this)" data-ward="'+wd+'">+ Wardrobe</button></div>'
-      +'</div></div>';
-  });
-  html+='</div>';
-  wrap.insertAdjacentHTML('beforeend',html);
+function cataloguePage(recs, offset, size){
+  if(!recs.length) return [];
+  var start = offset % recs.length;
+  return recs.slice(start,start+size).concat(recs.slice(0,Math.max(0,start+size-recs.length))).slice(0,recs.length);
+}
+
+function combinedCatalogueSection(title, kind, recs){
+  return '<h3>'+title+'</h3><div class="disc-grid">'+recs.map(function(rec){
+    var scent = kind === 'fragrance';
+    return '<article class="rc"><div class="rc-poster" style="background:'+rec.gradient+'">'
+      + (scent ? fragrancePoster(rec) : '<span class="rc-initials">'+escHtml(_recInitials(rec.name))+'</span>')
+      + '</div><div class="rc-body"><div class="rc-title">'+escHtml(rec.name)+'</div>'
+      + '<div class="rc-meta">'+escHtml(scent ? rec.house : rec.category)+'</div>'
+      + '<p class="rc-because">'+escHtml(rec.reasons[0])+'</p>'
+      + styleDiscoveryActions(kind,rec)+'</div></article>';
+  }).join('')+'</div>';
 }
 
 function _recInitials(title){
@@ -4519,6 +4461,7 @@ function _renderHero(rec){
     +'<div class="disc-hero-title">'+escHtml(rec.title)+'</div>'
     +'<div class="disc-hero-meta">'+escHtml([FMT_LABEL[rec.format],rec.meta].filter(Boolean).join(' · '))+'</div>'
     +(rec.anchor ? '<div class="disc-hero-meta">'+escHtml(rec.match_hook)+' · '+escHtml(rec.anchor.rating)+'/10</div>' : '')
+    +affinityLabel(rec)
     +'<div class="disc-hero-reasons">'+reasons+'</div>'
     +'<div class="disc-hero-tags">'+tags+'</div>'
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
@@ -4559,6 +4502,7 @@ function _renderGrid(recs){
       +'<div class="rc-title">'+escHtml(rec.title)+'</div>'
       +'<div class="rc-meta">'+escHtml(rec.meta||FMT_LABEL[rec.format]||rec.format)+'</div>'
       +'<div class="rc-because">'+escHtml(rec.match_hook||'')+'</div>'
+      +affinityLabel(rec)
       +'<button class="rc-why-btn" onclick="toggleWhy(this)">'
       +'<svg class="rc-why-chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>'
       +'Why this match?</button>'
@@ -4603,7 +4547,7 @@ async function saveToWatchlist(btn){
     showToast(rec.title+' saved to Watchlist','🔖  ');
     loadWatchlist();
     /* Dismiss this card from the current discover view */
-    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== rec.title; });
+    _discRecs = (_discRecs||[]).filter(function(r){ return r.title !== rec.title || r.format !== rec.format; });
     _renderDiscovery(_discRecs);
   }
 }
@@ -4612,25 +4556,18 @@ function addFromDiscover(btn){
   var rec = JSON.parse(btn.getAttribute('data-rec'));
   _discAddRec = rec; /* remember so saveEntry() can dismiss this card */
   openModal('add');
-  setTimeout(function(){
-    var titleInp = document.getElementById('add-title');
-    if(titleInp) titleInp.value = rec.title;
-    var fmtMap = {film:'Film', show:'Show', book:'Book', sports_match:'Match', music:'Music'};
-    var fmtLabel = fmtMap[rec.format] || 'Show';
-    var formatSelect = document.getElementById('add-format');
-    formatSelect.value = fmtLabel;
-    updateSportField(formatSelect);
-    /* Pre-fill year if the recommendation includes one */
-    if(rec.year){
-      var yearInp = document.getElementById('add-year');
-      if(yearInp) yearInp.value = rec.year;
-    }
-    (rec.tags||[]).forEach(function(tag){
-      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
-        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
-      });
-    });
-  }, 80);
+  var titleInp = document.getElementById('add-title');
+  if(titleInp) titleInp.value = rec.title;
+  var fmtMap = {film:'Film', show:'Show', book:'Book', sports_match:'Match', music:'Music'};
+  var fmtLabel = fmtMap[rec.format] || 'Show';
+  var formatSelect = document.getElementById('add-format');
+  formatSelect.value = fmtLabel;
+  updateSportField(formatSelect);
+  /* Pre-fill year if the recommendation includes one */
+  if(rec.year){
+    var yearInp = document.getElementById('add-year');
+    if(yearInp) yearInp.value = rec.year;
+  }
 }
 
 /* (wl-actions btn-p listener removed — wlMoveToCollection onclick handles this inline) */
@@ -4654,6 +4591,32 @@ async function loadWatchlist(){
   if(res.error){ console.error('loadWatchlist:', res.error); return; }
   _wlItems = res.data || [];
   renderWatchlist();
+}
+
+async function setWatchlistPriority(select){
+  var id = select.closest('.wl-item').dataset.wlId;
+  var item = _wlItems.find(function(row){return row.id === id;});
+  var owner = currentUser?.id;
+  var priority = select.value;
+  if(!item || !owner || !['up_next','maybe'].includes(priority)) return;
+  select.disabled = true;
+  try {
+    var result = await SUPA.from('watchlist').update({priority:priority})
+      .eq('id',id).eq('user_id',owner).select('id').single();
+    if(currentUser?.id !== owner) return;
+    if(result.error) throw result.error;
+    var savedItem = _wlItems.find(function(row){return row.id === id;});
+    if(savedItem) savedItem.priority = priority;
+    renderWatchlist();
+    showToast(priority === 'up_next' ? 'Moved to Up Next' : 'Moved to Maybe');
+  } catch(error) {
+    if(currentUser?.id === owner){
+      select.value = item.priority || 'maybe';
+      showToast('Could not change priority. Try again.', '⚠  ');
+    }
+  } finally {
+    select.disabled = false;
+  }
 }
 
 function renderWatchlist(){
@@ -4716,7 +4679,6 @@ function renderWatchlist(){
       var initials = it.title.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
       var score   = it.match_score ? Math.round(it.match_score) + '%' : '—';
       var priCls  = it.priority === 'up_next' ? 'p-next' : 'p-maybe';
-      var priLbl  = it.priority === 'up_next' ? 'Up Next' : 'Maybe';
       var tags    = (it.tags || []).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
       var savedAgo = _timeAgo(it.saved_at);
       var delay   = idx < 5 ? ' anim-delay-' + idx : '';
@@ -4730,7 +4692,9 @@ function renderWatchlist(){
         +   '<div class="wl-meta">'+(FMT_LABEL[it.format]||it.format)+' · Added '+savedAgo+'</div>'
         +   '<div class="wl-tags">'+tags+'</div>'
         + '</div>'
-        + '<span class="wl-priority '+priCls+'">'+priLbl+'</span>'
+        + '<select class="wl-priority '+priCls+'" aria-label="Priority for '+escHtml(it.title)+'" onchange="setWatchlistPriority(this)">'
+        + '<option value="maybe"'+(it.priority !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
+        + '<option value="up_next"'+(it.priority === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
         + '<div class="wl-match">'+score+'</div>'
         + '<div class="wl-order-btns">'
         +   '<button class="wl-ob" onclick="wlMoveUp(this)" title="Move up">↑</button>'
@@ -5182,7 +5146,45 @@ function exportInsights(){
   showToast('Insights exported', '↓  ');
 }
 
+function topStyleTraits(weights){
+  return Object.entries(weights).sort(function(a,b){return b[1]-a[1] || a[0].localeCompare(b[0]);})
+    .slice(0,4).map(function(pair){return pair[0];}).join(', ');
+}
+
+async function renderStyleFingerprint(){
+  var panel = document.getElementById('insights-style');
+  var owner = currentUser?.id;
+  if(!owner){panel.hidden = true;panel.replaceChildren();return;}
+  try {
+    await ensureStyleItems();
+    if(currentUser?.id !== owner) return;
+    var scents = _loadFrags();
+    var wardrobe = _loadWard();
+    var scentProfile = _buildScentProfile();
+    var styleProfile = _buildStyleProfile();
+    function count(items, status){
+      return items.filter(function(item){return (item.status || 'owned').toLowerCase() === status;}).length;
+    }
+    function trait(label, weights){
+      var names = topStyleTraits(weights);
+      return names ? '<div><strong>'+label+'</strong> '+escHtml(names)+'</div>' : '';
+    }
+    panel.innerHTML = '<div class="ct">Scent &amp; Wardrobe Fingerprint</div><div class="style-fingerprint-grid">'
+      + '<div><h3>Fragrances</h3><p>'+count(scents,'owned')+' owned · '+count(scents,'wishlisted')+' wishlisted · '+count(scents,'tried')+' tried</p>'
+      + trait('Recurring notes',scentProfile.notes) + trait('Common houses',scentProfile.houses) + '</div>'
+      + '<div><h3>Wardrobe</h3><p>'+count(wardrobe,'owned')+' owned · '+count(wardrobe,'wishlisted')+' wishlisted</p>'
+      + trait('Common categories',styleProfile.categories) + trait('Recurring styles',styleProfile.tags) + '</div></div>';
+    panel.hidden = false;
+  } catch {
+    if(currentUser?.id === owner){
+      panel.textContent = 'Scent and wardrobe insights could not load. Open Insights again to retry.';
+      panel.hidden = false;
+    }
+  }
+}
+
 function renderInsights(fp){
+  renderStyleFingerprint();
   var sub     = document.getElementById('insights-ph-sub');
   var building= document.getElementById('fp-building');
   var fpList  = document.getElementById('fp-list');
@@ -5427,20 +5429,13 @@ function wlMoveToCollection(id){
   if(!it) return;
   _wlMoveId = id;
   openModal('add');
-  setTimeout(function(){
-    var titleInp = document.getElementById('add-title');
-    if(titleInp) titleInp.value = it.title;
-    var fmtMap = {film:'Film',show:'Show',book:'Book',sports_match:'Match',music:'Music'};
-    var fmtLabel = fmtMap[it.format] || 'Show';
-    var formatSelect = document.getElementById('add-format');
-    formatSelect.value = fmtLabel;
-    updateSportField(formatSelect);
-    (it.tags||[]).forEach(function(tag){
-      document.querySelectorAll('.tag-picker .tp').forEach(function(tp){
-        if(tp.textContent.trim().toLowerCase() === tag.toLowerCase()) tp.classList.add('sel');
-      });
-    });
-  }, 80);
+  var titleInp = document.getElementById('add-title');
+  if(titleInp) titleInp.value = it.title;
+  var fmtMap = {film:'Film',show:'Show',book:'Book',sports_match:'Match',music:'Music'};
+  var fmtLabel = fmtMap[it.format] || 'Show';
+  var formatSelect = document.getElementById('add-format');
+  formatSelect.value = fmtLabel;
+  updateSportField(formatSelect);
 }
 
 /* ── O2: Toggle fingerprint building/sparse state ── */
@@ -5486,7 +5481,8 @@ function _doContentSearch(q){
   fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type)
     .then(function(r){ return r.json(); })
     .then(function(list){
-      _csResults = list || [];
+      if(!document.getElementById('m-add').classList.contains('open') || document.getElementById('add-title').value !== q) return;
+      _csResults = Array.isArray(list) ? list : [];
       var _TYPE_LABEL = {film:'Film', show:'Show', book:'Book', music:'Music', match:'Match'};
       var isAll = (type === 'all');
       var manualRow = '<div class="cs-item cs-manual-row" onclick="_closeSearchDrop()">'
@@ -5586,9 +5582,78 @@ var _styleBusy = false;
 var _styleEpoch = 0;
 var LEGACY_STYLE_KEYS = {fragrance:'nz_fragrances', wardrobe:'nz_wardrobe'};
 var STYLE_TEXT_FIELDS = {
-  fragrance:['name','house','status','character','projection','season','occasion','notesTop','notesMid','notesBase','review'],
+  fragrance:['name','house','photoUrl','status','character','projection','season','occasion','notesTop','notesMid','notesBase','review'],
   wardrobe:['name','brand','category','color','colorName','fabric','season','occasion','status','pairing']
 };
+
+function safeFragrancePhoto(url){
+  try {
+    var parsed = new URL(url);
+    return parsed.protocol === 'https:' && !parsed.username && !parsed.password ? parsed.href : '';
+  } catch {
+    return '';
+  }
+}
+
+function fragranceCataloguePhoto(rec){
+  return FRAGRANCE_PHOTOS[catalogueText(rec.name) + '|' + catalogueText(rec.house)];
+}
+
+function fragrancePoster(rec){
+  var photo = fragranceCataloguePhoto(rec);
+  var ownUrl = safeFragrancePhoto(rec.photoUrl);
+  var url = ownUrl || photo?.url;
+  var figure = '<div class="fragrance-poster"><span aria-hidden="true">'+escHtml(_recInitials(rec.name))+'</span>';
+  if(url){
+    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml(rec.name)+' bottle" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">';
+    if(!ownUrl && photo){
+      figure += '<a href="'+photo.source+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="Photo credit for '+escHtml(rec.name)+'" title="'+escHtml(photo.credit)+'">Photo credit</a>';
+    }
+  }
+  return figure+'</div>';
+}
+
+function styleDiscoveryActions(kind,rec){
+  var scent = kind === 'fragrance';
+  var data = escHtml(JSON.stringify(rec));
+  var statuses = scent ? [['owned','Owned'],['wishlisted','Wishlist'],['tried','Tried']]
+    : [['Owned','Owned'],['Wishlisted','Wishlist']];
+  return '<div class="style-quick-actions" data-kind="'+kind+'" data-style-rec="'+data+'">'
+    + statuses.map(function(status){
+      return '<button class="btn btn-g btn-sm" type="button" data-status="'+status[0]+'" onclick="saveDiscoveryStyle(this)" aria-label="'+status[1]+' · '+escHtml(rec.name)+'">'+status[1]+'</button>';
+    }).join('')
+    + '<button class="btn btn-ghost btn-sm" type="button" onclick="'+(scent ? 'addFragFromDiscover(this)' : 'addWardFromDiscover(this)')+'" data-'+(scent ? 'frag' : 'ward')+'="'+data+'">Details</button></div>';
+}
+
+async function saveDiscoveryStyle(button){
+  var controls = button.closest('.style-quick-actions');
+  var rec = JSON.parse(controls.dataset.styleRec);
+  var kind = controls.dataset.kind;
+  var scent = kind === 'fragrance';
+  var status = button.dataset.status;
+  var saved = (scent ? _loadFrags() : _loadWard()).find(function(item){
+    return catalogueText(item.name) === catalogueText(rec.name) &&
+      (!scent || !item.house || catalogueText(item.house) === catalogueText(rec.house));
+  });
+  var details = scent ? {
+    name:rec.name, house:rec.house, notesTop:rec.top, notesMid:rec.mid,
+    notesBase:rec.base, character:rec.character, projection:rec.projection, season:rec.season
+  } : {
+    name:rec.name, brand:rec.brand, category:rec.category, season:rec.season,
+    occasion:rec.occasions, tags:rec.style.split(',').map(function(tag){return tag.trim();}).filter(Boolean)
+  };
+  var item = {...details, id:crypto.randomUUID(), created:Date.now(), ...saved, status:status};
+  var buttons = controls.querySelectorAll('button');
+  buttons.forEach(function(control){control.disabled = true;});
+  try {
+    if(!await changeStyleItem(kind,item,false)) return;
+    showToast(rec.name + ' saved as ' + status.toLowerCase());
+    if(_discPill === 'all') renderCombinedDiscovery();
+    else if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
+  } finally {
+    buttons.forEach(function(control){control.disabled = false;});
+  }
+}
 
 function _loadFrags(){ return _styleItems.fragrance; }
 function _loadWard(){ return _styleItems.wardrobe; }
@@ -5705,6 +5770,7 @@ function updateStyleCache(kind, items, replacedId){
   })).sort(function(a,b){ return b.created - a.created; });
   _fragDiscRecs = null;
   _styleDiscRecs = null;
+  if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
 }
 
 async function importStyleItems(kind, items){
@@ -5841,6 +5907,7 @@ function _fragCardHTML(f){
       +'<div class="frag-rating-bar"><div class="frag-rating-fill" style="width:'+pct+'%"></div></div></div>';
   }
   return '<div class="frag-card" onclick="openFragranceModal(\''+f.id+'\')">'
+    +fragrancePoster(f)
     +'<div class="frag-card-top"><div><div class="frag-card-name">'+_sx(f.name)+'</div>'
     +'<div class="frag-card-house">'+_sx(f.house)+'</div></div>'
     +'<span class="frag-status '+slCls+'">'+slLabel+'</span></div>'
@@ -5866,7 +5933,7 @@ function openFragranceModal(id){
   /* Reset fields */
   var fields = {
     'frag-name':'','frag-house':'','frag-char':'',
-    'frag-occasion':'','frag-top':'','frag-mid':'','frag-base':'','frag-review':''
+    'frag-occasion':'','frag-top':'','frag-mid':'','frag-base':'','frag-review':'','frag-photo':''
   };
   Object.keys(fields).forEach(function(k){ var el=document.getElementById(k); if(el) el.value=fields[k]; });
   var sel = document.getElementById('frag-status'); if(sel) sel.value='owned';
@@ -5887,7 +5954,7 @@ function openFragranceModal(id){
       var set = function(id, val){ var el=document.getElementById(id); if(el) el.value=val||''; };
       set('frag-name',f.name); set('frag-house',f.house); set('frag-char',f.character);
       set('frag-occasion',f.occasion); set('frag-top',f.notesTop); set('frag-mid',f.notesMid);
-      set('frag-base',f.notesBase); set('frag-review',f.review);
+      set('frag-base',f.notesBase); set('frag-review',f.review); set('frag-photo',f.photoUrl);
       (f.tags||[]).forEach(function(tag){
         document.querySelectorAll('#frag-tag-picker .tp').forEach(function(tp){
           if(tp.textContent.trim().toLowerCase()===tag.toLowerCase()) tp.classList.add('sel');
@@ -5918,6 +5985,9 @@ function closeFragranceModal(){
 async function saveFragrance(){
   var name = (document.getElementById('frag-name').value||'').trim();
   if(!name){ showToast('Please enter a fragrance name'); return; }
+  var rawPhoto = document.getElementById('frag-photo').value.trim();
+  var photoUrl = safeFragrancePhoto(rawPhoto);
+  if(rawPhoto && !photoUrl){showToast('Use an HTTPS image URL.');return;}
   var rVal = parseFloat(document.getElementById('frag-rating').value)||0;
   var selectedFragTags = Array.from(document.querySelectorAll('#frag-tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
   var f = {
@@ -5933,6 +6003,7 @@ async function saveFragrance(){
     notesMid:  ((document.getElementById('frag-mid')||{}).value||'').trim(),
     notesBase: ((document.getElementById('frag-base')||{}).value||'').trim(),
     rating: rVal,
+    photoUrl: photoUrl,
     review: ((document.getElementById('frag-review')||{}).value||'').trim(),
     tags: selectedFragTags,
     created: Date.now()
@@ -6201,7 +6272,7 @@ function _buildScentProfile(){
   var p={count:frags.length,ownedKeys:new Set(),seasons:{},projections:{},characters:{},houses:{},notes:{},tags:{},occasions:{}};
   frags.forEach(function(f){
     p.ownedKeys.add(catalogueText(f.name) + '|' + catalogueText(f.house));
-    var r=parseFloat(f.rating); var w=(!isNaN(r)&&r>0)?r/10:0.5;
+    var r=parseFloat(f.rating); var w=(!isNaN(r)&&r>0)?r/10:f.status==='wishlisted'?0.25:0.5;
     var season=(f.season||'').toLowerCase();
     season.split('/').filter(Boolean).forEach(function(part){p.seasons[part]=(p.seasons[part]||0)+w;});
     var proj=(f.projection||'').toLowerCase();
@@ -6220,8 +6291,8 @@ function _buildScentProfile(){
       var tl=t.toLowerCase(); p.tags[tl]=(p.tags[tl]||0)+w;
     });
     /* Enrich from FRAG_DB if name matched */
-    var db=FRAG_DB.find(function(e){ return e[0].toLowerCase()===(f.name||'').toLowerCase(); });
-    if(db){
+    var db=FRAG_DB.find(function(e){ return catalogueText(e[0])===catalogueText(f.name) && (!f.house || catalogueText(e[1])===catalogueText(f.house)); });
+    if(db && ![f.notesTop,f.notesMid,f.notesBase].some(Boolean)){
       (db[2]+','+db[3]+','+db[4]).toLowerCase().split(/,\s*/).forEach(function(n){
         n=n.trim(); if(n.length>2) p.notes[n]=(p.notes[n]||0)+w*0.4;
       });
@@ -6276,16 +6347,22 @@ function hasSavedFragrance(profile, entry){
   return profile.ownedKeys.has(name + '|' + catalogueText(entry[1])) || profile.ownedKeys.has(name + '|');
 }
 
-function loadFragDiscovery(){
-  _discState('loading');
+function fragranceRecommendations(){
   var p=_buildScentProfile();
   var scored=FRAG_DB.map(function(e){
     if(hasSavedFragrance(p, e)) return null;
     var r=_scoreFrag(e,p);
     return {name:e[0],house:e[1],top:e[2],mid:e[3],base:e[4],character:e[5],projection:e[6],season:e[7],score:r.score,reasons:r.reasons,gradient:_fragGradient(e[5],e[7])};
-  }).filter(Boolean).sort(function(a,b){return b.score-a.score;});
-  _fragDiscRecs=scored;
-  _renderFragDiscovery(scored, p.count===0);
+  }).filter(Boolean);
+  scored.sort(function(a,b){
+    return p.count ? b.score-a.score : Number(!!fragranceCataloguePhoto(b))-Number(!!fragranceCataloguePhoto(a));
+  });
+  return {recs:scored, cold:p.count===0};
+}
+function loadFragDiscovery(){
+  var result = fragranceRecommendations();
+  _fragDiscRecs = result.recs;
+  _renderFragDiscovery(cataloguePage(result.recs,_catalogueOffset.fragrances,25),result.cold);
 }
 
 function _renderFragDiscovery(recs, isColdStart){
@@ -6294,15 +6371,13 @@ function _renderFragDiscovery(recs, isColdStart){
   var gridWrap=document.getElementById('disc-grid-wrap');
   if(!recs||!recs.length){
     heroWrap.innerHTML='';
-    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">You\'ve already discovered all fragrances in the library — add more entries to unlock new matches.</div>';
+    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">You\'ve already discovered all fragrances in the library — Refresh the catalogue if you remove a saved scent.</div>';
     return;
   }
   var banner=isColdStart?'<div style="background:var(--p-ghost);border:1px solid var(--p-subtle);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--t-2);line-height:1.6"><strong style="color:var(--p-rich)">✦ Start your scent collection</strong> to get personalised matches. These are beloved picks to explore first.</div>':'';
   var h=recs[0];
-  var hInit=h.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
   var hReasons=h.reasons.map(function(r){return '<div class="disc-hero-reason"><div class="disc-hero-dot"></div>'+escHtml(r)+'</div>';}).join('');
   var hTags=h.character.split(',').map(function(c){return '<span class="disc-hero-tag">'+escHtml(c.trim())+'</span>';}).join('');
-  var hData=escHtml(JSON.stringify({name:h.name,house:h.house,top:h.top,mid:h.mid,base:h.base,character:h.character,projection:h.projection,season:h.season}));
   heroWrap.innerHTML=banner+
     '<div class="disc-hero" style="background:'+h.gradient+'">'+
     '<div style="flex:1;position:relative;z-index:1">'+
@@ -6313,26 +6388,21 @@ function _renderFragDiscovery(recs, isColdStart){
     '<div style="font-size:12px;color:rgba(255,255,255,.78);margin-bottom:10px;line-height:1.7">&#8593; '+escHtml(h.top)+'<br>&#8762; '+escHtml(h.mid)+'<br>&#8595; '+escHtml(h.base)+'</div>'+
     '<div class="disc-hero-reasons">'+hReasons+'</div>'+
     '<div class="disc-hero-tags">'+hTags+'</div>'+
-    '<button class="btn btn-p btn-sm" onclick="addFragFromDiscover(this)" data-frag="'+hData+'">+ Add to Fragrances</button>'+
+    styleDiscoveryActions('fragrance',h)+
     '</div>'+
     '<div class="disc-hero-right" style="position:relative;z-index:1">'+
-    '<div class="disc-hero-match">'+h.score+'%</div>'+
-    '<div class="disc-hero-match-label">scent match</div>'+
-    '<div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(hInit)+'</div>'+
+    '<div class="disc-hero-match-label">'+(isColdStart ? 'Catalogue pick' : 'Picked for your profile')+'</div>'+
+    fragrancePoster(h)+
     '</div></div>';
   if(recs.length<=1){gridWrap.innerHTML='';return;}
   var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE SCENT PICKS</div><div class="disc-grid">';
   recs.slice(1,25).forEach(function(rec,i){
-    var init2=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
-    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
     var delay=i<6?' anim-delay-'+(i+1):'';
     var reas2=rec.reasons.map(function(r){return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
     var cTags=rec.character.split(',').slice(0,3).map(function(c){return '<span class="tag">'+escHtml(c.trim())+'</span>';}).join('');
-    var fd=escHtml(JSON.stringify({name:rec.name,house:rec.house,top:rec.top,mid:rec.mid,base:rec.base,character:rec.character,projection:rec.projection,season:rec.season}));
     html+='<div class="rc anim-fadeup'+delay+'">'+
       '<div class="rc-poster" style="background:'+rec.gradient+'">'+
-      '<div class="rc-initials">'+escHtml(init2)+'</div>'+
-      '<div class="rc-match '+mCls+'">'+rec.score+'%</div>'+
+      fragrancePoster(rec)+
       '</div>'+
       '<div class="rc-body">'+
       '<div class="rc-title">'+escHtml(rec.name)+'</div>'+
@@ -6343,9 +6413,8 @@ function _renderFragDiscovery(recs, isColdStart){
       'Why this match?</button>'+
       '<div class="rc-reasons">'+reas2+'</div>'+
       '<div class="rc-tags">'+cTags+'</div>'+
-      '<div class="rc-foot">'+
-      '<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addFragFromDiscover(this)" data-frag="'+fd+'">+ Add to Fragrances</button>'+
-      '</div></div></div>';
+      styleDiscoveryActions('fragrance',rec)+
+      '</div></div>';
   });
   html+='</div>';
   gridWrap.innerHTML=html;
@@ -6421,16 +6490,19 @@ function _scoreStyleItem(entry, p){
   return {score:final,reasons:reasons};
 }
 
-function loadStyleDiscovery(){
-  _discState('loading');
+function wardrobeRecommendations(){
   var p=_buildStyleProfile();
   var scored=WARD_STYLE_DB.map(function(e){
     if(p.ownedNames[e[0].toLowerCase()]) return null;
     var r=_scoreStyleItem(e,p);
     return {name:e[0],category:e[1],brand:e[2],style:e[3],occasions:e[4],season:e[5],description:e[6],score:r.score,reasons:r.reasons,gradient:_styleGradient(e[3])};
   }).filter(Boolean).sort(function(a,b){return b.score-a.score;});
-  _styleDiscRecs=scored;
-  _renderStyleDiscovery(scored, p.count===0);
+  return {recs:scored, cold:p.count===0};
+}
+function loadStyleDiscovery(){
+  var result = wardrobeRecommendations();
+  _styleDiscRecs = result.recs;
+  _renderStyleDiscovery(cataloguePage(result.recs,_catalogueOffset.style,25),result.cold);
 }
 
 function _renderStyleDiscovery(recs, isColdStart){
@@ -6439,7 +6511,7 @@ function _renderStyleDiscovery(recs, isColdStart){
   var gridWrap=document.getElementById('disc-grid-wrap');
   if(!recs||!recs.length){
     heroWrap.innerHTML='';
-    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">Your wardrobe is impeccably complete. Add more pieces to discover new suggestions.</div>';
+    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">You’ve saved all the current wardrobe suggestions.</div>';
     return;
   }
   var banner=isColdStart?'<div style="background:var(--p-ghost);border:1px solid var(--p-subtle);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--t-2);line-height:1.6"><strong style="color:var(--p-rich)">✦ Build your wardrobe</strong> to get personalised style matches. These are timeless pieces to consider first.</div>':'';
@@ -6447,7 +6519,6 @@ function _renderStyleDiscovery(recs, isColdStart){
   var hInit=h.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
   var hReasons=h.reasons.map(function(r){return '<div class="disc-hero-reason"><div class="disc-hero-dot"></div>'+escHtml(r)+'</div>';}).join('');
   var hTags=h.style.split(',').slice(0,4).map(function(s){return '<span class="disc-hero-tag">'+escHtml(s.trim())+'</span>';}).join('');
-  var hData=escHtml(JSON.stringify({name:h.name,brand:h.brand,category:h.category,season:h.season}));
   heroWrap.innerHTML=banner+
     '<div class="disc-hero" style="background:'+h.gradient+'">'+
     '<div style="flex:1;position:relative;z-index:1">'+
@@ -6457,26 +6528,22 @@ function _renderStyleDiscovery(recs, isColdStart){
     '<div style="font-size:12.5px;color:rgba(255,255,255,.78);margin:8px 0 10px;font-style:italic;line-height:1.5">'+escHtml(h.description)+'</div>'+
     '<div class="disc-hero-reasons">'+hReasons+'</div>'+
     '<div class="disc-hero-tags">'+hTags+'</div>'+
-    '<button class="btn btn-p btn-sm" onclick="addWardFromDiscover(this)" data-ward="'+hData+'">+ Add to Wardrobe</button>'+
+    styleDiscoveryActions('wardrobe',h)+
     '</div>'+
     '<div class="disc-hero-right" style="position:relative;z-index:1">'+
-    '<div class="disc-hero-match">'+h.score+'%</div>'+
-    '<div class="disc-hero-match-label">style match</div>'+
+    '<div class="disc-hero-match-label">'+(isColdStart ? 'Catalogue pick' : 'Picked for your profile')+'</div>'+
     '<div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(hInit)+'</div>'+
     '</div></div>';
   if(recs.length<=1){gridWrap.innerHTML='';return;}
   var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE STYLE PICKS</div><div class="disc-grid">';
   recs.slice(1,25).forEach(function(rec,i){
     var init2=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
-    var mCls=rec.score>=90?'mh':rec.score>=80?'mm':'';
     var delay=i<6?' anim-delay-'+(i+1):'';
     var reas2=rec.reasons.map(function(r){return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
     var sTags=rec.style.split(',').slice(0,3).map(function(s){return '<span class="tag">'+escHtml(s.trim())+'</span>';}).join('');
-    var wd=escHtml(JSON.stringify({name:rec.name,brand:rec.brand,category:rec.category,season:rec.season}));
     html+='<div class="rc anim-fadeup'+delay+'">'+
       '<div class="rc-poster" style="background:'+rec.gradient+'">'+
       '<div class="rc-initials">'+escHtml(init2)+'</div>'+
-      '<div class="rc-match '+mCls+'">'+rec.score+'%</div>'+
       '</div>'+
       '<div class="rc-body">'+
       '<div class="rc-title">'+escHtml(rec.name)+'</div>'+
@@ -6487,9 +6554,8 @@ function _renderStyleDiscovery(recs, isColdStart){
       'Why this match?</button>'+
       '<div class="rc-reasons">'+reas2+'</div>'+
       '<div class="rc-tags">'+sTags+'</div>'+
-      '<div class="rc-foot">'+
-      '<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="addWardFromDiscover(this)" data-ward="'+wd+'">+ Add to Wardrobe</button>'+
-      '</div></div></div>';
+      styleDiscoveryActions('wardrobe',rec)+
+      '</div></div>';
   });
   html+='</div>';
   gridWrap.innerHTML=html;

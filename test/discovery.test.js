@@ -13,6 +13,10 @@ test('favorites are selected per format and a requested seed may have any rating
   library.push({ id: seedId, title: 'Book favorite', format: 'book', rating: 10 });
   const anchors = selectAnchors(library);
   assert.equal(anchors.filter(a => a.format === 'music').length, 3);
+  const freshAnchors = selectAnchors(library, null, 'music', 1);
+  const musicAnchors = anchors.filter(anchor => anchor.format === 'music');
+  assert.equal(freshAnchors[0].title, musicAnchors[0].title);
+  assert.ok(freshAnchors.slice(1).every(anchor => !musicAnchors.some(first => first.title === anchor.title)));
   assert.equal(anchors.filter(a => a.format === 'book').length, 1);
   assert.deepEqual(selectAnchors(library, 'music-1').map(a => a.title), ['Album 1']);
   assert.deepEqual(selectAnchors(library, null, 'book').map(a => a.title), ['Book favorite']);
@@ -26,7 +30,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
     ANTHROPIC_API_KEY:'synthetic'
   });
   const history = [
-    { id:seedId, title:'Original Favorite',format:'book',rating:9,tags:['epistolary'],date_completed:'2025-05-01' },
+    { id:seedId, title:'Original Favorite',format:'book',rating:9,tags:['epistolary','mystery'],date_completed:'2025-05-01' },
     ...Array.from({ length:499 }, (_, i) => ({
       id:String(i),title:'Previous music ' + i,format:'music',rating:5
     })),
@@ -36,7 +40,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   const queried = [];
   let quotaCalls = 0;
   const item = (title, anchor = 'A1') => ({
-    title, format:'book', creator:'Test Author', anchor, connection:'Comparable use of letters.'
+    title, format:'book', creator:'Test Author', anchor, connection:'Comparable use of letters.', sharedTags:['epistolary','Mystery','not a logged tag']
   });
   t.mock.method(globalThis,'fetch',async (address, options) => {
     const url = new URL(address);
@@ -52,7 +56,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
     if (url.hostname === 'api.anthropic.com') {
       prompt = JSON.parse(options.body).messages[0].content;
       return Response.json({content:[{type:'text',text:JSON.stringify([
-        item('Old Read'), item('Already Saved'), item('Deja Vu'), item('Nonexistent'),
+        item('Old Read'), item('Already Saved'), item('Deja Vu'), item('Already Shown'), item('Nonexistent'),
         item('Catalogue Match','Made-up anchor'), item('Catalogue Match'),
         {...item('Wrong Author'),creator:'Wrong person'}
       ])}]});
@@ -71,7 +75,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   async function invoke(id) {
     const output = {};
     await discover({method:'POST', headers:{authorization:'Bearer synthetic'}, body:{
-      strategy:'grounded', tab:'because-loved',seedId:id
+      strategy:'grounded', tab:'because-loved',seedId:id,recent:[{title:'Already Shown',format:'book'}]
     }}, {setHeader(){},status(code){output.status=code;return this;},json(value){output.body=value;}});
     return output;
   }
@@ -83,8 +87,10 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   assert.equal(result.body.recommendations[0].anchor.title,'Original Favorite');
   assert.deepEqual(result.body.recommendations[0].catalog,{provider:'openlibrary',id:'/works/synthetic'});
   assert.equal(result.body.recommendations[0].match_score,undefined);
+  assert.deepEqual(result.body.recommendations[0].affinity,{label:'Close match',sharedTags:['epistolary','mystery']});
+  assert.match(prompt,/already shown|already saved/);
   assert.match(prompt,/Original Favorite/);
   assert.match(prompt,/2025-05-01/);
   assert.doesNotMatch(prompt,/Old Read|Private text/);
-  assert.ok(queried.every(q=>!q.startsWith('Old Read') && !q.startsWith('Deja Vu') && !q.startsWith('Already Saved')));
+  assert.ok(queried.every(q=>!q.startsWith('Old Read') && !q.startsWith('Deja Vu') && !q.startsWith('Already Saved') && !q.startsWith('Already Shown')));
 });

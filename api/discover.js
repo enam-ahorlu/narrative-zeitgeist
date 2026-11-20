@@ -3,7 +3,7 @@
 // Set ANTHROPIC_API_KEY in Vercel → Project Settings → Environment Variables.
 
 const { authContext } = require('../lib/supabase-server');
-const { loadHistory, selectAnchors, makePrompt, verifyRecommendations } = require('../lib/grounded-discovery');
+const { loadHistory, selectAnchors, discoveryExclusions, makePrompt, verifyRecommendations } = require('../lib/grounded-discovery');
 
 const FORMATS = ['film', 'show', 'book', 'sports_match', 'music'];
 const TABS = ['for-you', 'hidden', 'trending', 'because-loved'];
@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
   const input = grounded ? await groundedInput(auth, req.body) : normalizeInput(req.body);
   if (input?.error) return res.status(input.status).json({ error: input.error });
   if (!input) return res.status(400).json({ error: 'A valid taste fingerprint with at least 3 entries is required.' });
-  const { fingerprint, entryTitles, tab, becauseTitle, anchors, known } = input;
+  const { fingerprint, entryTitles, tab, becauseTitle, anchors, known, avoid } = input;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Discovery is unavailable.' });
@@ -60,7 +60,7 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: grounded || comparison ? 2600 : 8192,
-        messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab) : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
+        messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab, avoid) : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
       }),
       signal: AbortSignal.timeout(modelBudget)
     });
@@ -77,10 +77,7 @@ module.exports = async function handler(req, res) {
     const recommendations = grounded
       ? await verifyRecommendations(parsed, anchors, known, tab)
       : normalizeRecommendations(parsed, entryTitles);
-    if (grounded && !recommendations.length) {
-      return res.status(422).json({ error: 'No unseen catalogue matches could be verified this time. Try again or choose another favorite.' });
-    }
-    if (!recommendations.length) throw new Error('No usable recommendations');
+    if (!grounded && !recommendations.length) throw new Error('No usable recommendations');
     return res.status(200).json({ recommendations });
   } catch (error) {
     if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
@@ -101,10 +98,11 @@ async function groundedInput(auth, body) {
   try {
     const history = await loadHistory(auth);
     const focus = FORMATS.includes(body.focus) ? body.focus : null;
-    const anchors = selectAnchors(history.entries, tab === 'because-loved' ? seedId : null, focus);
+    const round = Number.isSafeInteger(body.round) && body.round >= 0 ? body.round % 10000 : 0;
+    const anchors = selectAnchors(history.entries, tab === 'because-loved' ? seedId : null, focus, round);
     if (!anchors.length && tab === 'because-loved') return { status:404, error:'That entry is no longer in your collection.' };
     if (!anchors.length) return { status:422, error:'Rate something at least 7 out of 10 in this format, or pick any logged work in More Like This.' };
-    return { tab, anchors, known:history.known };
+    return { tab, anchors, ...discoveryExclusions(anchors, history, body.recent) };
   } catch {
     return { status:503, error:'Discovery could not read your saved collection. Try again shortly.' };
   }

@@ -291,3 +291,22 @@ var FRAG_DB = [
   ["Lazy Sunday Morning", "Maison Margiela Replica", "Aldehydes, pear, lily of the valley", "Iris, rose, orange blossom", "White musk, ambrette, patchouli", "Clean, airy, soft", "Soft–Moderate", "Year-round"],
   ["From the Garden", "Maison Margiela Replica", "Green mandarin", "Tomato leaf", "Patchouli", "Green, earthy, herbal", "Moderate", "Spring/Summer"]
 ];
+
+// Product photographs with source and license details on their linked file pages.
+const FRAGRANCE_PHOTOS = {
+  'ck one|calvin klein': {
+    url:'https://upload.wikimedia.org/wikipedia/commons/3/31/CK_One.jpg',
+    source:'https://commons.wikimedia.org/wiki/File:CK_One.jpg',
+    credit:'Gonna Fly Now, CC BY-SA 2.0'
+  },
+  'coco mademoiselle|chanel': {
+    url:'https://upload.wikimedia.org/wikipedia/commons/b/be/Coco_Mademoiselle_2001.jpg',
+    source:'https://commons.wikimedia.org/wiki/File:Coco_Mademoiselle_2001.jpg',
+    credit:'Maria Morri, CC BY-SA 2.0'
+  },
+  'eau sauvage|dior': {
+    url:'https://upload.wikimedia.org/wikipedia/commons/4/4f/Eau_Sauvage_Christian_Dior.jpg',
+    source:'https://commons.wikimedia.org/wiki/File:Eau_Sauvage_Christian_Dior.jpg',
+    credit:'Olinone, CC BY-SA 4.0'
+  }
+};

@@ -7,6 +7,7 @@ with suggestions from built-in catalogues.
 - [Live app](https://narrative-zeitgeist.vercel.app/)
 - [Supabase and Vercel setup](SUPABASE_SETUP.md)
 - [Review, catalogue sources and verification](REVIEW.md)
+- [Staging feedback checklist and recommendation behavior](STAGING-FEEDBACK.md)
 
 The Vercel entry point is `index.html`. The browser uses the bundled Supabase
 SDK, the public project configuration from `/api/config`, and the two scripts
