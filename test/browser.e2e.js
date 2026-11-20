@@ -1,0 +1,334 @@
+const assert = require('node:assert/strict');
+const { readFile } = require('node:fs/promises');
+const { test } = require('node:test');
+const { randomUUID } = require('node:crypto');
+const { chromium } = require('playwright-core');
+
+const origin = 'http://localhost:8976';
+const users = ['a', 'b'].map((name, index) => ({
+  id: '00000000-0000-4000-8000-00000000000' + (index + 1),
+  email: name + '@example.test',
+  user_metadata: { display_name: 'Account ' + name },
+  app_metadata: { provider: 'email' },
+  role: 'authenticated',
+  aud: 'authenticated'
+}));
+const entries = users.flatMap((user, index) => Array.from({ length: index ? 1 : 3 }, (_, position) => ({
+  id: randomUUID(), user_id: user.id, title: (index ? 'Journal B ' : 'Journal A ') + (position + 1),
+  format: 'book', rating: 8 + position / 2, tags: ['afrofuturism'], date_completed: '2026-08-01',
+  created_at: '2026-09-01'
+})));
+const watchlist = [];
+const styleItems = [];
+const resetRecipients = [];
+const stylesCreated = [];
+const passwordUpdates = [];
+let discoveryRequests = 0;
+let deleteRequests = 0;
+let failDelete = true;
+let failLogout = false;
+let failImport = true;
+let limitDiscovery = true;
+
+const fixtures = {
+  '/': ['index.html', 'text/html; charset=utf-8'],
+  '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
+  '/catalogues/fragrances.js': ['catalogues/fragrances.js', 'text/javascript; charset=utf-8'],
+  '/catalogues/wardrobe.js': ['catalogues/wardrobe.js', 'text/javascript; charset=utf-8']
+};
+
+function jwt(user) {
+  const encode = value => Buffer.from(JSON.stringify(value)).toString('base64url');
+  const exp = Math.floor(Date.now() / 1000) + 3600;
+  return encode({ alg: 'HS256', typ: 'JWT' }) + '.' + encode({ sub: user.id, role: user.role, exp }) + '.c3ludGhldGlj';
+}
+
+function session(user) {
+  return { access_token: jwt(user), refresh_token: 'synthetic-refresh', token_type: 'bearer',
+    expires_in: 3600, user };
+}
+
+function createMocks(assets) {
+  return async function respond(route) {
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname;
+    const method = request.method();
+    const send = (json, status = 200) => route.fulfill({ status, json });
+    if (url.origin !== origin) return route.abort();
+    if (assets[path]) return route.fulfill(assets[path]);
+    if (path === '/api/config') return send({ url: origin, key: 'sb_publishable_synthetic' });
+    if (path === '/favicon.ico') return route.fulfill({ status: 204 });
+    if (path === '/api/search' || path === '/api/ratings') return send([]);
+    if (path === '/auth/v1/token' && method === 'POST') {
+      const input = request.postDataJSON();
+      const user = users.find(candidate => candidate.email === input.email);
+      return user && input.password === 'test-password'
+        ? send(session(user))
+        : send({ message: 'Invalid login credentials' }, 400);
+    }
+    if (path === '/auth/v1/recover') {
+      resetRecipients.push(request.postDataJSON().email);
+      return send({});
+    }
+    if (path === '/auth/v1/signup') {
+      return send({ ...users[0], email: request.postDataJSON().email });
+    }
+    if (path === '/auth/v1/logout') {
+      if (failLogout) return send({ message: 'Synthetic sign-out network failure' }, 500);
+      return route.fulfill({ status: 204 });
+    }
+
+    const authorization = request.headers().authorization || '';
+    const user = users.find(candidate => authorization === 'Bearer ' + jwt(candidate))
+      || users.find(candidate => {
+        try { return JSON.parse(Buffer.from(authorization.split('.')[1], 'base64url')).sub === candidate.id; }
+        catch { return false; }
+      });
+    if (!user) return send({ message: 'No test session' }, 401);
+    const matchesUser = row => row.user_id === user.id;
+    const body = request.postData() ? request.postDataJSON() : null;
+    if (path === '/auth/v1/user') {
+      if (method === 'PUT') passwordUpdates.push({ userId: user.id, password: body.password });
+      return send(user);
+    }
+
+    if (path === '/api/delete-account') {
+      deleteRequests++;
+      if (failDelete) return send({ error: 'Account deletion could not be confirmed.' }, 502);
+      return send({ deleted: true });
+    }
+    if (path === '/api/discover') {
+      discoveryRequests++;
+      if (limitDiscovery) return send({ error: 'Discovery limit reached. Try again later.' }, 429);
+      if (!body.entryTitles.includes('Journal A 1')) return send({ error: 'Missing journal data' }, 400);
+      return send({ recommendations: [{
+        title: 'Synthetic discovery book', format: 'book', match_score: 91,
+        reasons: ['Theme match', 'Format match', 'Rating match'], tags: ['afrofuturism'],
+        meta: 'Book', cover_color: null
+      }] });
+    }
+    if (path === '/rest/v1/entries_with_tags') return send(entries.filter(matchesUser));
+    if (path === '/rest/v1/entries' && method === 'POST') {
+      const entry = { ...body, id: randomUUID(), tags: [], created_at: '2026-10-01' };
+      entries.push(entry);
+      return send(entry, 201);
+    }
+    if (path === '/rest/v1/tags') return send([]);
+    if (path === '/rest/v1/watchlist') {
+      if (method === 'GET') return send(watchlist.filter(matchesUser));
+      if (method === 'POST') {
+        const row = { ...body, id: randomUUID(), saved_at: '2026-10-01' };
+        watchlist.push(row);
+        return route.fulfill({ status: 201 });
+      }
+    }
+    const profile = { total_entries: entries.filter(matchesUser).length, primary_themes: [
+      { tag: 'afrofuturism', avg_rating: 9, frequency: 2, weight: 9 }
+    ], format_breakdown: { book: { count: 3, avg_rating: 9 } }, overall_avg_rating: 9 };
+    if (path === '/rest/v1/rpc/compute_fingerprint') return send(profile);
+    if (path === '/rest/v1/user_fingerprints') return send({ fingerprint_json: profile });
+    if (path === '/rest/v1/style_items') {
+      if (method === 'GET') return send(styleItems.filter(matchesUser));
+      if (method === 'DELETE') {
+        const id = url.searchParams.get('item_id').slice(3);
+        const index = styleItems.findIndex(row => matchesUser(row) && row.item_id === id);
+        if (index >= 0) styleItems.splice(index, 1);
+        return route.fulfill({ status: 204 });
+      }
+      const batch = Array.isArray(body) ? body : [body];
+      if (failImport && batch.some(row => row.item_id === 'legacy-f1')) {
+        return send({ message: 'Synthetic import failure' }, 503);
+      }
+      const inserted = [];
+      for (const row of batch) {
+        const index = styleItems.findIndex(other => matchesUser(other) && other.item_id === row.item_id);
+        if (index >= 0 && !request.headers().prefer.includes('ignore-duplicates')) styleItems[index] = row;
+        if (index < 0) {
+          styleItems.push(row);
+          stylesCreated.push(row.item_id);
+          inserted.push({ item_id: row.item_id });
+        }
+      }
+      return Array.isArray(body) ? send(inserted, 201) : route.fulfill({ status: 201 });
+    }
+    return send({ message: 'Unhandled test request ' + method + ' ' + path }, 404);
+  };
+}
+
+test('browser covers regular signed-in, recommendation and Style & Scent flows', { timeout: 90000 }, async t => {
+  const browser = await chromium.launch({
+    channel: process.env.NZ_BROWSER_CHANNEL || 'chrome',
+    executablePath: process.env.NZ_BROWSER_EXECUTABLE || undefined,
+    headless: true
+  });
+  t.after(() => browser.close());
+  const assets = Object.fromEntries(await Promise.all(Object.entries(fixtures).map(async ([url, [file, contentType]]) =>
+    [url, { body: await readFile(file), contentType }])));
+
+  async function openContext(options = {}) {
+    const context = await browser.newContext(options);
+    await context.route('**/*', createMocks(assets));
+    return context;
+  }
+
+  const context = await openContext({ viewport: { width: 1440, height: 960 } });
+  await context.addInitScript(() => {
+    if (localStorage.getItem('test-initialized')) return;
+    localStorage.setItem('test-initialized', '1');
+    localStorage.setItem('nz_fragrances', JSON.stringify([
+      { id: 'legacy-f1', name: 'Browser-only sample', house: 'Fixture', status: 'owned', rating: 8 }
+    ]));
+  });
+  const page = await context.newPage();
+  page.setDefaultTimeout(12000);
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', dialog => dialog.accept());
+  const signIn = async (target, email, password = 'test-password') => {
+    await target.locator('#auth-email-inp').fill(email);
+    await target.locator('#auth-pass-inp').fill(password);
+    await target.locator('#auth-submit-btn').click();
+  };
+  const visit = async screen => {
+    await page.locator('.ni[data-screen="' + screen + '"]').click();
+    await page.locator('#s-' + screen + '.active').waitFor();
+  };
+
+  await page.goto(origin);
+  await page.getByRole('link', { name: 'Create one' }).click();
+  await page.locator('#auth-email-inp').fill('new@example.test');
+  await page.locator('#auth-pass-inp').fill('test-password');
+  await page.locator('#auth-submit-btn').click();
+  await page.getByText('Check your email to confirm', { exact: false }).waitFor();
+  await page.getByRole('link', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('link', { name: 'Forgot password?' }).click();
+  assert.ok(await page.locator('#auth-email-inp').isVisible());
+  assert.ok(await page.locator('#auth-pass-inp').isHidden());
+  await page.locator('#auth-email-inp').fill('a@example.test');
+  await page.getByRole('button', { name: 'Send reset link' }).click();
+  await page.getByText('a reset link will be sent', { exact: false }).waitFor();
+  assert.deepEqual(resetRecipients, ['a@example.test']);
+  await page.getByRole('link', { name: 'Back to sign in' }).click();
+  await signIn(page, users[0].email, 'invalid-password');
+  await page.getByText('Incorrect email or password', { exact: false }).waitFor();
+  await signIn(page, users[0].email);
+  await page.locator('#s-collection').getByText('Journal A 1', { exact: true }).first().waitFor();
+  assert.equal(await page.getByText('Journal B 1', { exact: true }).count(), 0);
+  await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  await page.locator('#add-title').fill('Synthetic new journal entry');
+  await page.locator('#add-format').selectOption('Book');
+  await page.locator('#add-save-btn').click();
+  await page.locator('#s-collection').getByText('Synthetic new journal entry', { exact: true }).first().waitFor();
+
+  await visit('discover');
+  await page.getByText('Discovery limit reached', { exact: false }).waitFor();
+  limitDiscovery = false;
+  await page.getByRole('button', { name: 'Try Again' }).click();
+  await page.locator('#disc-hero-wrap').getByText('Synthetic discovery book').waitFor();
+  await page.locator('#disc-hero-wrap').getByRole('button', { name: '+ Watchlist' }).click();
+  await visit('watchlist');
+  await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
+  assert.equal(discoveryRequests, 2);
+
+  await visit('fragrances');
+  await page.getByText('No fragrances yet', { exact: true }).waitFor();
+  assert.equal(stylesCreated.length, 0);
+  await page.getByRole('button', { name: 'Import browser fragrances' }).click();
+  await page.getByText('Import failed. The original data was kept.', { exact: false }).waitFor();
+  assert.ok(await page.evaluate(() => localStorage.getItem('nz_fragrances')));
+  failImport = false;
+  await page.getByRole('button', { name: 'Import browser fragrances' }).click();
+  await page.locator('#frag-grid').getByText('Browser-only sample').waitFor();
+  assert.equal(await page.evaluate(() => localStorage.getItem('nz_fragrances')), null);
+
+  await page.locator('#s-fragrances .ph-actions').getByRole('button', { name: 'Add Fragrance' }).click();
+  await page.locator('#frag-name').fill('orpheon');
+  await page.locator('#frag-cs-drop').getByRole('button', { name: /Orphéon EDP/ }).click();
+  assert.equal(await page.locator('#frag-house').inputValue(), 'Diptyque');
+  await page.locator('#frag-save-btn').click();
+  await page.locator('#frag-grid').getByText('Orphéon EDP').waitFor();
+
+  await page.locator('#s-fragrances .ph-actions').getByRole('button', { name: 'Wardrobe', exact: true }).click();
+  await page.locator('#s-wardrobe .ph-actions').getByRole('button', { name: 'Add Item' }).click();
+  await page.locator('#ward-name').fill('Tropical Wool');
+  await page.locator('#ward-cs-drop').getByRole('button', { name: /Tropical Wool Suit/ }).click();
+  assert.equal(await page.locator('#ward-cat').inputValue(), 'Tailoring');
+  await page.locator('#ward-save-btn').click();
+  await page.locator('#ward-grid').getByText('Tropical Wool Suit').waitFor();
+  await page.locator('#ward-grid').getByText('Tropical Wool Suit').click();
+  await page.locator('#ward-name').fill('A’s Tropical Wool Suit');
+  await page.locator('#ward-save-btn').click();
+  await page.locator('#ward-grid').getByText('A’s Tropical Wool Suit').waitFor();
+
+  const otherDevice = await openContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 2 });
+  const phone = await otherDevice.newPage();
+  phone.setDefaultTimeout(12000);
+  phone.on('pageerror', error => errors.push(error.message));
+  await phone.goto(origin + '/#wardrobe');
+  await signIn(phone, users[0].email);
+  await phone.locator('#ward-grid').getByText('A’s Tropical Wool Suit').waitFor();
+  await phone.locator('#mni-settings').click();
+  await phone.evaluate(() => { document.getElementById('auth-email-inp').value = 'unrelated@example.test'; });
+  await phone.locator('#settings-password-btn').click();
+  await phone.getByText('a reset link will be sent', { exact: false }).waitFor();
+  assert.deepEqual(resetRecipients, ['a@example.test', 'a@example.test']);
+
+  await page.locator('.user-chip').click();
+  await page.locator('#auth-submit-btn').waitFor();
+  assert.equal(await page.locator('#frag-grid .frag-card').count(), 0);
+  await signIn(page, users[1].email);
+  await page.getByText('No wardrobe items yet', { exact: true }).waitFor();
+  assert.equal(await page.getByText('A’s Tropical Wool Suit').count(), 0);
+  await visit('fragrances');
+  await page.getByRole('button', { name: 'Add 7 sample fragrances' }).click();
+  await page.waitForFunction(() => document.querySelectorAll('#frag-grid .frag-card').length === 7);
+  for (let index = 0; index < 7; index++) {
+    await page.locator('#frag-grid .frag-card').first().click();
+    await page.locator('#frag-del-btn').click();
+    await page.waitForFunction(count => document.querySelectorAll('#frag-grid .frag-card').length === count, 6 - index);
+  }
+  await page.reload();
+  await page.getByText('No fragrances yet', { exact: true }).waitFor();
+  assert.equal(styleItems.filter(row => row.user_id === users[1].id).length, 0);
+
+  await visit('discover');
+  await page.locator('.disc-format-pills').getByText('Fragrances', { exact: false }).click();
+  await page.locator('#disc-search-inp').fill('khamrah qahwa');
+  await page.locator('#disc-search-res').getByText('Khamrah Qahwa', { exact: true }).waitFor();
+  await page.locator('#disc-search-inp').press('Escape');
+  await page.locator('#disc-search-res').waitFor({ state: 'hidden' });
+  await page.locator('.disc-format-pills').getByText('Style', { exact: false }).click();
+  await page.locator('#disc-search-inp').fill('Kente-Panel');
+  await page.locator('#disc-search-res').getByText('Kente-Panel Shirt', { exact: true }).waitFor();
+
+  await visit('settings');
+  await page.locator('#delete-account-btn').click();
+  await page.getByText('Account deletion could not be confirmed.', { exact: false }).waitFor();
+  assert.ok(await page.locator('#s-settings').isVisible());
+  failDelete = false;
+  failLogout = true;
+  await page.locator('#delete-account-btn').click();
+  await page.getByText('Account and saved data deleted.', { exact: false }).waitFor();
+  assert.ok(await page.locator('#auth-submit-btn').isVisible());
+  await page.reload();
+  await page.waitForFunction(() => window.SUPA !== null);
+  assert.equal(await page.evaluate(async () => (await SUPA.auth.getSession()).data.session), null);
+  assert.ok(await page.locator('#app').isHidden());
+  assert.equal(deleteRequests, 2);
+
+  const recovery = await (await openContext()).newPage();
+  recovery.setDefaultTimeout(12000);
+  recovery.on('pageerror', error => errors.push(error.message));
+  const hash = new URLSearchParams({
+    type: 'recovery', access_token: jwt(users[0]), refresh_token: 'synthetic-recovery-refresh',
+    token_type: 'bearer', expires_in: '3600'
+  });
+  await recovery.goto(origin + '/#' + hash);
+  await recovery.locator('#newpass-inp').fill('new-test-password');
+  await recovery.locator('#newpass-confirm-inp').fill('new-test-password');
+  await recovery.locator('#newpass-save-btn').click();
+  await recovery.getByText('Password updated successfully', { exact: false }).waitFor();
+  assert.deepEqual(passwordUpdates, [{ userId: users[0].id, password: 'new-test-password' }]);
+  assert.deepEqual(errors, []);
+});

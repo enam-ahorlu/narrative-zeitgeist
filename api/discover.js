@@ -2,42 +2,48 @@
 // Calls Claude API with the user's taste fingerprint and returns personalised recommendations.
 // Set ANTHROPIC_API_KEY in Vercel → Project Settings → Environment Variables.
 
+const { authContext } = require('../lib/supabase-server');
+
+const FORMATS = ['film', 'show', 'book', 'sports_match', 'music'];
+const TABS = ['for-you', 'hidden', 'trending', 'because-loved'];
+const SAFE_GRADIENT = /^linear-gradient\(\s*\d{1,3}deg\s*,\s*#[a-f\d]{6}\s*,\s*#[a-f\d]{6}\s*\)$/i;
+
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
+  res.setHeader('Cache-Control', 'no-store');
+
+  const auth = await authContext(req);
+  if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
+
+  const input = normalizeInput(req.body);
+  if (!input) return res.status(400).json({ error: 'A valid taste fingerprint with at least 3 entries is required.' });
+  const { fingerprint, entryTitles, tab, becauseTitle } = input;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({
-      error: 'ANTHROPIC_API_KEY is not set. Add it in Vercel → Project Settings → Environment Variables.'
-    });
-  }
+  if (!apiKey) return res.status(503).json({ error: 'Discovery is unavailable.' });
 
-  const { fingerprint: rawFingerprint, entryTitles = [], tab = 'for-you', becauseTitle = null } = req.body || {};
-
-  if (!rawFingerprint) {
-    return res.status(400).json({ error: 'A valid taste fingerprint is required.' });
-  }
-  // primary_themes may be null/empty for users with untagged entries — default to []
-  // Use a local `let` so we can safely normalise without hitting const-reassignment errors
-  let fingerprint = Array.isArray(rawFingerprint.primary_themes)
-    ? rawFingerprint
-    : { ...rawFingerprint, primary_themes: [] };
-
-  // Use raw entry count (entryTitles) as fallback when tagged count is low
-  const effectiveCount = Math.max((fingerprint.total_entries || 0), entryTitles.length);
-  if (effectiveCount < 3) {
-    return res.status(400).json({ error: 'Add at least 3 entries to unlock Discovery.' });
-  }
-
-  const prompt = buildPrompt(fingerprint, entryTitles, tab, becauseTitle);
-
-  let claudeRes;
+  let retryAfter;
   try {
-    claudeRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const quota = await fetch(auth.url + '/rest/v1/rpc/reserve_discovery_request', {
+      method: 'POST',
+      headers: { ...auth.headers, 'Content-Type': 'application/json' },
+      body: '{}',
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!quota.ok) throw new Error('Quota request failed');
+    retryAfter = await quota.json();
+    if (!Number.isInteger(retryAfter) || retryAfter < 0) throw new Error('Invalid quota response');
+  } catch {
+    return res.status(503).json({ error: 'Discovery is temporarily unavailable. Try again shortly.' });
+  }
+
+  if (retryAfter > 0) {
+    res.setHeader('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'Discovery limit reached. Try again in about ' + Math.ceil(retryAfter / 60) + ' minute(s).' });
+  }
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -47,63 +53,105 @@ module.exports = async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 8192,
-        messages: [{ role: 'user', content: prompt }]
-      })
+        messages: [{ role: 'user', content: buildPrompt(fingerprint, entryTitles, tab, becauseTitle) }]
+      }),
+      signal: AbortSignal.timeout(40000)
     });
-  } catch (e) {
-    return res.status(500).json({ error: 'Could not reach Claude API: ' + e.message });
+    if (!response.ok) {
+      console.error('Anthropic Discovery returned status', response.status);
+      throw new Error('Provider request failed');
+    }
+
+    const result = await response.json();
+    const text = (result.content || []).find(block => block.type === 'text')?.text || '';
+    const payload = text.match(/\x60\x60\x60(?:json)?\s*([\s\S]*?)\x60\x60\x60/i)?.[1]
+      || text.match(/(\[[\s\S]*\])/)?.[1];
+    const recommendations = normalizeRecommendations(JSON.parse(payload), entryTitles);
+    if (!recommendations.length) throw new Error('No usable recommendations');
+    return res.status(200).json({ recommendations });
+  } catch {
+    return res.status(502).json({ error: 'Discovery could not generate recommendations. Try again shortly.' });
   }
+};
 
-  if (!claudeRes.ok) {
-    let errMsg = `Claude API error ${claudeRes.status}`;
-    try { const d = await claudeRes.json(); errMsg = d.error?.message || errMsg; } catch (_) {}
-    return res.status(500).json({ error: errMsg });
-  }
+function boundedStrings(value, count, length) {
+  return Array.isArray(value)
+    ? value.slice(0, count).filter(item => typeof item === 'string' && item.trim())
+      .map(item => item.trim().slice(0, length))
+    : [];
+}
 
-  const claudeData = await claudeRes.json();
-  const text = (claudeData.content?.[0]?.text) || '';
+function normalizeInput(body) {
+  const raw = body?.fingerprint;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const entryTitles = boundedStrings(body.entryTitles, 100, 200);
+  const total = boundedNumber(raw.total_entries, 100000);
+  if (Math.max(total, entryTitles.length) < 3) return null;
 
-  // Extract the JSON array from Claude's response
-  const jsonMatch =
-    text.match(/```json\s*([\s\S]*?)\s*```/) ||
-    text.match(/```\s*(\[[\s\S]*?\])\s*```/) ||
-    text.match(/(\[[\s\S]*\])/);
-
-  if (!jsonMatch) {
-    const preview = text.slice(0, 300);
-    console.error('No JSON found in Claude response:', preview);
-    return res.status(500).json({
-      error: 'Could not parse recommendations from Claude.',
-      claude_said: preview || '(empty response)'
-    });
-  }
-
-  let recommendations;
-  try {
-    recommendations = JSON.parse(jsonMatch[1]);
-  } catch (e) {
-    // Response was likely truncated mid-JSON (max_tokens hit mid-array).
-    // Attempt to salvage all complete objects by trimming to the last '}' and closing the array.
-    const raw = jsonMatch[1];
-    const lastBrace = raw.lastIndexOf('}');
-    if (lastBrace !== -1) {
-      try {
-        recommendations = JSON.parse(raw.slice(0, lastBrace + 1) + ']');
-        console.warn(`Partial JSON recovered: ${recommendations.length} recommendations (truncated response)`);
-      } catch (_) {
-        return res.status(500).json({ error: 'Malformed JSON from Claude: ' + e.message });
-      }
-    } else {
-      return res.status(500).json({ error: 'Malformed JSON from Claude: ' + e.message });
+  const primaryThemes = (Array.isArray(raw.primary_themes) ? raw.primary_themes : [])
+    .slice(0, 10).filter(theme => typeof theme?.tag === 'string' && theme.tag.trim())
+    .map(theme => ({
+      tag: theme.tag.trim().slice(0, 100),
+      avg_rating: boundedNumber(theme.avg_rating, 10),
+      frequency: boundedNumber(theme.frequency, 100000),
+      weight: boundedNumber(theme.weight, 10)
+    }));
+  const formatBreakdown = {};
+  for (const format of FORMATS) {
+    const stats = raw.format_breakdown?.[format];
+    if (stats && typeof stats === 'object') {
+      formatBreakdown[format] = {
+        count: boundedNumber(stats.count, 100000),
+        avg_rating: boundedNumber(stats.avg_rating, 10)
+      };
     }
   }
 
-  if (!Array.isArray(recommendations) || recommendations.length === 0) {
-    return res.status(500).json({ error: 'Claude returned no recommendations.' });
-  }
+  return {
+    fingerprint: {
+      total_entries: total,
+      overall_avg_rating: boundedNumber(raw.overall_avg_rating, 10),
+      primary_themes: primaryThemes,
+      format_breakdown: formatBreakdown
+    },
+    entryTitles,
+    tab: TABS.includes(body.tab) ? body.tab : 'for-you',
+    becauseTitle: typeof body.becauseTitle === 'string' ? body.becauseTitle.trim().slice(0, 200) : null
+  };
+}
 
-  return res.status(200).json({ recommendations });
-};
+function boundedNumber(value, max) {
+  if (typeof value !== 'number' && typeof value !== 'string') return 0;
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.min(max, Math.max(0, number)) : 0;
+}
+
+function normalizeRecommendations(value, entryTitles) {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set(entryTitles.map(title => title.toLowerCase()));
+  const recommendations = [];
+  for (const item of value.slice(0, 24)) {
+    if (typeof item?.title !== 'string' || !FORMATS.includes(item.format)) continue;
+    const title = item.title.trim().slice(0, 200);
+    const key = title.toLowerCase();
+    if (!key || seen.has(key)) continue;
+    const reasons = boundedStrings(item.reasons, 3, 300);
+    if (reasons.length !== 3) continue;
+    seen.add(key);
+    recommendations.push({
+      title,
+      format: item.format,
+      match_score: Math.round(boundedNumber(item.match_score, 99)),
+      match_hook: typeof item.match_hook === 'string' ? item.match_hook.slice(0, 250) : '',
+      reasons,
+      tags: boundedStrings(item.tags, 8, 70),
+      cover_color: typeof item.cover_color === 'string' && SAFE_GRADIENT.test(item.cover_color)
+        ? item.cover_color : null,
+      meta: typeof item.meta === 'string' ? item.meta.slice(0, 250) : ''
+    });
+  }
+  return recommendations.slice(0, 12);
+}
 
 /* ── Prompt builder ── */
 function buildPrompt(fp, entryTitles, tab, becauseTitle) {

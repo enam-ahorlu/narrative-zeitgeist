@@ -1,94 +1,73 @@
-# Supabase Setup — Narrative & Zeitgeist
+# Supabase and Vercel setup
 
-Step-by-step guide to creating your Supabase project and wiring up the schema.
+## Supabase
 
----
+Use a dedicated staging Supabase project for preview deployments. The migration
+for the collection view requires PostgreSQL 15 or newer.
 
-## Step 1 — Create a Supabase project
+For an empty database, apply these scripts in the listed order using the SQL
+Editor or your migration runner.
 
-1. Go to [https://supabase.com](https://supabase.com) and sign in (or create a free account).
-2. Click **New project**.
-3. Fill in:
-   - **Name:** `narrative-zeitgeist`
-   - **Database password:** pick something strong and save it somewhere safe
-   - **Region:** choose the one closest to you (e.g. `West EU` or your nearest)
-4. Click **Create new project** and wait ~1 minute for provisioning.
+1. `supabase_schema.sql`
+2. `supabase_migration.sql`
+3. `supabase_migration_fix.sql`
+4. `migrations/003_account_isolation.sql`
+5. `migrations/004_discovery_quota.sql`
+6. `migrations/005_style_items.sql`
 
----
+For an existing database, verify which historical scripts have already been
+applied and start at the first unapplied migration. The historical scripts add
+`poster_url`, the `film` enum value and any missing profiles. Apply the newer
+numbered migrations once in order. Reapplying the historical scripts after
+migration 003 would restore older definitions of the collection view and
+fingerprint function.
 
-## Step 2 — Run the schema SQL
+Enable the email provider in Supabase Auth. Set the Site URL and add the
+app origins used for signup confirmation and password recovery to the
+redirect allow list. For a hosted test, use disposable test accounts with
+mailboxes that can receive the links.
 
-1. In your Supabase project, go to **SQL Editor** (left sidebar).
-2. Click **New query**.
-3. Open the file `supabase_schema.sql` (it's in this same folder).
-4. Copy the entire contents and paste it into the SQL editor.
-5. Click **Run** (or press `Ctrl+Enter` / `Cmd+Enter`).
+## Vercel environment variables
 
-You should see a success message. The following will have been created:
+Set the variables in Vercel for the target environment, using separate Supabase
+projects and Anthropic keys for Preview and Production. Use the same Supabase
+project for its URL, public key and admin key.
 
-| Object | Type | Purpose |
-|--------|------|---------|
-| `profiles` | Table | App-level user info, auto-created on signup |
-| `entries` | Table | Shows, books, matches, music the user logs |
-| `tags` | Table | User-owned labels |
-| `entry_tags` | Table | Junction: entries ↔ tags |
-| `user_fingerprints` | Table | Cached taste profile JSON |
-| `watchlist` | Table | Saved recommendations |
-| `entries_with_tags` | View | Entries + their tags in one query |
-| `compute_fingerprint()` | Function | Calculates & caches the taste profile |
-| RLS policies | Security | Each user can only see their own data |
+| Name | Purpose |
+| --- | --- |
+| `SUPABASE_URL` | Supabase project URL. |
+| `SUPABASE_ANON_KEY` | Browser-safe publishable key or legacy anon JWT. This and the URL are served by `/api/config`. |
+| `SUPABASE_SECRET_KEY` | Server-only Supabase secret key used for account deletion. `SUPABASE_SERVICE_ROLE_KEY` is supported as a legacy alternative. |
+| `ANTHROPIC_API_KEY` | Server-only key for media recommendations. Requests include the taste fingerprint, selected tab and up to 100 journal or watchlist titles. |
+| `TMDB_API_KEY` | Film and TV title search. |
+| `GOOGLE_BOOKS_API_KEY` | Optional Google Books title search. Open Library provides a fallback. |
+| `OMDB_API_KEY` | External film and TV ratings. |
+| `RAWG_API_KEY` | Optional existing server-side game lookup. Games are outside the current journal form. |
 
----
+Keep the server keys in Vercel or an untracked local environment file. Configure
+the Anthropic project’s spending limit independently of the app’s per-account
+quota of 12 requests per hour.
 
-## Step 3 — Enable Email Auth
+## Preview checks and promotion
 
-1. Go to **Authentication → Providers** in the left sidebar.
-2. Make sure **Email** is enabled (it is by default).
-3. For now, leave **Confirm email** turned **off** — this lets you sign up and log in instantly without needing to verify your email. You can turn it on later before a real public launch.
-
----
-
-## Step 4 — Grab your API keys
-
-You'll need two values from your project. Go to **Project Settings → API**:
-
-| Key | Where to find it | What it's for |
-|-----|-----------------|---------------|
-| **Project URL** | `https://xxxx.supabase.co` | The base URL for all API calls |
-| **anon / public key** | Long JWT string under "Project API keys" | Safe to use in frontend code |
-
-Copy both. You'll paste them into the app in the next step.
-
-> ⚠️ Never share or commit your **service_role** key — that one bypasses all RLS and has full database access. The `anon` key is the safe frontend one.
-
----
-
-## Step 5 — Verify the setup (optional but recommended)
-
-In the **SQL Editor**, run this quick sanity check:
-
-```sql
--- Should return 6 tables + 1 view
-select table_name, table_type
-from information_schema.tables
-where table_schema = 'public'
-order by table_name;
-
--- Should return the compute_fingerprint function
-select routine_name
-from information_schema.routines
-where routine_schema = 'public';
-```
-
----
-
-## What's next
-
-Once you have the Project URL and anon key ready, the next step is wiring Supabase into the existing prototype HTML file:
-
-1. Add the Supabase JS SDK via CDN (one `<script>` tag)
-2. Replace the fake `enterApp()` login with real `supabase.auth.signInWithPassword()`
-3. Make the "Add Entry" modal call `supabase.from('entries').insert(...)`
-4. Read entries from `supabase.from('entries_with_tags').select(...)` instead of hardcoded HTML
-
-The design won't change at all — we're just replacing the mock JS with real database calls.
+1. Back up the existing database and verify the backup before running pending
+   migrations in production. Rehearse the migration order in staging first.
+2. Configure Preview variables and deploy the branch against staging. Create two
+   disposable accounts. Confirm signup, sign-in, password recovery, title
+   search, collection tagging and the Taste Fingerprint.
+3. With at least three synthetic entries, request a Claude recommendation, save
+   it to Watchlist, and verify the recommendation output. Check that Discovery
+   rejects signed-out requests and that the thirteenth request within an hour
+   is limited. Use local tests to exercise quota repeatedly without buying
+   provider calls.
+4. Check that fragrances and wardrobe records follow the same test account to
+   a second browser and remain hidden from the other test account. Import
+   pre-existing browser data only after verifying which account owns it.
+5. Delete one disposable account in Settings. Check that its sign-in and
+   database data are removed while the other test account remains usable.
+6. Configure the target environment and apply its pending migrations before
+   deploying the matching app version. Verify sign-in and Discovery after
+   deployment. Keep the hardened database policies in place if reverting the
+   frontend. The older frontend cannot call the new authenticated Discovery
+   handler without a matching backend rollback and would use browser-only
+   Style & Scent storage.

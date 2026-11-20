@@ -1,0 +1,12 @@
+{
+  "name": "narrative-zeitgeist",
+  "private": true,
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:browser": "node --test test/browser.e2e.js"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.17",
+    "playwright-core": "1.65.1"
+  }
+}
