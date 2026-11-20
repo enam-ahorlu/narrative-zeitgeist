@@ -53,7 +53,16 @@ consistency problems below.
    history while generating a new batch. Measure account sizes, payloads,
    and provider latency before adding server-side search, incremental
    retrieval, or cached candidate pools.
-4. **Browser structure.** Collection and Watchlist view rules, media recommendation session state, and
-   tag lookup now have separate modules and focused tests. The application
-   script owns rendering and screen selection. Style & Scent still combines
-   forms and storage in the application script. Its recommendation module now shares one profile and ranking per saved collection between Discover, search, and Insights.
+4. **Browser structure.** Collection and Watchlist projections, Discovery
+   session state, tag lookup, and Style & Scent recommendations and storage
+   have separate modules. The next structural work is to split form and
+   rendering controllers out of the inline script, starting with Style &
+   Scent forms and then the entry editor. Keep the current static deployment.
+5. **Shared loading and error handling.** Collection, Watchlist, and Insights
+   still coordinate requests in the page script. Give each screen one owner
+   for its loading and retry state, and consolidate markup and styling only as
+   those feature boundaries become clear.
+6. **Deferred product decisions.** Decide whether Up Next needs a persistent
+   manual order and whether Music should log individual tracks in addition to
+   albums. Those choices affect stored data and should be handled separately
+   from moving code.

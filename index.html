@@ -18,6 +18,7 @@
 <script src="/assets/journal-view.js"></script>
 <script src="/assets/discovery-session.js"></script>
 <script src="/assets/style-recommendations.js"></script>
+<script src="/assets/style-store.js"></script>
 <script src="/catalogues/tags.js"></script>
 <style>
 :root {
@@ -5276,18 +5277,11 @@ var _fragFilter = 'all';
 var _wardFilter = 'all';
 var _fragEditId = null;
 var _wardEditId = null;
+var _fragDraftId = null;
+var _wardDraftId = null;
 var _wardColor  = '#1B5E76';
 
-var _styleItems = {fragrance:[], wardrobe:[]};
-var _styleRequest = null;
-var _styleLoaded = false;
-var _styleBusy = false;
-var _styleEpoch = 0;
-var LEGACY_STYLE_KEYS = {fragrance:'nz_fragrances', wardrobe:'nz_wardrobe'};
-var STYLE_TEXT_FIELDS = {
-  fragrance:['name','house','photoUrl','status','character','projection','season','occasion','notesTop','notesMid','notesBase','review'],
-  wardrobe:['name','brand','category','color','colorName','fabric','season','occasion','status','pairing']
-};
+var _styleStore = null;
 
 function safeFragrancePhoto(url){
   try {
@@ -5387,7 +5381,6 @@ async function saveDiscoveryStyle(button){
   try {
     if(!await changeStyleItem(kind,item,false)) return;
     showToast(rec.name + ' saved as ' + status.toLowerCase());
-    refreshStyleDiscovery();
   } finally {
     buttons.forEach(function(control){control.disabled = false;});
   }
@@ -5399,15 +5392,22 @@ function refreshStyleDiscovery(){
   else if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
 }
 
-function _loadFrags(){ return _styleItems.fragrance; }
-function _loadWard(){ return _styleItems.wardrobe; }
+function currentStyleStore(){
+  var owner = currentUser?.id;
+  if(!owner) return null;
+  if(_styleStore?.owner !== owner){
+    _styleStore?.dispose();
+    _styleStore = createStyleStore(SUPA,owner);
+  }
+  return _styleStore;
+}
+
+function _loadFrags(){ return _styleStore?.items('fragrance') ?? EMPTY_STYLE_ITEMS; }
+function _loadWard(){ return _styleStore?.items('wardrobe') ?? EMPTY_STYLE_ITEMS; }
 
 function resetStyleState(){
-  _styleEpoch++;
-  _styleItems = {fragrance:[], wardrobe:[]};
-  _styleRequest = null;
-  _styleLoaded = false;
-  _styleBusy = false;
+  _styleStore?.dispose();
+  _styleStore = null;
   closeFragranceModal();
   closeWardrobeModal();
   _fragEditId = null;
@@ -5416,145 +5416,70 @@ function resetStyleState(){
   document.getElementById('ward-grid').replaceChildren();
 }
 
-function styleItemDetails(kind, item){
-  var details = {};
-  STYLE_TEXT_FIELDS[kind].forEach(function(field){
-    details[field] = typeof item[field] === 'string' ? item[field] : '';
-  });
-  details.tags = Array.isArray(item.tags) ? item.tags.filter(function(tag){return typeof tag === 'string';}) : [];
-  details.created = Number.isFinite(item.created) ? item.created : Date.now();
-  if(kind === 'fragrance') details.rating = Number.isFinite(item.rating) ? item.rating : 0;
-  return details;
+function ensureStyleItems(){
+  return currentStyleStore()?.load() ?? Promise.resolve(false);
 }
 
-async function ensureStyleItems(){
-  if(!currentUser || _styleLoaded) return;
-  if(_styleRequest) return _styleRequest;
-  var userId = currentUser.id;
-  var epoch = _styleEpoch;
-  _styleRequest = (async function(){
-    var next = {fragrance:[], wardrobe:[]};
-    var pageSize = 500;
-    for(var offset = 0; ; offset += pageSize){
-      var response = await SUPA.from('style_items').select('kind,item_id,details')
-        .eq('user_id', userId).order('kind').order('item_id').range(offset, offset + pageSize - 1);
-      if(epoch !== _styleEpoch || currentUser?.id !== userId) return;
-      if(response.error) throw response.error;
-      response.data.forEach(function(row){
-        next[row.kind].push(Object.assign(styleItemDetails(row.kind, row.details), {id:row.item_id}));
-      });
-      if(response.data.length < pageSize) break;
-    }
-    Object.values(next).forEach(function(items){
-      items.sort(function(a,b){ return b.created - a.created; });
-    });
-    _styleItems = next;
-    _styleLoaded = true;
-  })();
-  try { await _styleRequest; }
-  finally { if(epoch === _styleEpoch) _styleRequest = null; }
-}
-
-function browserStyleItems(kind){
-  try {
-    var items = JSON.parse(localStorage.getItem(LEGACY_STYLE_KEYS[kind]) || '[]');
-    return Array.isArray(items) ? items : [];
-  } catch(e) { return []; }
+function isCurrentStyleStore(store){
+  return _styleStore === store && currentUser?.id === store.owner;
 }
 
 function renderStyleScreen(kind){
-  document.getElementById('style-import-' + kind).hidden = !browserStyleItems(kind).length;
+  document.getElementById('style-import-' + kind).hidden = !readLegacyStyle(localStorage,kind).items.length;
   if(kind === 'fragrance') loadFragrances();
   else loadWardrobe();
 }
 
 async function openStyleScreen(kind){
-  var epoch = _styleEpoch;
-  document.getElementById('style-import-' + kind).hidden = !browserStyleItems(kind).length;
+  var store = currentStyleStore();
+  if(!store) return;
+  document.getElementById('style-import-' + kind).hidden = !readLegacyStyle(localStorage,kind).items.length;
   try {
-    await ensureStyleItems();
-    if(epoch === _styleEpoch) renderStyleScreen(kind);
-  } catch(e) {
-    if(epoch === _styleEpoch) showToast('Could not load saved items. Reopen this screen to retry.', '⚠');
+    if(await store.load() && isCurrentStyleStore(store)) renderStyleScreen(kind);
+  } catch {
+    if(isCurrentStyleStore(store)) showToast('Could not load saved items. Reopen this screen to retry.', '⚠');
   }
 }
 
-async function changeStyleItem(kind, item, remove){
-  if(!currentUser || _styleBusy) return false;
-  var userId = currentUser.id;
-  var epoch = _styleEpoch;
-  _styleBusy = true;
-  try {
-    await ensureStyleItems();
-    if(epoch !== _styleEpoch || currentUser?.id !== userId) return false;
-    var table = SUPA.from('style_items');
-    var response = remove
-      ? await table.delete().eq('user_id', userId).eq('kind', kind).eq('item_id', item.id)
-      : await table.upsert({
-        user_id:userId, kind:kind, item_id:item.id, details:styleItemDetails(kind, item)
-      }, {onConflict:'user_id,kind,item_id'});
-    if(epoch !== _styleEpoch || currentUser?.id !== userId) return false;
-    if(response.error) throw response.error;
-    updateStyleCache(kind, remove ? [] : [item], item.id);
-    return true;
-  } catch(e) {
-    if(epoch === _styleEpoch) showToast('Could not save the change. Your saved items were kept.', '⚠');
-    return false;
-  } finally {
-    if(epoch === _styleEpoch) _styleBusy = false;
-  }
-}
-
-function updateStyleCache(kind, items, replacedId){
-  var savedIds = new Set(items.map(function(item){return item.id;}));
-  _styleItems[kind] = items.concat(_styleItems[kind].filter(function(item){
-    return item.id !== replacedId && !savedIds.has(item.id);
-  })).sort(function(a,b){ return b.created - a.created; });
+function refreshStyleViews(){
   _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
   if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
+  refreshStyleDiscovery();
 }
 
-async function importStyleItems(kind, items){
-  if(!currentUser || _styleBusy || !items.length) return false;
-  var userId = currentUser.id;
-  var epoch = _styleEpoch;
-  _styleBusy = true;
+async function changeStyleItem(kind,item,remove){
+  var store = currentStyleStore();
+  if(!store) return false;
   try {
-    await ensureStyleItems();
-    if(epoch !== _styleEpoch || currentUser?.id !== userId) return false;
-    var rows = items.map(function(item){
-      if(!item || !/^[a-zA-Z0-9_-]{1,100}$/.test(item.id || '')){
-        throw new Error('A browser record has an invalid ID');
-      }
-      return {user_id:userId, kind:kind, item_id:item.id, details:styleItemDetails(kind, item)};
-    });
-    var response = await SUPA.from('style_items').upsert(rows, {
-      onConflict:'user_id,kind,item_id', ignoreDuplicates:true
-    }).select('item_id');
-    if(epoch !== _styleEpoch || currentUser?.id !== userId) return false;
-    if(response.error) throw response.error;
-    var inserted = new Set(response.data.map(function(row){return row.item_id;}));
-    updateStyleCache(kind, rows.filter(function(row){return inserted.has(row.item_id);}).map(function(row){
-      return Object.assign(row.details, {id:row.item_id});
-    }));
+    if(!await store.change(kind,item,remove) || !isCurrentStyleStore(store)) return false;
+    refreshStyleViews();
     return true;
-  } catch(e) {
-    if(epoch === _styleEpoch) showToast('Import failed. The original data was kept.', '⚠');
+  } catch {
+    if(isCurrentStyleStore(store)) showToast('Could not confirm the change. Open the collection and try again.', '⚠');
     return false;
-  } finally {
-    if(epoch === _styleEpoch) _styleBusy = false;
+  }
+}
+
+async function importStyleItems(kind,items){
+  var store = currentStyleStore();
+  if(!store) return false;
+  try {
+    if(!await store.importItems(kind,items) || !isCurrentStyleStore(store)) return false;
+    refreshStyleViews();
+    return true;
+  } catch {
+    if(isCurrentStyleStore(store)) showToast('Import failed. The original data was kept.', '⚠');
+    return false;
   }
 }
 
 async function importBrowserStyle(kind){
-  if(_styleBusy || !currentUser) return;
-  var items = browserStyleItems(kind);
-  if(!items.length || !confirm('Move ' + items.length + ' items from this browser into ' + currentUser.email + '? Continue only if these are your items.')) return;
-  var key = LEGACY_STYLE_KEYS[kind];
-  var original = localStorage.getItem(key);
-  if(!await importStyleItems(kind, items)) return;
-  // Avoid clearing changes made in another tab while the import was running.
-  if(localStorage.getItem(key) === original) localStorage.removeItem(key);
+  if(!currentUser || currentStyleStore()?.busy) return;
+  var source = readLegacyStyle(localStorage,kind);
+  if(!source.items.length || !confirm('Move ' + source.items.length + ' items from this browser into ' + currentUser.email + '? Continue only if these are your items.')) return;
+  if(!await importStyleItems(kind,source.items)) return;
+  // Keep newer browser data if another tab changed it during the transfer.
+  if(localStorage.getItem(source.key) === source.raw) localStorage.removeItem(source.key);
   renderStyleScreen(kind);
   showToast('Browser items imported.');
 }
@@ -5668,6 +5593,7 @@ function setFragPill(el, val){
 
 /* ── Fragrance Modal ── */
 function openFragranceModal(id){
+  _fragDraftId = crypto.randomUUID();
   _fragEditId = id || null;
   var modal = document.getElementById('m-fragrance');
   if(!modal) return;
@@ -5726,9 +5652,10 @@ async function saveFragrance(){
   var photoUrl = safeFragrancePhoto(rawPhoto);
   if(rawPhoto && !photoUrl){showToast('Use an HTTPS image URL.');return;}
   var rVal = parseFloat(document.getElementById('frag-rating').value)||0;
+  var draftId = _fragDraftId;
   var selectedFragTags = Array.from(document.querySelectorAll('#frag-tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
   var f = {
-    id: _fragEditId || crypto.randomUUID(),
+    id: _fragEditId || draftId,
     name: name,
     house:     ((document.getElementById('frag-house')||{}).value||'').trim(),
     status:    (document.getElementById('frag-status')||{}).value||'owned',
@@ -5748,14 +5675,13 @@ async function saveFragrance(){
   var existing = _loadFrags().find(function(item){return item.id === f.id;});
   if(existing) f.created = existing.created;
   if(!await changeStyleItem('fragrance', f, false)) return;
-  closeFragranceModal();
-  refreshStyleDiscovery();
+  if(_fragDraftId === draftId) closeFragranceModal();
   loadFragrances();
   showToast(existing ? 'Fragrance updated' : 'Fragrance added');
 }
 
 async function deleteFragrance(){
-  if(!_fragEditId || _styleBusy) return;
+  if(!_fragEditId || currentStyleStore()?.busy) return;
   if(!confirm('Remove this fragrance from your wardrobe?')) return;
   if(!await changeStyleItem('fragrance', {id:_fragEditId}, true)) return;
   closeFragranceModal();
@@ -5835,6 +5761,7 @@ function setWardPill(el, val){
 
 /* ── Wardrobe Modal ── */
 function openWardrobeModal(id){
+  _wardDraftId = crypto.randomUUID();
   clearCatalogueResults('ward');
   _wardEditId = id || null;
   var modal = document.getElementById('m-wardrobe');
@@ -5892,9 +5819,10 @@ function closeWardrobeModal(){
 async function saveWardrobeItem(){
   var name=(document.getElementById('ward-name').value||'').trim();
   if(!name){ showToast('Please enter an item name'); return; }
+  var draftId = _wardDraftId;
   var selectedWardTags=Array.from(document.querySelectorAll('#ward-tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
   var w={
-    id: _wardEditId || crypto.randomUUID(),
+    id: _wardEditId || draftId,
     name: name,
     brand:     ((document.getElementById('ward-brand')||{}).value||'').trim(),
     category:  (document.getElementById('ward-cat')||{}).value||'Tops',
@@ -5911,14 +5839,13 @@ async function saveWardrobeItem(){
   var existing = _loadWard().find(function(item){return item.id === w.id;});
   if(existing) w.created = existing.created;
   if(!await changeStyleItem('wardrobe', w, false)) return;
-  closeWardrobeModal();
-  refreshStyleDiscovery();
+  if(_wardDraftId === draftId) closeWardrobeModal();
   loadWardrobe();
   showToast(existing ? 'Item updated' : 'Item added to your wardrobe');
 }
 
 async function deleteWardrobeItem(){
-  if(!_wardEditId || _styleBusy) return;
+  if(!_wardEditId || currentStyleStore()?.busy) return;
   if(!confirm('Remove this item from your wardrobe?')) return;
   if(!await changeStyleItem('wardrobe', {id:_wardEditId}, true)) return;
   closeWardrobeModal();

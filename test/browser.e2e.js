@@ -41,6 +41,7 @@ let limitDiscovery = true;
 const fixtures = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/assets/discovery-session.js': ['assets/discovery-session.js', 'text/javascript; charset=utf-8'],
+  '/assets/style-store.js': ['assets/style-store.js', 'text/javascript; charset=utf-8'],
   '/assets/style-recommendations.js': ['assets/style-recommendations.js', 'text/javascript; charset=utf-8'],
   '/assets/journal-view.js': ['assets/journal-view.js', 'text/javascript; charset=utf-8'],
   '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
