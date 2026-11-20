@@ -11,12 +11,14 @@ const SAFE_GRADIENT = /^linear-gradient\(\s*\d{1,3}deg\s*,\s*#[a-f\d]{6}\s*,\s*#
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' });
+  const started = Date.now();
   res.setHeader('Cache-Control', 'no-store');
 
   const auth = await authContext(req);
   if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
 
   const grounded = req.body?.strategy === 'grounded';
+  const comparison = req.body?.strategy === 'baseline';
   const input = grounded ? await groundedInput(auth, req.body) : normalizeInput(req.body);
   if (input?.error) return res.status(input.status).json({ error: input.error });
   if (!input) return res.status(400).json({ error: 'A valid taste fingerprint with at least 3 entries is required.' });
@@ -46,6 +48,8 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    // Preserve time for the catalogue checks inside Vercel's 60-second limit.
+    const modelBudget = Math.max(1000, Math.min(40000, (grounded ? 47000 : 55000) - (Date.now() - started)));
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -55,10 +59,10 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: grounded ? 3500 : 8192,
-        messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab) : buildPrompt(fingerprint, entryTitles, tab, becauseTitle) }]
+        max_tokens: grounded || comparison ? 2600 : 8192,
+        messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab) : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
       }),
-      signal: AbortSignal.timeout(grounded ? 24000 : 40000)
+      signal: AbortSignal.timeout(modelBudget)
     });
     if (!response.ok) {
       console.error('Anthropic Discovery returned status', response.status);
@@ -78,7 +82,12 @@ module.exports = async function handler(req, res) {
     }
     if (!recommendations.length) throw new Error('No usable recommendations');
     return res.status(200).json({ recommendations });
-  } catch {
+  } catch (error) {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+      console.warn('Discovery model timed out', { strategy: grounded ? 'grounded' : 'baseline', tab });
+      return res.status(504).json({ error:'The recommendation service took too long. Try again shortly.' });
+    }
+    console.warn('Discovery response could not be used', { strategy: grounded ? 'grounded' : 'baseline', tab });
     return res.status(502).json({ error: 'Discovery could not generate recommendations. Try again shortly.' });
   }
 };
@@ -181,11 +190,12 @@ function normalizeRecommendations(value, entryTitles) {
 }
 
 /* ── Prompt builder ── */
-function buildPrompt(fp, entryTitles, tab, becauseTitle) {
+function buildPrompt(fp, entryTitles, tab, becauseTitle, comparison) {
   const themes  = (fp.primary_themes || []).slice(0, 10);
   const formats = fp.format_breakdown || {};
   const totalEntries = fp.total_entries || entryTitles.length || 0;
   const avgRating    = fp.overall_avg_rating != null ? parseFloat(fp.overall_avg_rating).toFixed(1) : 'varied';
+  const count = comparison ? 6 : 12;
 
   const themeLines = themes.map(t =>
     `  • "${t.tag}": avg rating ${t.avg_rating}, in ${t.frequency} entries, weight ${(t.weight * 10).toFixed(0)}/100`
@@ -199,7 +209,7 @@ function buildPrompt(fp, entryTitles, tab, becauseTitle) {
   const totalFmt = Object.values(formats).reduce((s, d) => s + (d.count || 0), 0);
   const proportionGuide = totalFmt > 0
     ? 'Aim for roughly: ' + Object.entries(formats)
-        .map(([fmt, d]) => `${d.count} ${fmt}s → ~${Math.max(1, Math.round((d.count / totalFmt) * 12))} recs`)
+        .map(([fmt, d]) => `${d.count} ${fmt}s → ~${Math.max(1, Math.round((d.count / totalFmt) * count))} recs`)
         .join(', ')
     : '';
 
@@ -219,7 +229,7 @@ function buildPrompt(fp, entryTitles, tab, becauseTitle) {
 
   return `You are a taste-aware recommendation engine for Narrative & Zeitgeist, a personal entertainment curator app.
 
-The user has logged ${totalEntries} entries (avg rating: ${avgRating}). Generate 12 highly personalised recommendations using their taste fingerprint below.
+The user has logged ${totalEntries} entries (avg rating: ${avgRating}). Generate ${count} highly personalised recommendations using their taste fingerprint below.
 
 TOP THEMES (weighted by frequency × avg rating):
 ${themeLines}
@@ -257,5 +267,5 @@ Return ONLY a JSON array, no other text:
 \`\`\`
 
 format must be one of: film, show, book, sports_match, music
-reasons must be an array of exactly 3 strings, each citing a specific data point from their fingerprint.`;
+reasons must be an array of exactly 3 strings, each citing a specific data point from their fingerprint.${comparison ? ' Keep each reason under 20 words.' : ''}`;
 }

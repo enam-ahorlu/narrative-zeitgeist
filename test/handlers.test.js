@@ -37,6 +37,7 @@ test('Discovery requires auth, validates inputs, enforces quota and sanitizes pr
   let quotaStatus = 200;
   let retry = 0;
   let providerStatus = 200;
+  let timedOut = false;
   const item = { title: 'New book', format: 'book', match_score: 95,
     reasons: ['reason one', 'reason two', 'reason three'], cover_color: 'unrecognized color' };
   let content = JSON.stringify([item, item, { ...item, title: 'Existing title' }]);
@@ -44,6 +45,7 @@ test('Discovery requires auth, validates inputs, enforces quota and sanitizes pr
     calls.push({ url, options });
     if (url.endsWith('/auth/v1/user')) return Response.json({ id: userId }, { status: authStatus });
     if (url.endsWith('/reserve_discovery_request')) return Response.json(retry, { status: quotaStatus });
+    if (timedOut) throw new DOMException('Synthetic timeout', 'TimeoutError');
     return Response.json({ content: [{ type: 'text', text: content }] }, { status: providerStatus });
   });
 
@@ -80,6 +82,10 @@ test('Discovery requires auth, validates inputs, enforces quota and sanitizes pr
   providerStatus = 200;
   content = 'Invalid provider response';
   assert.equal((await invoke(discover, { headers, body })).status, 502);
+  timedOut = true;
+  const timeout = await invoke(discover, { headers, body });
+  assert.equal(timeout.status, 504);
+  assert.match(timeout.body.error, /took too long/);
 });
 
 test('account removal targets the verified user and requires upstream success', async (t) => {
