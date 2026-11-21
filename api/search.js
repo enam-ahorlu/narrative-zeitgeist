@@ -3,13 +3,17 @@
 // Music → iTunes    |  Match → TheSportsDB  |  all → parallel across all
 
 const { searchMedia, fetchWithTimeout } = require('../lib/media-catalogue');
+const { authContext } = require('../lib/supabase-server');
 const { film:fetchFilms, show:fetchShows, book:fetchBooks, music:fetchMusic, sports_match:fetchMatch } = searchMedia;
 const RAWG_KEY = process.env.RAWG_API_KEY;
 
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed.' });
+  const auth = await authContext(req, { cacheMs: 30000 });
+  if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
   const { q, type } = req.query || {};
   if (typeof q !== 'string' || q.trim().length < 2 || q.length > 300) return res.json([]);
 

@@ -3,6 +3,8 @@ const { test } = require('node:test');
 const discover = require('../api/discover');
 const removeAccount = require('../api/delete-account');
 const getConfig = require('../api/config');
+const search = require('../api/search');
+const ratings = require('../api/ratings');
 
 const userId = '00000000-0000-4000-8000-000000000001';
 const body = { fingerprint: { total_entries: 3 }, entryTitles: ['Existing title'] };
@@ -140,4 +142,29 @@ test('Preview fails closed without its own Supabase settings', async t => {
       else env[name] = original[name];
     }
   }
+});
+
+test('search and ratings require a signed-in session and are not open to other origins', async t => {
+  process.env.SUPABASE_URL = 'https://supabase.example.test';
+  process.env.SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_synthetic';
+  const calls = [];
+  let authCalls = 0;
+  t.mock.method(globalThis, 'fetch', async url => {
+    calls.push(url);
+    if (url.endsWith('/auth/v1/user')) { authCalls++; return Response.json({ id: userId }); }
+    return Response.json([]);
+  });
+  const headers = { authorization: 'Bearer search-session' };
+  for (const handler of [search, ratings]) {
+    const anonymous = await invoke(handler, { method: 'GET', query: { q: 'dune', title: 'Dune' } });
+    assert.equal(anonymous.status, 401);
+    assert.equal(anonymous.headers['Access-Control-Allow-Origin'], undefined);
+    assert.equal((await invoke(handler, { method: 'POST', headers, query: {} })).status, 405);
+  }
+  assert.equal(calls.length, 0);
+
+  assert.deepEqual((await invoke(search, { method: 'GET', headers, query: { q: 'x'.repeat(301), type: 'film' } })).body, []);
+  assert.deepEqual((await invoke(ratings, { method: 'GET', headers, query: { title: 'x'.repeat(301) } })).body, {});
+  assert.equal(authCalls, 1, 'repeat checks of one token reuse the short verification cache');
+  assert.equal(calls.some(url => /omdbapi|themoviedb/.test(url)), false);
 });

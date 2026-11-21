@@ -3931,17 +3931,14 @@ function refreshJournal(keepVisibleBatch){
 function saveDisplayName(){
   var val=document.getElementById('settings-display-name').value.trim();
   if(!val){showToast('Please enter a display name');return;}
-  var user=_sb&&_sb.auth&&_sb.auth.getUser&&_sb.auth.getUser();
-  // Update Supabase user metadata
-  if(_sb){
-    _sb.auth.updateUser({data:{display_name:val}}).then(function(res){
-      if(res.error){showToast('Error saving name: '+res.error.message);return;}
-      // Update sidebar name
-      var sbn=document.getElementById('sb-user-name');
-      if(sbn)sbn.textContent=val;
-      showToast('Display name saved');
-    });
-  }
+  if(!currentUser){showToast('Sign in to change your display name');return;}
+  SUPA.auth.updateUser({data:{display_name:val}}).then(function(res){
+    if(res.error){showToast('Error saving name: '+res.error.message);return;}
+    if(res.data&&res.data.user)currentUser=res.data.user;
+    var sbn=document.getElementById('sb-user-name');
+    if(sbn)sbn.textContent=val;
+    showToast('Display name saved');
+  }).catch(function(){showToast('Error saving name. Try again.');});
 }
 
 function populateSettings(){

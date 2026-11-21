@@ -174,7 +174,11 @@ function _doContentSearch(q){
   if(!drop) return;
   drop.innerHTML = '<div class="cs-searching">Searching…</div>';
   drop.classList.add('open');
-  fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type,{signal:request.signal})
+  var searchUser = currentUser;
+  accountToken(searchUser && searchUser.id)
+    .then(function(token){
+      return fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type,{signal:request.signal,headers:{Authorization:'Bearer '+token}});
+    })
     .then(function(response){
       if(!response.ok) throw new Error('Search failed');
       return response.json();

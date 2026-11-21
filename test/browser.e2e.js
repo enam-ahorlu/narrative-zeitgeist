@@ -33,6 +33,8 @@ const resetRecipients = [];
 const stylesCreated = [];
 const discoveryInputs = [];
 const passwordUpdates = [];
+const displayNameUpdates = [];
+const providerAuth = [];
 let discoveryRequests = 0;
 let deleteRequests = 0;
 let failDelete = true;
@@ -86,6 +88,7 @@ function createMocks(assets) {
     if (assets[path]) return route.fulfill(assets[path]);
     if (path === '/api/config') return send({ url: origin, key: 'sb_publishable_synthetic' });
     if (path === '/favicon.ico') return route.fulfill({ status: 204 });
+    if (path === '/api/search' || path === '/api/ratings') providerAuth.push(request.headers().authorization);
     if (path === '/api/search' && url.searchParams.get('type') === 'track') return send([{
       id:'12345',provider:'itunes',_type:'track',kind:'track',creator:'Fixture Artist',year:'2012',
       title:'Fixture Track',description:'Fixture Artist'
@@ -120,7 +123,11 @@ function createMocks(assets) {
     const matchesUser = row => row.user_id === user.id;
     const body = request.postData() ? request.postDataJSON() : null;
     if (path === '/auth/v1/user') {
-      if (method === 'PUT') passwordUpdates.push({ userId: user.id, password: body.password });
+      if (method === 'PUT' && body.password) passwordUpdates.push({ userId: user.id, password: body.password });
+      if (method === 'PUT' && body.data) {
+        displayNameUpdates.push({ userId: user.id, name: body.data.display_name });
+        return send({ ...user, user_metadata: { ...user.user_metadata, ...body.data } });
+      }
       return send(user);
     }
 
@@ -721,6 +728,14 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await verifyPhoto(page,page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}));
 
   await visit('settings');
+  await page.locator('#settings-display-name').fill('Renamed Reader');
+  await page.locator('button[onclick="saveDisplayName()"]').click();
+  await page.getByText('Display name saved').waitFor();
+  const signedIn = await page.evaluate(() => currentUser.id);
+  assert.deepEqual(displayNameUpdates,[{userId:signedIn,name:'Renamed Reader'}]);
+  assert.equal(await page.locator('#sb-user-name').textContent(),'Renamed Reader');
+  assert.ok(providerAuth.length > 0 && providerAuth.every(value => /^Bearer \S+$/.test(value || '')),
+    'search and ratings requests carry the session token');
   await page.locator('#delete-account-btn').click();
   await page.getByText('Account deletion could not be confirmed.', { exact: false }).waitFor();
   assert.ok(await page.locator('#s-settings').isVisible());

@@ -149,7 +149,10 @@ function openDetailModal(entry){
   var _extEl = document.getElementById('ext-ratings');
   if(_extEl) _extEl.innerHTML = '';
   if(entry.format === 'film' || entry.format === 'show'){
-    fetch('/api/ratings?title='+encodeURIComponent(entry.title))
+    accountToken(currentUser && currentUser.id)
+      .then(function(token){
+        return fetch('/api/ratings?title='+encodeURIComponent(entry.title),{headers:{Authorization:'Bearer '+token}});
+      })
       .then(function(r){ return r.json(); })
       .then(function(d){
         if(currentEntry !== entry || !document.getElementById('m-detail').classList.contains('open')) return;

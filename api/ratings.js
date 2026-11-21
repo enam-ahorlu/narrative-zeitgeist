@@ -2,12 +2,17 @@
 // Returns IMDb, Rotten Tomatoes, and Metacritic scores for a film or show.
 // Requires OMDB_API_KEY environment variable (free at omdbapi.com).
 
+const { authContext } = require('../lib/supabase-server');
+
 const OMDB_KEY = process.env.OMDB_API_KEY || process.env.OMDb_API;
 
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  const { title } = req.query;
-  if (!title)    return res.json({});
+  res.setHeader('Cache-Control', 'no-store');
+  if (req.method && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed.' });
+  const auth = await authContext(req, { cacheMs: 30000 });
+  if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
+  const { title } = req.query || {};
+  if (typeof title !== 'string' || !title.trim() || title.length > 300) return res.json({});
   if (!OMDB_KEY) return res.json({});
 
   try {
