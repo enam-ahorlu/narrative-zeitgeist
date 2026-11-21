@@ -936,7 +936,10 @@ textarea.fi{resize:vertical;min-height:64px}
 #s-collection.col-ss-mode .tbl-wrap,
 #s-collection.col-ss-mode #cg-grid,
 #s-collection.col-ss-mode #col-pagination{display:none!important}
-#col-ss-section{padding-bottom:24px}
+#col-ss-section{padding-bottom:24px;flex:0 1 auto;max-height:45%;min-height:0;overflow-y:auto;border-top:1px solid var(--n-border)}
+#s-collection.col-ss-mode #col-ss-section{flex:1 1 auto;max-height:none;border-top:0}
+#s-collection .tbl-wrap,#s-collection .cg-grid{min-height:80px}
+#s-collection .cg-grid{flex-shrink:1}
 .col-ss-header{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);padding:20px 30px 10px;border-top:1px solid var(--n-border)}
 .col-ss-header:first-child{border-top:none;padding-top:4px}
 @media(max-width:768px){.col-ss-header{padding:16px 16px 8px}.col-ss-header:first-child{padding-top:4px}}
