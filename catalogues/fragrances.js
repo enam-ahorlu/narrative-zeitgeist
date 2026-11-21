@@ -579,5 +579,10 @@ const FRAGRANCE_PRODUCT_LINKS = {
   "outlands|amouage": "https://amouage.com/en-uk/products/new-outlands",
   "reasons|amouage": "https://amouage.com/en-ap/pages/reasons",
   "tresor|lancome": "https://www.lancome-usa.com/fragrance/collection/tresor/tresor/072025.html",
-  "eternity for men|calvin klein": "https://www.calvinklein.us/en/eternity-eau-de-toilette-for-men/LX000145.html"
+  "eternity for men|calvin klein": "https://www.calvinklein.us/en/eternity-eau-de-toilette-for-men/LX000145.html",
+  "black orchid|tom ford": "https://tomfordbeauty.co.uk/product/black-orchid-eau-de-parfum",
+  "aventus|creed": "https://www.creedfragrances.co.uk/aventus",
+  "santal 33|le labo": "https://www.lelabofragrances.com/santal-33-147.html",
+  "miss dior|dior": "https://www.dior.com/en_us/beauty/products/miss-dior-eau-de-parfum-Y0996347.html",
+  "bleu de chanel edt|chanel": "https://www.chanel.com/us/fragrance/p/107460/bleu-de-chanel-eau-de-toilette-spray/"
 };
