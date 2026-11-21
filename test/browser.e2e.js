@@ -731,12 +731,12 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await visit('collection');
   await page.locator('#s-collection .pills .pill',{hasText:'All'}).click();
   await page.locator('#col-ss-section').waitFor({state:'visible'});
-  const allHeights = await page.evaluate(() => ({table:document.querySelector('#s-collection .tbl-wrap').clientHeight, section:document.getElementById('col-ss-section').clientHeight, screen:document.getElementById('s-collection').clientHeight}));
-  assert.ok(allHeights.table >= 80, 'collection list keeps room next to scent and style: ' + JSON.stringify(allHeights));
-  assert.ok(allHeights.section <= allHeights.screen * 0.35, 'scent and style block is capped: ' + JSON.stringify(allHeights));
+  const layout = await page.evaluate(() => { const section = document.getElementById('col-ss-section'); const scroller = document.getElementById('col-scroll');
+    return {inside:scroller.contains(section), scrollerOverflow:getComputedStyle(scroller).overflowY, sectionOverflow:getComputedStyle(section).overflowY, table:document.querySelector('#s-collection .tbl-wrap').clientHeight}; });
+  assert.deepEqual([layout.inside, layout.scrollerOverflow, layout.sectionOverflow], [true, 'auto', 'visible'], 'scent and style items scroll with the list: ' + JSON.stringify(layout));
+  assert.ok(layout.table >= 80);
   await page.locator('#s-collection .pills .pill',{hasText:'Fragrances'}).click();
-  const only = await page.evaluate(() => { const el = document.getElementById('col-ss-section'); return {box:el.clientHeight, screen:document.getElementById('s-collection').clientHeight, overflow:getComputedStyle(el).overflowY}; });
-  assert.ok(only.box > 150 && only.overflow === 'auto', 'fragrance view scrolls on its own: ' + JSON.stringify(only));
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById('col-scroll')).overflowY), 'auto');
   await page.locator('#s-collection .pills .pill',{hasText:'All'}).click();
   await visit('insights');
   const taste = page.locator('#insights-taste');

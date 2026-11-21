@@ -936,10 +936,11 @@ textarea.fi{resize:vertical;min-height:64px}
 #s-collection.col-ss-mode .tbl-wrap,
 #s-collection.col-ss-mode #cg-grid,
 #s-collection.col-ss-mode #col-pagination{display:none!important}
-#col-ss-section{padding-bottom:24px;flex:0 1 auto;max-height:30%;min-height:0;overflow-y:auto;border-top:1px solid var(--n-border)}
-#s-collection.col-ss-mode #col-ss-section{flex:1 1 auto;max-height:none;border-top:0}
-#s-collection .tbl-wrap,#s-collection .cg-grid{min-height:80px}
-#s-collection .cg-grid{flex-shrink:1}
+#col-ss-section{padding-bottom:24px;border-top:1px solid var(--n-border)}
+#s-collection.col-ss-mode #col-ss-section{border-top:0}
+/* One scroll area: the list, cards and scent/style items scroll together instead of splitting the screen */
+.col-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
+.col-scroll>.tbl-wrap,.col-scroll>.cg-grid{flex:none;overflow-y:visible;overflow-x:auto}
 .col-ss-header{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);padding:20px 30px 10px;border-top:1px solid var(--n-border)}
 .col-ss-header:first-child{border-top:none;padding-top:4px}
 @media(max-width:768px){.col-ss-header{padding:16px 16px 8px}.col-ss-header:first-child{padding-top:4px}}
@@ -1254,6 +1255,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       </div>
       <!-- Active filter chips (shown when any filter is on) -->
       <div class="col-chips" id="col-chips"></div>
+      <div class="col-scroll" id="col-scroll">
       <div class="tbl-wrap">
         <table>
           <thead><tr><th onclick="colSort('title_asc')" style="cursor:pointer" title="Sort by title">TITLE ↕</th><th>FORMAT</th><th onclick="colSort('rating_desc')" style="cursor:pointer" title="Sort by rating">RATING ↕</th><th onclick="colSort('date_desc')" style="cursor:pointer" title="Sort by date">DATE ↕</th><th class="col-tags">TAGS</th><th></th></tr></thead>
@@ -1265,6 +1267,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <!-- Scent & Style items — shown when Fragrances/Wardrobe pill active, or appended in All mode -->
       <div class="journal-request-status" id="collection-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadCollectionStyle()" hidden>Retry</button></div>
       <div id="col-ss-section" style="display:none"></div>
+      </div>
       <!-- C4: Pagination bar -->
       <div class="col-pagination" id="col-pagination">
         <div class="col-pag-info" id="col-pag-info"></div>
