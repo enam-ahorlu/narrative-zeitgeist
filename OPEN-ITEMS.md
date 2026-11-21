@@ -1,6 +1,6 @@
 # Open items
 
-Snapshot: 21 November 2026, after the production update. Combines the open work in `HANDOFF.md`, the findings in `CRITIQUE.md` and the checks of the Supabase and Vercel projects. Priority is Compulsory (part of the production update) or Suggested (worth doing, not blocking). Update the status column as items close. Everything here should eventually be done.
+Snapshot: 21 November 2026, after the production update and the follow-up fixes (production is on the commit `main` points to). Combines the open work in `HANDOFF.md`, the findings in `CRITIQUE.md` and the checks of the Supabase and Vercel projects. Priority is Compulsory (part of the production update) or Suggested (worth doing, not blocking). Update the status column as items close. Everything here should eventually be done.
 
 ## Repository and access state
 
@@ -9,7 +9,7 @@ Snapshot: 21 November 2026, after the production update. Combines the open work 
 | `main` | Promoted on 21 November 2026 as fast-forwards from `codex/narrative-hardening`. Production deploys from it. |
 | `codex/narrative-hardening` | Same commit as `main`. |
 | CI | Passing on `66db596` (lint, unit tests, browser tests, whitespace check). Workflow lives in `.github/workflows/ci.yml`. |
-| Working folder | Needs a sync to `main` (see Tidy). A stash holds two CRLF-only changes from the old state. |
+| Working folder | On `main`, in step with GitHub, clean. The old CRLF-only stash was verified as line endings only and dropped. |
 | Push access for Claude | Working through the Claude GitHub App. |
 | Supabase | Connected. Production `narrative-zeitgeist` (`zhchmiqxfyfwykktwfdm`, eu-west-3) and staging `narrative-zeitgeist-staging` (`moqeofhmssypnkztpzma`, eu-west-1). |
 | Vercel | Connected and authorized for the `enam-ahorlus-projects` team. |
