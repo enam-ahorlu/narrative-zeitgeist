@@ -7,12 +7,20 @@
 - [x] Add eight fragrances and expand bottle artwork from three entries to 12. Add 18 wardrobe photographs, with at least one across each of the ten named-product categories.
 - [x] Show available photos in Discovery, autocomplete, and saved collections. Preserve custom HTTPS photo links through saves and edits.
 - [x] Verify catalogue identities and licenses, local image decoding, product and category search, and desktop and mobile workflows.
-- [ ] Extend exact-product photo coverage as more reusable photographs become available, including for the Adrian loafers. A Product page link is available for selected items.
+- [x] Add 22 wardrobe images and 20 bottle images in the second pass.
+- [x] Increase Discover Style to at least 120 named products, with additions across all ten categories.
+- [x] Add 28 named fragrances, including distinct concentrations and archived bottles.
+- [ ] Continue sourcing reusable photos for the remaining products, including the Adrian loafers. A Product page link is available for selected items.
 
 ## Catalogue data and photos
 
-The fragrance catalogue has 299 entries. Discover Style uses the 60 named
-products. The Wardrobe entry picker also retains 93 generic pieces for logging
+| Catalogue | Entries | With photos |
+| --- | ---: | ---: |
+| Named wardrobe products | 130 | 40 |
+| Fragrances | 327 | 32 |
+
+The second pass increased Wardrobe from 60 to 130 named products and fragrance
+from 299 to 327 entries. Discover Style uses the named products. The Wardrobe entry picker also retains 93 generic pieces for logging
 custom items. Brand and model identify a photo, so separate editions and
 colourways can have different images. Owned and Wishlisted items stay in
 Wardrobe. Discovery suggests products the account has yet to save.
@@ -34,3 +42,21 @@ cards link to their official pages. Unphotographed Discovery products use
 initials. Wardrobe and fragrance forms accept an optional personal image URL.
 Photo URLs are stored with existing private saved-item details. This change
 requires no database migration.
+
+
+## Second-pass sources and gaps
+
+New records include products from
+[AAKS](https://www.aaksonline.com/shop/p/baw-pot-natural),
+[Filson](https://www.filson.com/products/rugged-twill-original-briefcase-tan),
+and the [Smithsonian’s Cartier collection](https://naturalhistory.si.edu/explore/collections/geogallery/10002691).
+Fragrance additions include archival bottles, [Rabanne’s 1 Million Parfum](https://www.rabanne.com/ww/en/fragrance/p/1-million-parfum--000000000065156001_BASE),
+[Nishane’s X collection](https://nishane.com/product/hacivat-x/),
+and [Amouage’s Outlands](https://amouage.com/en-uk/products/new-outlands).
+Bottles are matched by house and edition. For example, 1 Million Parfum and
+the original 1 Million are separate entries.
+
+The remaining gap is access to reusable exact-match photographs. Download
+rate limits also blocked some verified sources, including the images found
+for Mitsouko, Opium Pour Homme, Obsession for Men and Red Wing Iron Ranger
+8111. The Adrian loafers still link to the manufacturer’s photo.

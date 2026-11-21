@@ -297,7 +297,35 @@ var FRAG_DB = [
   ["Après l’Ondée","Guerlain","Anise","Violet, iris","Vanilla","Powdery, soft, floral","Soft–Moderate","Spring/Summer"],
   ["Sous le Vent","Guerlain","","","","Vintage, aromatic, chypre","Moderate","Spring/Fall"],
   ["L’Aimant","Coty","Aldehydes","Rose, jasmine","Sandalwood","Vintage, aldehydic, floral","Moderate","Year-round"],
-  ["Opium Pour Homme","Yves Saint Laurent","Blackcurrant, star anise","Pepper","Vanilla, cedar","Warm, spicy, amber","Moderate–Strong","Fall/Winter"]
+  ["Opium Pour Homme","Yves Saint Laurent","Blackcurrant, star anise","Pepper","Vanilla, cedar","Warm, spicy, amber","Moderate–Strong","Fall/Winter"],
+  ["Eternity for Men","Calvin Klein","Mandarin, lavender","Green botanicals","Sandalwood","Aromatic, green, fresh","Moderate","Year-round"],
+  ["Euphoria Men","Calvin Klein","Ginger, pepper","Black basil, sage, cedar","Amber, patchouli, suede","Spicy, woody, clean","Moderate","Year-round"],
+  ["Obsession for Men","Calvin Klein","Citrus, lavender","Spices, woods","Amber, musk","Amber, spicy, warm","Moderate–Strong","Fall/Winter"],
+  ["Cool Water Woman","Davidoff","Melon, pineapple","Water lily","Woods","Aquatic, fruity, fresh","Moderate","Spring/Summer"],
+  ["1 Million Parfum","Rabanne","Tuberose","","Leather, amber","Floral, solar, salty","Strong","Year-round"],
+  ["Derby","Guerlain","Bergamot","Spices","Leather, moss, woods","Chypre, woody, leather","Moderate","Fall/Winter"],
+  ["Eau de Cologne Impériale","Guerlain","Lemon, bergamot","Neroli, petitgrain","","Classic, citrus, airy","Light–Moderate","Spring/Summer"],
+  ["L’Heure Bleue","Guerlain","Anise, bergamot","Violet, carnation","Vanilla, iris","Powdery, floral, amber","Moderate","Fall/Winter"],
+  ["Vol de Nuit","Guerlain","Galbanum","Jasmine, narcissus","Vanilla, woods","Green, woody, powdery","Moderate","Fall/Winter"],
+  ["Trésor","Lancôme","Peach, apricot","Rose, lilac","Sandalwood, musk","Fruity, rose, powdery","Moderate","Year-round"],
+  ["Djedi","Guerlain","","","Vetiver, leather, moss","Vintage, woody, chypre","Moderate","Fall/Winter"],
+  ["Parure","Guerlain","Plum","","Oakmoss, leather","Vintage, fruity, chypre","Moderate","Fall/Winter"],
+  ["L’Eau de Guerlain","Guerlain","Lemon, bergamot","Herbs","","Citrus, green, aromatic","Light–Moderate","Spring/Summer"],
+  ["Ode","Guerlain","","Rose, jasmine","","Vintage, floral","Moderate","Spring/Fall"],
+  ["Liu","Guerlain","Aldehydes","Rose, jasmine","","Vintage, aldehydic, floral","Moderate","Year-round"],
+  ["Vega","Guerlain","Aldehydes","","","Vintage, powdery, floral","Moderate","Year-round"],
+  ["L’Origan","Coty","","Spicy florals","","Vintage, powdery, floral","Moderate","Fall/Winter"],
+  ["Emeraude","Coty","Citrus","","Amber, resins","Vintage, amber, warm","Moderate","Fall/Winter"],
+  ["Tiffany for Men","Tiffany & Co.","","","Woods","Vintage, aromatic, woody","Moderate","Fall/Winter"],
+  ["Wulong Cha X","Nishane","Bergamot, yuzu, mandarin","Magnolia, thyme, green tea","Musk, fig","Tea, citrus, fresh","Moderate","Spring/Summer"],
+  ["Hacivat X","Nishane","Pineapple, bergamot, pink pepper","Lime, jasmine, orange blossom","Patchouli, cedarwood, vetiver","Fruity, woody, bright","Moderate–Strong","Year-round"],
+  ["Lunamaris","Diptyque","Pink pepper","Incense","Rockrose","Resinous, mineral, warm","Moderate","Fall/Winter"],
+  ["Bois Corsé","Diptyque","Black coffee","","Sandalwood, tonka bean","Coffee, woody, warm","Moderate","Fall/Winter"],
+  ["Lilyphéa","Diptyque","Cardamom","Violet leaf","Vanilla","Green, airy, soft","Moderate","Spring/Fall"],
+  ["Heaven Can Wait","Frédéric Malle","Clove, pimento","Iris","Vanilla, vetiver","Spiced, powdery, warm","Moderate","Fall/Winter"],
+  ["Valaya Exclusif","Parfums de Marly","Almond, bergamot","White flowers","Sandalwood, vanilla, ambroxan","Powdery, floral, woody","Moderate–Strong","Year-round"],
+  ["Outlands","Amouage","Bergamot, lemon, frankincense","Patchouli, spices","Vanilla, resins","Amber, spicy, resinous","Strong","Fall/Winter"],
+  ["Reasons","Amouage","Cardamom, hazelnut","Davana, patchouli","Palo santo, sandalwood","Nutty, woody, warm","Moderate–Strong","Fall/Winter"]
 ];
 
 // Product photographs with source and license details. WebP copies are resized.
@@ -373,5 +401,125 @@ const FRAGRANCE_PHOTOS = {
     "source": "https://commons.wikimedia.org/wiki/File:Coco_Mademoiselle_2001.jpg",
     "credit": "Maria Morri, CC BY-SA 2.0",
     "license": "https://creativecommons.org/licenses/by-sa/2.0/"
+  },
+  "euphoria|calvin klein": {
+    "url": "/catalogues/photos/euphoria.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:CK_Euphoria_Bottle.jpg",
+    "credit": "ggjsmith edit Bruce the Deus. Original uploader was Bruce The Deus at it.wikipedia, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "eternity for men|calvin klein": {
+    "url": "/catalogues/photos/eternity-for-men.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ck-Eternity_Men.jpg",
+    "credit": "Arad, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "euphoria men|calvin klein": {
+    "url": "/catalogues/photos/euphoria-men.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ck-Euphoria_Men.jpg",
+    "credit": "Arad, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
+  "le male|jean paul gaultier": {
+    "url": "/catalogues/photos/le-male.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Gaultier_Le_M%C3%A2le.jpg",
+    "credit": "Bruce The Deus, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "cool water woman|davidoff": {
+    "url": "/catalogues/photos/cool-water-woman.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Davidoff_Cool_Water_Women.jpg",
+    "credit": "Anita Martinz from Klagenfurt, Austria, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "1 million parfum|rabanne": {
+    "url": "/catalogues/photos/one-million-parfum.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Paco_Rabanne_1_Million_Parfum_-_2.jpg",
+    "credit": "DYVER, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "derby|guerlain": {
+    "url": "/catalogues/photos/derby.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Derby_guerlain.jpg",
+    "credit": "Agostinoroberto, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "eau de cologne imperiale|guerlain": {
+    "url": "/catalogues/photos/eau-imperiale.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Flickr_-_mararie_-_eau_imperiale.jpg",
+    "credit": "Marieke Kuijjer, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "lheure bleue|guerlain": {
+    "url": "/catalogues/photos/lheure-bleue.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:L%27Heure_Bleue.jpg",
+    "credit": "Arienne McCracken from Los Angeles, United States, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "vol de nuit|guerlain": {
+    "url": "/catalogues/photos/vol-de-nuit.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Vol_de_nuit_(1933).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "tresor|lancome": {
+    "url": "/catalogues/photos/tresor.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Lancome_Tresor.jpg",
+    "credit": "Gonna Fly Now, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "djedi|guerlain": {
+    "url": "/catalogues/photos/djedi.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Djedi_(1926).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "parure|guerlain": {
+    "url": "/catalogues/photos/parure.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Parure_(1975).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "leau de guerlain|guerlain": {
+    "url": "/catalogues/photos/leau-de-guerlain.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_L%E2%80%99Eau_de_Guerlain_(1974).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "ode|guerlain": {
+    "url": "/catalogues/photos/ode.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Ode_(1955).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "liu|guerlain": {
+    "url": "/catalogues/photos/liu.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Liu_(1927).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "vega|guerlain": {
+    "url": "/catalogues/photos/vega.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Vega_(1936).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "lorigan|coty": {
+    "url": "/catalogues/photos/lorigan.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Flacon_L%27Origan_1905.jpg",
+    "credit": "DDupard, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "emeraude|coty": {
+    "url": "/catalogues/photos/emeraude.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Emeraude_parfum_(1).jpg",
+    "credit": "DDupard, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "tiffany for men|tiffany & co.": {
+    "url": "/catalogues/photos/tiffany-for-men.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Tiffany4men.jpg",
+    "credit": "Francism2000, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
   }
 };

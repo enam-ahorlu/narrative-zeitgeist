@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { existsSync, readFileSync } = require('node:fs');
+const { existsSync, readdirSync, readFileSync } = require('node:fs');
 const { test } = require('node:test');
 const { runInNewContext, Script } = require('node:vm');
 
@@ -53,7 +53,7 @@ test('catalogue photos match named products and include source and reuse credits
   const { scents, scentPhotos } = read('catalogues/fragrances.js','({scents:FRAG_DB,scentPhotos:FRAGRANCE_PHOTOS})');
   const { products, wardrobePhotos, productLinks } = read('catalogues/wardrobe.js',
     '({products:WARD_PRODUCTS,wardrobePhotos:WARDROBE_PHOTOS,productLinks:WARD_PRODUCT_LINKS})');
-  assert.ok(products.length >= 50);
+  assert.ok(products.length >= 120);
   const categories = new Set(products.map(row=>row[1]));
   for (const category of ['Tops','Bottoms','Dresses','Knitwear','Outerwear','Tailoring','Shoes','Bags','Jewelry','Accessories']) {
     assert.ok(categories.has(category),category);
@@ -64,8 +64,8 @@ test('catalogue photos match named products and include source and reuse credits
   for (const category of categories) {
     assert.ok(products.some(([name,type,brand])=>type === category && wardrobePhotos[productKey(name,brand)]),category);
   }
-  for (const [photos,keys,min] of [[scentPhotos,scents.map(([name,house])=>productKey(name,house)),12],
-    [wardrobePhotos,wardrobeKeys,16]]) {
+  for (const [photos,keys,min] of [[scentPhotos,scents.map(([name,house])=>productKey(name,house)),32],
+    [wardrobePhotos,wardrobeKeys,40]]) {
     assert.ok(Object.keys(photos).length >= min);
     for (const [key,photo] of Object.entries(photos)) {
       assert.ok(keys.includes(key),key);
@@ -76,6 +76,12 @@ test('catalogue photos match named products and include source and reuse credits
       else assert.match(photo.url,/^https:\/\/upload\.wikimedia\.org\//);
     }
   }
+  const bundledPhotos = [...Object.values(scentPhotos),...Object.values(wardrobePhotos)]
+    .map(photo=>photo.url)
+    .filter(url=>url.startsWith('/catalogues/photos/'))
+    .map(url=>url.split('/').at(-1))
+    .sort();
+  assert.deepEqual(bundledPhotos,readdirSync('catalogues/photos').sort());
   for (const [key,url] of Object.entries(productLinks)) {
     assert.ok(wardrobeKeys.includes(key),key);
     assert.equal(new URL(url).protocol,'https:');

@@ -59,7 +59,77 @@ const WARD_PRODUCTS = [
   ["Le Smoking Tuxedo (1988)","Tailoring","Yves Saint Laurent","tailored, heritage, statement piece","formal, eveningwear","Year-round","The 1988 tuxedo at right in the Musée d’Orsay exhibition photograph."],
   ["Hand-Batik Cotton T-Shirt","Tops","Studio One Eighty Nine","heritage, statement piece, summer","casual, weekend","Spring/Summer","Hand-batik cotton brings a printed detail to a crew-neck tee."],
   ["Hand-Batik Cotton Ruffle Cuff Shirt","Tops","Studio One Eighty Nine","heritage, feminine, statement piece","smart casual, weekend","Spring/Summer","A hand-batik shirt with ruffle cuffs for texture at the sleeve."],
-  ["1970s Plaid Knit Sweater and Skirt Set","Knitwear","Missoni","heritage, statement piece, textured","smart casual, eveningwear","Fall/Winter","A multicoloured knit set in the RISD Museum collection."]
+  ["1970s Plaid Knit Sweater and Skirt Set","Knitwear","Missoni","heritage, statement piece, textured","smart casual, eveningwear","Fall/Winter","A multicoloured knit set in the RISD Museum collection."],
+  ["Air Jordan 1 Low","Shoes","Jordan","streetwear, sporty, retro","everyday, weekend","Year-round","A low-cut basketball design with the Wings mark at the heel."],
+  ["Air Jordan 1 Retro High OG CO.JP Silver","Shoes","Jordan","metallic, streetwear, statement piece","weekend, casual","Year-round","A high-top in neutral grey and silver from the CO.JP series."],
+  ["Air Jordan 1 Mid SE Crimson Tint","Shoes","Jordan","streetwear, retro, statement piece","everyday, casual","Year-round","Pink suede overlays, black Swooshes and bright laces distinguish this mid-top."],
+  ["Air Force 1 Low Flax (2019)","Shoes","Nike","streetwear, tonal, textured","everyday, weekend","Fall/Winter","Named Flax edition with a wheat-toned upper."],
+  ["Chuck Taylor All Star Patent High – Black","Shoes","Converse","retro, glossy, streetwear","casual, weekend","Year-round","Patent black uppers give this high-top a glossy finish."],
+  ["Old Skool","Shoes","Vans","skate, streetwear, retro","casual, everyday","Year-round","A low skate shoe with a side stripe and vulcanized sole."],
+  ["Iron Ranger 8111","Shoes","Red Wing Heritage","heritage, workwear, leather","everyday, weekend","Fall/Winter","Amber Harness leather and a cap toe distinguish the 8111."],
+  ["Boston Suede Clog","Shoes","Birkenstock","relaxed, minimal, textured","everyday, weekend","Year-round","A closed-toe clog with an adjustable strap and contoured footbed."],
+  ["Gommino Driving Shoes","Shoes","Tod’s","quiet luxury, preppy, leather","smart casual, weekend","Spring/Summer","A driving moccasin with rubber pebbles underfoot."],
+  ["Basic Stüssy Tee","Tops","Stüssy","streetwear, casual, graphic","everyday, weekend","Year-round","A printed crew-neck tee from the brand’s Basic Stüssy line."],
+  ["K87 Loose Fit Heavyweight Pocket T-Shirt","Tops","Carhartt","workwear, casual, layering","everyday, weekend","Year-round","Heavyweight jersey with a chest pocket and a loose fit."],
+  ["AIRism Cotton Oversized Crew Neck Half-Sleeve T-Shirt","Tops","Uniqlo","minimalist, relaxed, elevated basics","casual, everyday","Spring/Summer","Dropped shoulders and a roomy sleeve make for a boxier silhouette."],
+  ["Cotton Mesh Classic Fit Polo Shirt","Tops","Polo Ralph Lauren","preppy, heritage, sporty","everyday, smart casual","Spring/Summer","A textured cotton-mesh polo with the embroidered pony."],
+  ["Beefy-T Crewneck T-Shirt","Tops","Hanes","classic, casual, layering","everyday, weekend","Year-round","A substantial basic tee for wearing on its own or under an overshirt."],
+  ["Our T-Shirt","Tops","Lady White Co.","minimalist, casual, elevated basics","everyday, weekend","Year-round","A clean crew-neck silhouette suitable for layered outfits."],
+  ["505 Regular Fit Jeans","Bottoms","Levi’s","classic, heritage, casual","everyday, weekend","Year-round","A regular zip-fly jean with a straight leg."],
+  ["568 Stay Loose Jeans","Bottoms","Levi’s","streetwear, relaxed, casual","everyday, weekend","Year-round","A looser cut suited to fuller footwear and oversized shirts."],
+  ["13MWZ Cowboy Cut Original Fit Jeans","Bottoms","Wrangler","western, heritage, workwear","everyday, weekend","Year-round","A high-rise cowboy cut with room for boots at the hem."],
+  ["Standard Fit 105 Jeans","Bottoms","orSlow","heritage, relaxed, denim","everyday, smart casual","Year-round","A Japanese denim interpretation of a regular straight-fitting jean."],
+  ["Slim Fit 107 Jeans","Bottoms","orSlow","heritage, classic, denim","everyday, weekend","Year-round","A slimmer sibling to the 105 with a narrower leg."],
+  ["Baggies Shorts 5-inch","Bottoms","Patagonia","sporty, practical, summer","weekend, activewear","Spring/Summer","Quick-drying shorts with a short inseam for travel and outdoor wear."],
+  ["Stockman Wax Coat","Outerwear","Barbour","heritage, practical, workwear","weekend, everyday","Fall/Winter","A long waxed coat with a country outerwear silhouette."],
+  ["Endurance Jacket","Outerwear","Barbour","heritage, practical, layered","weekend, smart casual","Fall/Winter","This green Barbour jacket comes from the Endurance range."],
+  ["Torrentshell 3L Rain Jacket","Outerwear","Patagonia","sporty, practical, travel-friendly","weekend, activewear","Year-round","A packable three-layer rain shell with an adjustable hood."],
+  ["MA-1 Flight Jacket","Outerwear","Alpha Industries","heritage, streetwear, sporty","everyday, weekend","Fall/Winter","A zip-front bomber with ribbed hems and a sleeve pocket."],
+  ["Original Trucker Jacket","Outerwear","Levi’s","denim, western, heritage","everyday, weekend","Year-round","A short denim jacket with pointed chest pocket flaps."],
+  ["Bedford Jacket","Outerwear","Engineered Garments","workwear, textured, relaxed","smart casual, weekend","Fall/Winter","A workwear jacket with patch pockets that can dress up denim."],
+  ["Vintage Dale Patterned Sweater","Knitwear","Dale of Norway","heritage, textured, warm","weekend, everyday","Fall/Winter","A vintage patterned knit documented by Menswear Market."],
+  ["Shaggy Dog Sweater","Knitwear","J. Press","preppy, heritage, textured","smart casual, workwear","Fall/Winter","A brushed knit that adds texture to an Oxford and chinos."],
+  ["Brushed Shetland Crewneck","Knitwear","Jamieson’s of Shetland","heritage, textured, warm","everyday, weekend","Fall/Winter","A brushed wool crew-neck to layer under coats or overshirts."],
+  ["Cotton Cable-Knit Crewneck Sweater","Knitwear","Polo Ralph Lauren","preppy, classic, textured","smart casual, workwear","Fall/Winter","Raised cables and a ribbed hem make this a classic layering piece."],
+  ["V-Neck Wool Cardigan","Knitwear","Comme des Garçons PLAY","preppy, streetwear, minimal","everyday, smart casual","Fall/Winter","A button-front knit with the line’s heart emblem."],
+  ["The Anjuli Nap Dress","Dresses","Hill House Home","feminine, relaxed, summer","everyday, weekend","Spring/Summer","A smocked Nap Dress with a longer flowing skirt."],
+  ["Poppy Blur Crushed Satin Dress","Dresses","Vince","minimalist, textured, quiet luxury","eveningwear, smart casual","Year-round","A floral print over a crinkled satin surface."],
+  ["Stretch Jersey Long Sleeve Dress","Dresses","Norma Kamali","minimalist, draped, eveningwear","eveningwear, smart casual","Year-round","A stretch jersey dress for understated evening layering."],
+  ["Kensington Suit","Tailoring","Paul Smith","tailored, classic, workwear","formal, workwear","Year-round","A slim suit silhouette from the Paul Smith tailoring range."],
+  ["Crosby Classic-fit Suit Jacket","Tailoring","J.Crew","tailored, preppy, classic","formal, workwear","Year-round","A roomier tailored fit through the shoulder and chest."],
+  ["Bakers Jacket","Tailoring","Universal Works","workwear, relaxed, heritage","workwear, smart casual","Year-round","A patch-pocket jacket with workwear roots for casual tailoring."],
+  ["LOVE Bracelet","Jewelry","Cartier","classic, minimalist, polished","everyday, formal","Year-round","A rigid bracelet whose screw motifs run around the band."],
+  ["Juste un Clou Bracelet","Jewelry","Cartier","sculptural, polished, statement piece","eveningwear, smart casual","Year-round","A bracelet shaped like a bent nail."],
+  ["Vintage Alhambra Pendant","Jewelry","Van Cleef & Arpels","heritage, polished, quiet luxury","everyday, formal","Year-round","A single beaded-edge clover motif on a chain."],
+  ["Elsa Peretti Bean Design Pendant","Jewelry","Tiffany & Co.","minimalist, sculptural, classic","everyday, smart casual","Year-round","A smooth organic bean-shaped pendant."],
+  ["HardWear Small Link Bracelet","Jewelry","Tiffany & Co.","sculptural, statement piece, polished","everyday, eveningwear","Year-round","Rounded gauge links form a compact chain bracelet."],
+  ["Siren Stacking Ring","Jewelry","Monica Vinader","textured, sculptural, relaxed","everyday, smart casual","Year-round","An irregular bezel gives a stacking ring an organic outline."],
+  ["Lucy Williams Roman Arc Coin Necklace","Jewelry","Missoma","heritage, textured, layered","everyday, smart casual","Year-round","A coin pendant that can be worn alone or with shorter chains."],
+  ["Baw Pot Natural","Bags","AAKS","heritage, textured, summer","weekend, smart casual","Spring/Summer","A woven raffia bucket bag from the Ghanaian brand."],
+  ["Hana Pompom","Bags","AAKS","statement piece, textured, summer","weekend, smart casual","Spring/Summer","A woven bag finished with the line’s pompom detail."],
+  ["Rugged Twill Original Briefcase","Bags","Filson","heritage, practical, workwear","workwear, travel","Year-round","Heavy twill and bridle leather on a zip-top briefcase."],
+  ["Everyday Sling 6L","Bags","Peak Design","practical, travel-friendly, minimalist","everyday, travel","Year-round","A compact sling with configurable dividers."],
+  ["Speedy 25","Bags","Louis Vuitton","heritage, classic, polished","everyday, smart casual","Year-round","A compact barrel-shaped handbag with rolled handles."],
+  ["Black Hole Duffel 40L","Bags","Patagonia","sporty, practical, travel-friendly","travel, weekend","Year-round","A soft-sided duffel with removable backpack straps."],
+  ["Lineage LIN-163 Titanium Watch","Accessories","Casio","minimalist, practical, polished","everyday, workwear","Year-round","An analogue watch from Casio’s titanium Lineage range."],
+  ["G-Shock DW-5600E","Accessories","Casio","sporty, retro, practical","everyday, activewear","Year-round","A square digital watch in a rugged resin case."],
+  ["A168 Digital Watch","Accessories","Casio","retro, classic, polished","everyday, casual","Year-round","A retro digital display on a metal bracelet."],
+  ["Aviator Classic RB3025","Accessories","Ray-Ban","retro, classic, summer","everyday, weekend","Spring/Summer","Teardrop lenses sit within a thin metal frame."],
+  ["Standard Belt","Accessories","Tanner Goods","minimalist, heritage, leather","workwear, smart casual","Year-round","A leather belt to wear with trousers or denim."],
+  ["Tanker Wallet","Accessories","Porter-Yoshida & Co.","practical, minimalist, heritage","everyday, travel","Year-round","A compact wallet from the nylon Tanker line."],
+  ["Cashmere Check Scarf","Accessories","Burberry","heritage, warm, classic","workwear, smart casual","Fall/Winter","A fringed cashmere scarf in the house check."],
+  ["Gaspard Cardigan","Knitwear","Sézane","textured, relaxed, feminine","everyday, weekend","Fall/Winter","A button-through knit that can be styled with the buttons to the front or back."],
+  ["Kourtney Dress","Dresses","Reformation","feminine, summer, classic","date night, weekend","Spring/Summer","A fitted bodice and midi skirt create a warm-weather occasion silhouette."],
+  ["Madison Fit Two-Button Stripe 1818 Suit","Tailoring","Brooks Brothers","classic, tailored, preppy","formal, workwear","Year-round","Traditional suiting with a roomier fit in the 1818 range."],
+  ["Kelly Bag – Red Crocodile","Bags","Hermès","classic, statement piece, textured","formal, smart casual","Year-round","A red crocodile top-handle Kelly with a central turnlock."],
+  ["Archival Linked Bracelet","Jewelry","Cartier","heritage, sculptural, statement piece","formal, eveningwear","Year-round","An archival linked bracelet documented in an exhibition photograph."],
+  ["Archival Brooch Clip","Jewelry","Van Cleef & Arpels","heritage, statement piece, polished","formal, eveningwear","Year-round","A white-gold clip brooch shown at the 2022 Gem exhibition in Tokyo."],
+  ["Knu Skool Caldrone","Shoes","Vans","skate, streetwear, chunky","everyday, casual","Year-round","The photographed Knu Skool version with a padded side stripe."],
+  ["A158W Digital Watch","Accessories","Casio","retro, classic, practical","everyday, workwear","Year-round","A compact digital watch on a metal bracelet."],
+  ["Aviator Shooter RB3139","Accessories","Ray-Ban","heritage, retro, classic","everyday, weekend","Spring/Summer","The Shooter variant has a ring between the brow and bridge."],
+  ["Delightful Monogram MM","Bags","Louis Vuitton","heritage, relaxed, classic","everyday, smart casual","Year-round","A relaxed monogram shoulder bag with a wide strap."],
+  ["Bismarck Sapphire Necklace","Jewelry","Cartier","heritage, polished, statement piece","formal, eveningwear","Year-round","The Cartier platinum and diamond necklace in the Smithsonian’s National Gem Collection."],
+  ["Archival Pendant Watch","Accessories","Van Cleef & Arpels","heritage, polished, statement piece","formal, eveningwear","Year-round","A pendant watch shown at the Cleveland Museum of Art’s Jazz Age exhibition."]
 ];
 
 var WARD_STYLE_DB = [
@@ -268,6 +338,138 @@ const WARDROBE_PHOTOS = {
     "source": "https://commons.wikimedia.org/wiki/File:1971_evening_dress_by_Yves_Saint_Laurent_for_Marie-H%C3%A9l%C3%A8ne_de_Rothschild_with_Le_Smoking_suit_from_1988_(mus%C3%A9e_d%27Orsay,_Paris).jpg",
     "credit": "dalbera, CC BY 2.0",
     "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "vintage dale patterned sweater|dale of norway": {
+    "url": "/catalogues/photos/dale-vintage.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Dale_of_Norway_sweater.jpg",
+    "credit": "Menswear Market, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "stockman wax coat|barbour": {
+    "url": "/catalogues/photos/barbour-stockman.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Barbourstockman09.jpg",
+    "credit": "A1octopus (talk) (Uploads), CC BY 3.0",
+    "license": "https://creativecommons.org/licenses/by/3.0"
+  },
+  "endurance jacket|barbour": {
+    "url": "/catalogues/photos/barbour-endurance.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Green_Barbour_Endurance_jacket.jpg",
+    "credit": "Robert Sheie, Menswear Market, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "air force 1 low flax (2019)|nike": {
+    "url": "/catalogues/photos/af1-flax.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Nike_Air_Force_1_Low_Flax_2019.jpg",
+    "credit": "Mfagoaguna1, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "chuck taylor all star patent high – black|converse": {
+    "url": "/catalogues/photos/converse-patent.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Converse_All_Star_Black_Patent_High_(4649853842).jpg",
+    "credit": "Magnus D from London, United Kingdom, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "air jordan 1 low|jordan": {
+    "url": "/catalogues/photos/air-jordan-1-low.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Air_Jordan_1_Low.jpg",
+    "credit": "Pangalau, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "air jordan 1 retro high og co.jp silver|jordan": {
+    "url": "/catalogues/photos/air-jordan-1-high.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Air_Jordan_1_Retro_High_OG_CO._Japan_silver.jpg",
+    "credit": "HI 622, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "air jordan 1 mid se crimson tint|jordan": {
+    "url": "/catalogues/photos/air-jordan-crimson.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Air_Jordan_1_-_Crimson_Tint_(49688016508).jpg",
+    "credit": "Ajay Suresh from New York, NY, USA, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "lineage lin-163 titanium watch|casio": {
+    "url": "/catalogues/photos/casio-lineage.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:20250920_Casio_Lineage_Titanium_LIN-163.jpg",
+    "credit": "Abraham, CC0",
+    "license": "https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+  },
+  "g-shock dw-5600e|casio": {
+    "url": "/catalogues/photos/g-shock-dw5600e.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Casio_G-Shock_DW-5600E_wristwatch.jpg",
+    "credit": "File:DW-5600E.png: Simon Le Bon derivative work: Pittigrilli, Public domain",
+    "license": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "archival linked bracelet|cartier": {
+    "url": "/catalogues/photos/cartier-linked.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Linked_bracelet_-_Cartier_(25891095068).jpg",
+    "credit": "Tim Evanson from Cleveland Heights, Ohio, USA, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "archival brooch clip|van cleef & arpels": {
+    "url": "/catalogues/photos/van-cleef-brooch.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Van_Cleef_%26_Arpels_Brooch_clip.jpg",
+    "credit": "AmberLocket, CC0",
+    "license": "https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+  },
+  "kelly bag – red crocodile|hermes": {
+    "url": "/catalogues/photos/kelly-red-crocodile.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Red_Crocodile_Kelly_Bag.jpg",
+    "credit": "Herry Lawford, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "wallabee suede|clarks originals": {
+    "url": "/catalogues/photos/wallabee-cola.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Clarks_Wallabee_in_Cola_Suede.jpg",
+    "credit": "C & J Clark archive, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "old skool|vans": {
+    "url": "/catalogues/photos/vans-old-skool.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Vans_Old_School.jpg",
+    "credit": "Rindor, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "knu skool caldrone|vans": {
+    "url": "/catalogues/photos/vans-knu-skool.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Paire_de_Vans_Knu_Skool_Caldrone.jpg",
+    "credit": "IsaacGouillart, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "ma-1 flight jacket|alpha industries": {
+    "url": "/catalogues/photos/alpha-ma1.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Alpha_Ind_MA1.JPG",
+    "credit": "DirkF601, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "a158w digital watch|casio": {
+    "url": "/catalogues/photos/casio-a158w.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Casio_A158W.jpg",
+    "credit": "Casiolink, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "aviator shooter rb3139|ray-ban": {
+    "url": "/catalogues/photos/ray-ban-shooter.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ray-Ban_Aviator_Shooter_RB3139-001_3N_(G-15_lenses)_Size_62_09_160_Lens_base_6.jpg",
+    "credit": "Francis Flinch, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "delightful monogram mm|louis vuitton": {
+    "url": "/catalogues/photos/lv-delightful-mm.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Delightful_Monogram_MM_-_Flickr_-_love.jsc.jpg",
+    "credit": "Janine from South Korea, United States, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "bismarck sapphire necklace|cartier": {
+    "url": "/catalogues/photos/cartier-bismarck.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Bismarck_Necklace_(crop).jpg",
+    "credit": "Jorfer (talk · contribs), Public domain",
+    "license": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  "archival pendant watch|van cleef & arpels": {
+    "url": "/catalogues/photos/van-cleef-pendant-watch.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Pendant_watch_-_Van_Cleef_and_Arpels_(38772069405).jpg",
+    "credit": "Tim Evanson from Cleveland Heights, Ohio, USA, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
   }
 };
 
@@ -276,5 +478,14 @@ const WARD_PRODUCT_LINKS = {
   "larson weejuns penny loafers|g.h.bass": "https://www.ghbass.com/products/men-larson-weejuns-penny-loafer-black",
   "jordaan horsebit loafers|gucci": "https://www.gucci.com/us/en/pr/men/shoes-for-men/loafers-moccasins-for-men/mens-gucci-jordaan-loafer-p-A00CY6BLM002819",
   "hand-batik cotton t-shirt|studio one eighty nine": "https://studiooneeightynine.com/collections/unisex/products/hand-batik-cotton-t-shirt-1",
-  "hand-batik cotton ruffle cuff shirt|studio one eighty nine": "https://studiooneeightynine.com/collections/all-products/products/hand-batik-cotton-ruffle-cuff-shirt"
+  "hand-batik cotton ruffle cuff shirt|studio one eighty nine": "https://studiooneeightynine.com/collections/all-products/products/hand-batik-cotton-ruffle-cuff-shirt",
+  "baw pot natural|aaks": "https://www.aaksonline.com/shop/p/baw-pot-natural",
+  "hana pompom|aaks": "https://www.aaksonline.com/shop/p/hana-pompom",
+  "rugged twill original briefcase|filson": "https://www.filson.com/products/rugged-twill-original-briefcase-tan",
+  "kourtney dress|reformation": "https://www.thereformation.com/products/kourtney-dress/1306182PPM.html",
+  "our t-shirt|lady white co.": "https://ladywhiteco.com/collections/our-t-shirt",
+  "crosby classic-fit suit jacket|j.crew": "https://www.jcrew.com/p/BZ636",
+  "poppy blur crushed satin dress|vince": "https://www.vince.com/product/poppy-blur-crushed-satin-dress-309992.html",
+  "lucy williams roman arc coin necklace|missoma": "https://us.missoma.com/products/lucy-williams-roman-arc-coin-necklace-silver-plated",
+  "standard belt|tanner goods": "https://www.tannergoods.com/products/standard-belt-natural"
 };

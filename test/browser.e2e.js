@@ -277,6 +277,16 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
+  async function verifyPhoto(target, locator) {
+    await locator.scrollIntoViewIfNeeded();
+    const image = await locator.elementHandle();
+    try {
+      await target.waitForFunction(img => img.complete && img.naturalWidth > 0,image,{timeout:12000});
+    } finally {
+      await image.dispose();
+    }
+  }
+
   const signIn = async (target, email, password = 'test-password') => {
     await target.locator('#auth-email-inp').fill(email);
     await target.locator('#auth-pass-inp').fill(password);
@@ -616,7 +626,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const phoneCategory = phone.locator('#disc-style-category');
   await fitsPhone(phoneCategory,'Style category');
   await phoneCategory.selectOption('Jewelry');
-  await phone.locator('#disc-content').getByRole('img',{name:'Tutti Frutti Bracelet',exact:true}).evaluate(image => image.decode());
+  await verifyPhoto(phone,phone.locator('#disc-content').getByRole('img',{name:'Tutti Frutti Bracelet',exact:true}));
 
   await phone.locator('#mni-settings').tap();
   await phone.getByRole('button',{name:'Open Design System'}).tap();
@@ -657,8 +667,8 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await combined.getByRole('heading',{name:'Fragrance picks'}).waitFor();
   await combined.getByRole('heading',{name:'Wardrobe picks'}).waitFor();
   await combined.getByRole('img',{name:'CK One bottle'}).waitFor();
-  await combined.getByRole('img',{name:'Eau Sauvage bottle'}).evaluate(image => image.decode());
-  await combined.getByRole('img',{name:'1461 Made in England Oxblood Shoes',exact:true}).evaluate(image => image.decode());
+  await verifyPhoto(page,combined.getByRole('img',{name:'Eau Sauvage bottle'}));
+  await verifyPhoto(page,combined.getByRole('img',{name:'1461 Made in England Oxblood Shoes',exact:true}));
   const ckCard = combined.locator('article').filter({hasText:'CK One'});
   await ckCard.getByRole('button',{name:'Details'}).click();
   assert.equal(await page.locator('#frag-name').inputValue(),'CK One');
@@ -675,12 +685,21 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#frag-grid').getByRole('img',{name:'CK One bottle'}).waitFor();
   await visit('discover');
   await page.locator('.disc-format-pills').getByText('Fragrances', { exact: false }).click();
+  await page.locator('#disc-search-inp').fill('calvin klein euphoria men');
+  const euphoria = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Euphoria Men'});
+  const euphoriaImage = euphoria.getByRole('img',{name:'Euphoria Men bottle',exact:true});
+  assert.equal(await euphoriaImage.getAttribute('src'),'/catalogues/photos/euphoria-men.webp');
+  await verifyPhoto(page,euphoriaImage);
   await page.locator('#disc-search-inp').fill('khamrah qahwa');
   await page.locator('#disc-search-res').getByText('Khamrah Qahwa', { exact: true }).waitFor();
   await page.locator('#disc-search-inp').press('Escape');
   await page.locator('#disc-search-res').waitFor({ state: 'hidden' });
   await page.locator('.disc-format-pills').getByText('Style', { exact: false }).click();
   await page.locator('#disc-style-category').selectOption('Shoes');
+  await page.locator('#disc-search-inp').fill('jordan crimson tint');
+  const jordanImage = page.locator('#disc-search-res').getByRole('img',{name:'Air Jordan 1 Mid SE Crimson Tint',exact:true});
+  assert.equal(await jordanImage.getAttribute('src'),'/catalogues/photos/air-jordan-crimson.webp');
+  await verifyPhoto(page,jordanImage);
   await page.locator('#disc-search-inp').fill('dr martens adrian');
   const loafer = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Adrian Smooth Leather Tassel Loafers'});
   await loafer.getByRole('link',{name:'Product page'}).waitFor();
@@ -693,11 +712,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-style-category').selectOption('Jewelry');
   await page.locator('#disc-search-inp').fill('cartier');
   const bracelet = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Tutti Frutti Bracelet'});
-  await bracelet.getByRole('img',{name:'Tutti Frutti Bracelet'}).evaluate(image => image.decode());
+  await verifyPhoto(page,bracelet.getByRole('img',{name:'Tutti Frutti Bracelet'}));
   await bracelet.getByRole('button',{name:'Wishlist · Tutti Frutti Bracelet'}).click();
   await visit('wardrobe');
   await page.locator('#s-wardrobe .pills').getByText('Jewelry',{exact:true}).click();
-  await page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}).evaluate(image => image.decode());
+  await verifyPhoto(page,page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}));
 
   await visit('settings');
   await page.locator('#delete-account-btn').click();
