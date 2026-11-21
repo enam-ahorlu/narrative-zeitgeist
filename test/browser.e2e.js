@@ -58,6 +58,7 @@ const fixtures = {
   '/assets/journal-data.js': ['assets/journal-data.js', 'text/javascript; charset=utf-8'],
   '/assets/journal-view.js': ['assets/journal-view.js', 'text/javascript; charset=utf-8'],
   '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
+  '/shared/taste-insights.js': ['shared/taste-insights.js', 'text/javascript; charset=utf-8'],
   '/catalogues/fragrances.js': ['catalogues/fragrances.js', 'text/javascript; charset=utf-8'],
   '/catalogues/tags.js': ['catalogues/tags.js', 'text/javascript; charset=utf-8'],
   '/catalogues/wardrobe.js': ['catalogues/wardrobe.js', 'text/javascript; charset=utf-8']
@@ -727,6 +728,20 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await combined.locator('[data-kind="wardrobe"] [data-status="Owned"]').first().click();
   await page.getByText('saved as owned',{exact:false}).waitFor();
   await visit('insights');
+  const taste = page.locator('#insights-taste');
+  await page.evaluate(() => {
+    /* The overview needs a few entries; add synthetic rows to the in-page list only */
+    const base = {user_id:'x', created_at:'2026-01-01', cover_color:null};
+    _allEntries.push(
+      {...base, id:'t1', title:'Overview film', format:'film', rating:9, tags:['mystery'], date_completed:'2026-01-05'},
+      {...base, id:'t2', title:'Overview book', format:'book', rating:8, tags:['mystery'], date_completed:'2026-02-05'},
+      {...base, id:'t3', title:'Overview show', format:'show', rating:7, tags:[], date_completed:'2026-03-05'});
+    renderTasteOverview();
+  });
+  await taste.getByText('Your taste, beyond tags',{exact:true}).waitFor();
+  await taste.getByRole('heading',{name:'Where your entries go'}).waitFor();
+  await taste.getByRole('heading',{name:'How you rate'}).waitFor();
+  assert.ok(await taste.locator('.taste-highlights li').count() >= 1);
   await page.locator('#insights-style').getByText('0 owned · 1 wishlisted · 0 tried').waitFor();
   await page.locator('#insights-style').getByText('1 owned · 0 wishlisted',{exact:true}).waitFor();
   await visit('fragrances');

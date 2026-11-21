@@ -163,8 +163,84 @@ async function renderStyleFingerprint(){
   panel.hidden = false;
 }
 
+var TASTE_FORMAT_COLORS = {film:'#C06060',show:'#2E7D9E',book:'#5A8A5F',sports_match:'#9B7D3A',music:'#7A6BAE'};
+
+/* Taste overview that goes beyond tags: formats, rating habits, pace, cross-format tags, pairs, eras, highs and lows. */
+function renderTasteOverview(){
+  var panel = document.getElementById('insights-taste');
+  if(!panel) return;
+  var summary = tasteInsights.summarize(_allEntries);
+  if(summary.total < 3){ panel.hidden = true; panel.replaceChildren(); return; }
+  var names = tasteInsights.FORMAT_NAMES;
+  var label = function(format){var n = names[format] || format; return n.charAt(0).toUpperCase()+n.slice(1);};
+  var color = function(format){return TASTE_FORMAT_COLORS[format] || '#7A96A4';};
+  function bar(text, pct, tail, fill){
+    return '<div class="taste-row"><span class="taste-row-label">'+escHtml(text)+'</span>'
+      +'<span class="taste-bar"><span style="width:'+Math.max(2,Math.round(pct))+'%;background:'+fill+'"></span></span>'
+      +'<span class="taste-row-tail">'+escHtml(tail)+'</span></div>';
+  }
+  function section(title, body){
+    return body ? '<div class="taste-panel"><h3>'+escHtml(title)+'</h3>'+body+'</div>' : '';
+  }
+
+  var formatRows = summary.formats.map(function(item){
+    return bar(label(item.format), item.share*100, item.count+(item.avg !== null ? ' · '+item.avg.toFixed(1)+' avg' : ''), color(item.format));
+  }).join('');
+  var maxBand = Math.max.apply(null, summary.spread.map(function(band){return band.count;}).concat([1]));
+  var spreadRows = summary.rated ? summary.spread.map(function(band){
+    return bar(band.label, band.count/maxBand*100, String(band.count), 'var(--p-light)');
+  }).join('') : '';
+
+  var maxQuarter = Math.max.apply(null, summary.quarters.map(function(q){return q.total;}).concat([1]));
+  var activity = summary.quarters.length >= 2
+    ? '<div class="taste-quarters" role="img" aria-label="Entries logged per quarter">'+summary.quarters.map(function(q){
+        var segments = Object.keys(q.byFormat).sort().map(function(format){
+          return '<span style="flex:'+q.byFormat[format]+';background:'+color(format)+'" title="'+escHtml(label(format)+': '+q.byFormat[format])+'"></span>';
+        }).join('');
+        return '<div class="taste-quarter"><span class="taste-quarter-total">'+q.total+'</span>'
+          +'<span class="taste-quarter-bar" style="height:'+Math.max(6,Math.round(q.total/maxQuarter*70))+'px">'+segments+'</span>'
+          +'<span class="taste-quarter-label">'+escHtml(q.label.replace(/^20/,"\u2019"))+'</span></div>';
+      }).join('')+'</div><div class="taste-legend">'+summary.formats.map(function(item){
+        return '<span><i style="background:'+color(item.format)+'"></i>'+escHtml(label(item.format))+'</span>';
+      }).join('')+'</div>'
+    : '';
+
+  var bridges = summary.bridges.map(function(item){
+    return '<li><strong>'+escHtml(item.tag)+'</strong> <span>'+escHtml(item.formats.map(function(f){return names[f]||f;}).join(', '))+'</span></li>';
+  }).join('');
+  var pairs = summary.pairs.map(function(item){
+    return '<li><strong>'+escHtml(item.tags.join(' + '))+'</strong> <span>together in '+item.count+' entries</span></li>';
+  }).join('');
+  var era = summary.decades.withYear >= 5 ? (function(){
+    var max = Math.max.apply(null, summary.decades.bins.map(function(b){return b.count;}));
+    return summary.decades.bins.map(function(b){return bar(b.label, b.count/max*100, String(b.count), 'var(--p-light)');}).join('');
+  })() : '';
+  function entryList(items){
+    return items.map(function(item){
+      return '<li><strong>'+escHtml(item.title)+'</strong> <span>'+escHtml(label(item.format).replace(/s$/,''))+' · '+item.rating+'</span></li>';
+    }).join('');
+  }
+  var highs = entryList(summary.extremes.high), lows = entryList(summary.extremes.low);
+
+  panel.innerHTML = '<div class="ct">Your taste, beyond tags</div>'
+    + '<div class="cs">Built from every entry in your collection: what you log, how you rate it, and how that has moved.</div>'
+    + (summary.highlights.length ? '<ul class="taste-highlights">'+summary.highlights.map(function(line){return '<li>'+escHtml(line)+'</li>';}).join('')+'</ul>' : '')
+    + '<div class="taste-grid">'
+    + section('Where your entries go', formatRows)
+    + section('How you rate', spreadRows)
+    + section('Pace by quarter', activity)
+    + section('Tags that cross formats', bridges ? '<ul class="taste-list">'+bridges+'</ul>' : '')
+    + section('Tags that travel together', pairs ? '<ul class="taste-list">'+pairs+'</ul>' : '')
+    + section('Release eras', era)
+    + section('Your highs', highs ? '<ul class="taste-list">'+highs+'</ul>' : '')
+    + section('Your lows', lows ? '<ul class="taste-list">'+lows+'</ul>' : '')
+    + '</div>';
+  panel.hidden = false;
+}
+
 function renderInsights(fp){
   renderStyleFingerprint();
+  renderTasteOverview();
   var sub     = document.getElementById('insights-ph-sub');
   var building= document.getElementById('fp-building');
   var fpList  = document.getElementById('fp-list');
