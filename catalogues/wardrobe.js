@@ -470,6 +470,25 @@ const WARDROBE_PHOTOS = {
     "source": "https://commons.wikimedia.org/wiki/File:Pendant_watch_-_Van_Cleef_and_Arpels_(38772069405).jpg",
     "credit": "Tim Evanson from Cleveland Heights, Ohio, USA, CC BY-SA 2.0",
     "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "13mwz cowboy cut original fit jeans|wrangler": {
+    "url": "/catalogues/photos/wrangler-13mwz.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Wrangler-13MWZ_IMG_20260121_213130.jpg",
+    "credit": "Nord794ub, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0",
+    "alt": "Wrangler 13MWZ Original Fit Jeans, pocket and denim detail"
+  },
+  "aviator classic rb3025|ray-ban": {
+    "url": "/catalogues/photos/ray-ban-rb3025.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:RayBanAviator.jpg",
+    "credit": "Rich Niewiroski Jr., CC BY 2.5",
+    "license": "https://creativecommons.org/licenses/by/2.5"
+  },
+  "air force 1 low|nike": {
+    "url": "/catalogues/photos/nike-af1-low.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Air_Force_1.JPG",
+    "credit": "Xanor, CC0",
+    "license": "https://creativecommons.org/publicdomain/zero/1.0/deed.en"
   }
 };
 
@@ -487,5 +506,8 @@ const WARD_PRODUCT_LINKS = {
   "crosby classic-fit suit jacket|j.crew": "https://www.jcrew.com/p/BZ636",
   "poppy blur crushed satin dress|vince": "https://www.vince.com/product/poppy-blur-crushed-satin-dress-309992.html",
   "lucy williams roman arc coin necklace|missoma": "https://us.missoma.com/products/lucy-williams-roman-arc-coin-necklace-silver-plated",
-  "standard belt|tanner goods": "https://www.tannergoods.com/products/standard-belt-natural"
+  "standard belt|tanner goods": "https://www.tannergoods.com/products/standard-belt-natural",
+  "iron ranger 8111|red wing heritage": "https://eu.redwingshoes.com/p/8111_d",
+  "l.12.12 original polo|lacoste": "https://www.lacoste.com/us/lacoste/men/clothing/polos/L1212-51-166.html",
+  "airism cotton oversized crew neck half-sleeve t-shirt|uniqlo": "https://www.uniqlo.com/us/en/products/E465185-000/00"
 };

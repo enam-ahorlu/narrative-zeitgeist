@@ -10,14 +10,15 @@
 - [x] Add 22 wardrobe images and 20 bottle images in the second pass.
 - [x] Increase Discover Style to at least 120 named products, with additions across all ten categories.
 - [x] Add 28 named fragrances, including distinct concentrations and archived bottles.
+- [x] Add five images for existing products and add manufacturer page links.
 - [ ] Continue sourcing reusable photos for the remaining products, including the Adrian loafers. A Product page link is available for selected items.
 
 ## Catalogue data and photos
 
 | Catalogue | Entries | With photos |
 | --- | ---: | ---: |
-| Named wardrobe products | 130 | 40 |
-| Fragrances | 327 | 32 |
+| Named wardrobe products | 130 | 43 |
+| Fragrances | 327 | 34 |
 
 The second pass increased Wardrobe from 60 to 130 named products and fragrance
 from 299 to 327 entries. Discover Style uses the named products. The Wardrobe entry picker also retains 93 generic pieces for logging
@@ -60,3 +61,42 @@ The remaining gap is access to reusable exact-match photographs. Download
 rate limits also blocked some verified sources, including the images found
 for Mitsouko, Opium Pour Homme, Obsession for Men and Red Wing Iron Ranger
 8111. The Adrian loafers still link to the manufacturer’s photo.
+
+
+## Photo sourcing playbook
+
+1. Start with an unphotographed product already in the catalogue. Record the
+   house or brand, model, concentration, edition and colourway you can verify.
+   For footwear, check logos, silhouette and SKU when available. A source filename
+   can be less specific than the pictured model.
+2. Search Wikimedia Commons categories by brand and model. Check the file page
+   and the original photographer source. Open collections such as the
+   [RISD Museum](https://risdmuseum.org/art-design/collection/sweater-and-skirt-set-200926)
+   and [Smithsonian Open Access](https://www.si.edu/openaccess) are useful for
+   archival garments, jewelry, and perfume bottles. Select the exact object and
+   verify the image-specific rights statement. An open licence or permission
+   determines whether an image can be bundled. Attribution records the source.
+3. Use the photographer’s original copy or an approved standard thumbnail where
+   it is available. Wikimedia rate limits again blocked some earlier leads.
+   Keep the verified source on this checklist for a later pass. Skip images
+   that have an uncertain edition or unclear photographer permission. For
+   example, the available Terre d’Hermès photograph depicts the Parfum and the
+   Lacoste polo photo does not verify the L.12.12 model.
+4. Resize the exact image to a lightweight WebP under `catalogues/photos/`.
+   Add the normalized product name and maker key in `WARDROBE_PHOTOS` or
+   `FRAGRANCE_PHOTOS` with `url`, `source`, `credit` and `license`.
+   Supply optional `alt` when an image shows packaging or a detail.
+   Run the catalogue tests and verify the image after scrolling to the card.
+5. If an official page shows the product but does not offer a reusable image,
+   add its link to the relevant product link map. Discovery exposes it as
+   **Product page**. The latest pass includes official links for Dior Sauvage EDT,
+   Bleu de Chanel EDP, Mitsouko, Lacoste and Red Wing.
+6. For a missing exact match, a person who owns the product can use their own
+   HTTPS photo URL on their saved record. A contributor who wants a photo in the
+   shared catalogue can submit the model, credit and written permission or an
+   explicit open licence for their own image. Brand press images and licensed
+   feeds are further options when the terms cover this app’s use.
+
+The latest in-app additions are Acqua di Parma Colonia, Dior Sauvage EDT
+packaging, Nike Air Force 1 Low, Ray-Ban RB3025 Aviator and the Wrangler 13MWZ
+denim detail. Named product totals stayed at 130 and 327 during this pass.

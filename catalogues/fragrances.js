@@ -521,5 +521,35 @@ const FRAGRANCE_PHOTOS = {
     "source": "https://commons.wikimedia.org/wiki/File:Tiffany4men.jpg",
     "credit": "Francism2000, CC BY-SA 3.0",
     "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "sauvage edt|dior": {
+    "url": "/catalogues/photos/dior-sauvage.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Dior_Sauvage_Verpackung.jpg",
+    "credit": "DYVER, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0",
+    "alt": "Dior Sauvage Eau de Toilette packaging"
+  },
+  "colonia|acqua di parma": {
+    "url": "/catalogues/photos/acqua-di-parma-colonia.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Acqua_di_Parma_Colonia.jpg",
+    "credit": "Freud, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
   }
+};
+
+const FRAGRANCE_PRODUCT_LINKS = {
+  "sauvage edt|dior": "https://www.dior.com/en_us/beauty/products/sauvage-eau-de-toilette-F068524009.html",
+  "terre dhermes edt|hermes": "https://www.hermes.com/fr/fr/product/terre-d-hermes-eau-de-toilette-V107188V0/",
+  "bleu de chanel edp|chanel": "https://www.chanel.com/us/fragrance/p/107360/bleu-de-chanel-eau-de-parfum-spray/",
+  "coco mademoiselle|chanel": "https://www.chanel.com/us/fragrance/p/116420/coco-mademoiselle-eau-de-parfum-spray/",
+  "mitsouko|guerlain": "https://www.guerlain.com/us/en-us/p/les-legendaires-mitsouko---eau-de-parfum-024104.html",
+  "tobacco vanille|tom ford": "https://www.tomfordbeauty.com/products/tobacco-vanille-eau-de-parfum",
+  "bal dafrique|byredo": "https://www.byredo.com/us_en/p/bal-d-afrique-eau-de-parfum",
+  "1 million parfum|rabanne": "https://www.rabanne.com/ww/en/fragrance/p/1-million-parfum--000000000065156001_BASE",
+  "wulong cha x|nishane": "https://nishane.com/product/wulong-cha-x/",
+  "hacivat x|nishane": "https://nishane.com/product/hacivat-x/",
+  "outlands|amouage": "https://amouage.com/en-uk/products/new-outlands",
+  "reasons|amouage": "https://amouage.com/en-ap/pages/reasons",
+  "tresor|lancome": "https://www.lancome-usa.com/fragrance/collection/tresor/tresor/072025.html",
+  "eternity for men|calvin klein": "https://www.calvinklein.us/en/eternity-eau-de-toilette-for-men/LX000145.html"
 };

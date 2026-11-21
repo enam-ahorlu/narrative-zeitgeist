@@ -4050,7 +4050,7 @@ function stylePoster(kind,rec,{credit=true}={}){
   var url = ownUrl || photo?.url;
   var figure = '<div class="style-poster"><span aria-hidden="true">'+escHtml(_recInitials(rec.name))+'</span>';
   if(url){
-    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml(rec.name + (kind === 'fragrance' ? ' bottle' : ''))+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">';
+    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml((!ownUrl && photo?.alt) || rec.name + (kind === 'fragrance' ? ' bottle' : ''))+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">';
     if(credit && !ownUrl && photo){
       figure += '<a href="'+escHtml(photo.source)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="Photo credit for '+escHtml(rec.name)+'" title="'+escHtml(photo.credit)+'">Photo credit</a>';
     }
@@ -4074,7 +4074,8 @@ function styleRecommendationDetails(kind,rec){
 function styleDiscoveryActions(kind,rec){
   var scent = kind === 'fragrance';
   var data = escHtml(JSON.stringify(rec));
-  var productPage = scent ? '' : WARD_PRODUCT_LINKS[styleRecommendations.productKey(rec.name,rec.brand)];
+  var links = scent ? FRAGRANCE_PRODUCT_LINKS : WARD_PRODUCT_LINKS;
+  var productPage = links[styleRecommendations.productKey(rec.name,scent ? rec.house : rec.brand)];
   var statuses = scent ? [['owned','Owned'],['wishlisted','Wishlist'],['tried','Tried']]
     : [['Owned','Owned'],['Wishlisted','Wishlist']];
   return '<div class="style-quick-actions" data-kind="'+kind+'" data-style-rec="'+data+'">'

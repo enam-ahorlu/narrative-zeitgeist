@@ -50,7 +50,7 @@ test('expanded catalogues are distinct and compatible with form pickers', () => 
 test('catalogue photos match named products and include source and reuse credits', () => {
   const read = (file, expression) => runInNewContext(readFileSync(file,'utf8') + '\n' + expression);
   const { productKey } = require('../assets/style-recommendations');
-  const { scents, scentPhotos } = read('catalogues/fragrances.js','({scents:FRAG_DB,scentPhotos:FRAGRANCE_PHOTOS})');
+  const { scents, scentPhotos, scentLinks } = read('catalogues/fragrances.js','({scents:FRAG_DB,scentPhotos:FRAGRANCE_PHOTOS,scentLinks:FRAGRANCE_PRODUCT_LINKS})');
   const { products, wardrobePhotos, productLinks } = read('catalogues/wardrobe.js',
     '({products:WARD_PRODUCTS,wardrobePhotos:WARDROBE_PHOTOS,productLinks:WARD_PRODUCT_LINKS})');
   assert.ok(products.length >= 120);
@@ -60,12 +60,13 @@ test('catalogue photos match named products and include source and reuse credits
   }
   assert.ok(products.filter(([name])=>/loafer/i.test(name)).length >= 5);
   assert.ok(products.every(([name,,brand])=>name && brand));
+  const scentKeys = scents.map(([name,house])=>productKey(name,house));
   const wardrobeKeys = products.map(([name,,brand])=>productKey(name,brand));
   for (const category of categories) {
     assert.ok(products.some(([name,type,brand])=>type === category && wardrobePhotos[productKey(name,brand)]),category);
   }
-  for (const [photos,keys,min] of [[scentPhotos,scents.map(([name,house])=>productKey(name,house)),32],
-    [wardrobePhotos,wardrobeKeys,40]]) {
+  for (const [photos,keys,min] of [[scentPhotos,scentKeys,34],
+    [wardrobePhotos,wardrobeKeys,43]]) {
     assert.ok(Object.keys(photos).length >= min);
     for (const [key,photo] of Object.entries(photos)) {
       assert.ok(keys.includes(key),key);
@@ -82,9 +83,11 @@ test('catalogue photos match named products and include source and reuse credits
     .map(url=>url.split('/').at(-1))
     .sort();
   assert.deepEqual(bundledPhotos,readdirSync('catalogues/photos').sort());
-  for (const [key,url] of Object.entries(productLinks)) {
-    assert.ok(wardrobeKeys.includes(key),key);
-    assert.equal(new URL(url).protocol,'https:');
+  for (const [links,keys] of [[productLinks,wardrobeKeys],[scentLinks,scentKeys]]) {
+    for (const [key,url] of Object.entries(links)) {
+      assert.ok(keys.includes(key),key);
+      assert.equal(new URL(url).protocol,'https:');
+    }
   }
 });
 
