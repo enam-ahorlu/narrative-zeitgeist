@@ -2,6 +2,7 @@
 // Calls Claude API with the user's taste fingerprint and returns personalised recommendations.
 // Set ANTHROPIC_API_KEY in Vercel → Project Settings → Environment Variables.
 
+const { sameWork } = require('../assets/media-identity');
 const { authContext } = require('../lib/supabase-server');
 const { loadHistory, selectAnchors, lowRatedExamples, discoveryExclusions, makePrompt, verifyRecommendations } = require('../lib/grounded-discovery');
 
@@ -17,29 +18,37 @@ module.exports = async function handler(req, res) {
   const auth = await authContext(req);
   if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
 
-  const grounded = req.body?.strategy === 'grounded';
+  const signalComparison = req.body?.strategy === 'compare-low-ratings';
+  const grounded = req.body?.strategy === 'grounded' || signalComparison;
   const comparison = req.body?.strategy === 'baseline';
   const historyStarted = Date.now();
-  const input = grounded ? await groundedInput(auth, req.body) : normalizeInput(req.body);
+  const input = grounded ? await groundedInput(auth, signalComparison ? { tab:'for-you' } : req.body) : normalizeInput(req.body);
   const historyDuration = Date.now() - historyStarted;
   if (input?.error) return res.status(input.status).json({ error: input.error });
   if (!input) return res.status(400).json({ error: 'A valid taste fingerprint with at least 3 entries is required.' });
   const { fingerprint, entryTitles, tab, becauseTitle, anchors, known, avoid, lowRatings } = input;
+
+  if (signalComparison && !lowRatings.length) {
+    return res.status(422).json({error:'To compare the signal, log a rating of 4/10 or below in a format that also has a favorite rated 7/10 or above.'});
+  }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(503).json({ error: 'Discovery is unavailable.' });
 
   let retryAfter;
   try {
-    const quota = await fetch(auth.url + '/rest/v1/rpc/reserve_discovery_request', {
-      method: 'POST',
-      headers: { ...auth.headers, 'Content-Type': 'application/json' },
-      body: '{}',
-      signal: AbortSignal.timeout(8000)
-    });
-    if (!quota.ok) throw new Error('Quota request failed');
-    retryAfter = await quota.json();
-    if (!Number.isInteger(retryAfter) || retryAfter < 0) throw new Error('Invalid quota response');
+    for (let slot=0; slot < (signalComparison ? 2 : 1); slot++) {
+      const quota = await fetch(auth.url + '/rest/v1/rpc/reserve_discovery_request', {
+        method: 'POST',
+        headers: { ...auth.headers, 'Content-Type': 'application/json' },
+        body: '{}',
+        signal: AbortSignal.timeout(8000)
+      });
+      if (!quota.ok) throw new Error('Quota request failed');
+      retryAfter = await quota.json();
+      if (!Number.isInteger(retryAfter) || retryAfter < 0) throw new Error('Invalid quota response');
+      if (retryAfter > 0) break;
+    }
   } catch {
     return res.status(503).json({ error: 'Discovery is temporarily unavailable. Try again shortly.' });
   }
@@ -52,39 +61,68 @@ module.exports = async function handler(req, res) {
   try {
     // Preserve time for the catalogue checks inside Vercel's 60-second limit.
     const modelBudget = Math.max(1000, Math.min(40000, (grounded ? 47000 : 55000) - (Date.now() - started)));
-    const modelStarted = Date.now();
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: grounded || comparison ? 2600 : 8192,
-        messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab, avoid, lowRatings) : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
-      }),
-      signal: AbortSignal.timeout(modelBudget)
-    });
-    if (!response.ok) {
-      console.error('Anthropic Discovery returned status', response.status);
-      throw new Error('Provider request failed');
+    async function generate(examples) {
+      const modelStarted = Date.now();
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: grounded || comparison ? 2600 : 8192,
+          messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab, avoid, examples)
+            : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
+        }),
+        signal: AbortSignal.timeout(modelBudget)
+      });
+      if (!response.ok) {
+        console.error('Anthropic Discovery returned status', response.status);
+        throw new Error('Provider request failed');
+      }
+      const result = await response.json();
+      const text = (result.content || []).find(block => block.type === 'text')?.text || '';
+      const payload = text.match(/\x60\x60\x60(?:json)?\s*([\s\S]*?)\x60\x60\x60/i)?.[1]
+        || text.match(/(\[[\s\S]*\])/)?.[1];
+      const parsed = JSON.parse(payload);
+      const model = Date.now() - modelStarted;
+      const verificationStarted = Date.now();
+      const picks = grounded
+        ? await verifyRecommendations(parsed, anchors, known, tab)
+        : normalizeRecommendations(parsed, entryTitles);
+      return { picks, model, verification:Date.now()-verificationStarted };
     }
 
-    const result = await response.json();
-    const text = (result.content || []).find(block => block.type === 'text')?.text || '';
-    const payload = text.match(/\x60\x60\x60(?:json)?\s*([\s\S]*?)\x60\x60\x60/i)?.[1]
-      || text.match(/(\[[\s\S]*\])/)?.[1];
-    const parsed = JSON.parse(payload);
-    const modelDuration = Date.now() - modelStarted;
-    const verificationStarted = Date.now();
-    const recommendations = grounded
-      ? await verifyRecommendations(parsed, anchors, known, tab)
-      : normalizeRecommendations(parsed, entryTitles);
-    if (!grounded && !recommendations.length) throw new Error('No usable recommendations');
-    res.setHeader('Server-Timing', 'history;dur=' + historyDuration + ', model;dur=' + modelDuration + ', verification;dur=' + (Date.now()-verificationStarted));
-    return res.status(200).json({ recommendations });
+    if (signalComparison) {
+      const [without, withSignal] = await Promise.all([generate([]),generate(lowRatings)]);
+      const left = without.picks.filter(pick=>!withSignal.picks.some(other=>sameWork(pick,other)));
+      const right = withSignal.picks.filter(pick=>!without.picks.some(other=>sameWork(pick,other)));
+      const pairs = FORMATS.map(format => {
+        const a = left.filter(pick=>pick.format === format);
+        const b = right.filter(pick=>pick.format === format);
+        return a.slice(0,b.length).map((pick,index)=>[pick,b[index]]);
+      });
+      const balanced = {without:[],with:[]};
+      for (let index=0; balanced.with.length < 5 && pairs.some(bucket=>bucket[index]); index++) {
+        for (const bucket of pairs) {
+          if (!bucket[index]) continue;
+          balanced.without.push(bucket[index][0]);
+          balanced.with.push(bucket[index][1]);
+          if (balanced.with.length === 5) break;
+        }
+      }
+      if (!balanced.with.length) {
+        return res.status(422).json({ error:'The two runs yielded no distinct verified pairs in the same format. There is nothing fair to compare in this batch.' });
+      }
+      return res.status(200).json({ comparison:balanced });
+    }
+
+    const result = await generate(lowRatings);
+    if (!grounded && !result.picks.length) throw new Error('No usable recommendations');
+    res.setHeader('Server-Timing', 'history;dur=' + historyDuration + ', model;dur=' + result.model + ', verification;dur=' + result.verification);
+    return res.status(200).json({ recommendations:result.picks });
   } catch (error) {
     if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
       console.warn('Discovery model timed out', { strategy: grounded ? 'grounded' : 'baseline', tab });

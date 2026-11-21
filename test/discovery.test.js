@@ -115,3 +115,63 @@ test('low ratings are bounded and same-titled releases and tracks have separate 
   const musicExclusions = discoveryExclusions([{format:'music'}],{exclusions:[album]},[]);
   assert.ok(!musicExclusions.known(track));
 });
+
+
+test('blind low-rating comparison shares history, removes overlap and validates eligibility before billing', async t => {
+  Object.assign(process.env,{
+    SUPABASE_URL:'https://comparison.example.test',
+    SUPABASE_ANON_KEY:'sb_publishable_comparison',
+    ANTHROPIC_API_KEY:'synthetic'
+  });
+  const favorite = {id:seedId,title:'The Favorite',format:'book',rating:9,tags:['mystery']};
+  const low = {id:userId,title:'The Disliked Work',format:'book',rating:2,tags:['shallow'],notes:'Private annotation'};
+  let eligible = false;
+  let quota = 0;
+  let historyReads = 0;
+  const prompts = [];
+  t.mock.method(globalThis,'fetch',async (address,options)=>{
+    const url = new URL(address);
+    if(url.pathname === '/auth/v1/user') return Response.json({id:userId});
+    if(url.pathname === '/rest/v1/rpc/reserve_discovery_request'){
+      quota++;
+      return Response.json(0);
+    }
+    if(url.pathname === '/rest/v1/entries_with_tags'){
+      if(Number(url.searchParams.get('offset'))) return Response.json([]);
+      historyReads++;
+      return Response.json(eligible ? [favorite,low] : [favorite]);
+    }
+    if(url.pathname.startsWith('/rest/v1/')) return Response.json([]);
+    if(url.hostname === 'api.anthropic.com'){
+      const prompt = JSON.parse(options.body).messages[0].content;
+      prompts.push(prompt);
+      const titles = ['Common Pick',prompt.includes('The Disliked Work') ? 'With Signal' : 'Control Pick'];
+      return Response.json({content:[{type:'text',text:JSON.stringify(titles.map(title=>({
+        title,format:'book',creator:'Fixture Writer',anchor:'A1',connection:'Shared setting.'
+      })))}]});
+    }
+    if(url.hostname === 'openlibrary.org'){
+      const title = url.searchParams.get('q').replace(' Fixture Writer','');
+      return Response.json({docs:[{key:'/works/'+title.replace(/ /g,'_'), title,author_name:['Fixture Writer']}]});
+    }
+    throw new Error('Unexpected upstream call');
+  });
+  async function invoke(){
+    const output = {};
+    await discover({method:'POST',headers:{authorization:'Bearer synthetic'},body:{strategy:'compare-low-ratings'}},
+      {setHeader(){},status(code){output.status=code;return this;},json(body){output.body=body;}});
+    return output;
+  }
+  assert.equal((await invoke()).status,422);
+  assert.equal(quota,0);
+  assert.equal(prompts.length,0);
+  eligible = true;
+  const result = await invoke();
+  assert.equal(result.status,200);
+  assert.equal(quota,2);
+  assert.equal(historyReads,2);
+  assert.deepEqual(result.body.comparison.without.map(pick=>pick.title),['Control Pick']);
+  assert.deepEqual(result.body.comparison.with.map(pick=>pick.title),['With Signal']);
+  assert.equal(prompts.filter(prompt=>prompt.includes('The Disliked Work')).length,1);
+  assert.ok(prompts.every(prompt=>prompt.includes('The Favorite') && !prompt.includes('Private annotation')));
+});

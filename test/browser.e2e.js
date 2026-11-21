@@ -41,6 +41,7 @@ let limitDiscovery = true;
 
 const fixtures = {
   '/': ['index.html', 'text/html; charset=utf-8'],
+  '/assets/discovery-comparison.js': ['assets/discovery-comparison.js', 'text/javascript; charset=utf-8'],
   '/assets/discovery-session.js': ['assets/discovery-session.js', 'text/javascript; charset=utf-8'],
   '/assets/style-store.js': ['assets/style-store.js', 'text/javascript; charset=utf-8'],
   '/assets/style-recommendations.js': ['assets/style-recommendations.js', 'text/javascript; charset=utf-8'],
@@ -128,6 +129,10 @@ function createMocks(assets) {
       discoveryRequests++;
       discoveryInputs.push(body);
       if (limitDiscovery) return send({ error: 'Discovery limit reached. Try again later.' }, 429);
+      if (body.strategy === 'compare-low-ratings') return send({comparison:{
+        without:[{title:'Favorite-based fixture',format:'book',reasons:['Shared setting']}],
+        with:[{title:'Signal-based fixture',format:'book',reasons:['Shared narrative technique']}]
+      }});
       if (body.strategy === 'baseline') {
         if (!body.entryTitles.includes('Journal A 1')) return send({ error: 'Missing journal data' }, 400);
         return send({ recommendations: [{
@@ -459,12 +464,22 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(discoveryRequests,requestsBeforeReturn);
   await page.getByRole('button', {name:'Compare picks'}).click();
   const comparison = page.locator('#m-disc-compare');
+  await comparison.getByRole('button',{name:'Compare with the original recommender'}).click();
   await comparison.getByRole('heading', {name:'Set A',exact:true}).waitFor();
   await comparison.getByRole('heading', {name:'Set B',exact:true}).waitFor();
   await comparison.getByLabel('Would try it').first().check();
   await comparison.getByRole('button', {name:'Reveal results'}).click();
   await comparison.getByRole('heading', {name:/Updated/}).waitFor();
   await comparison.getByRole('heading', {name:/Original/}).waitFor();
+  await comparison.getByRole('button',{name:'Compare again'}).click();
+  await comparison.getByRole('button',{name:'Test the low-rating signal'}).click();
+  await comparison.getByText('Signal-based fixture').waitFor();
+  assert.equal(await comparison.getByRole('heading',{name:/Favorites/}).count(),0);
+  await comparison.getByRole('radio',{name:'Set A'}).check();
+  await comparison.getByRole('button',{name:'Reveal results'}).click();
+  await comparison.getByRole('heading',{name:/Favorites and low ratings/}).waitFor();
+  await comparison.getByText('Your preference:',{exact:false}).waitFor();
+
   await comparison.getByRole('button', {name:'Close comparison'}).click();
 
   await visit('fragrances');

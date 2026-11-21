@@ -19,6 +19,7 @@
 <script src="/assets/journal-data.js"></script>
 <script src="/assets/media-identity.js"></script>
 <script src="/assets/discovery-session.js"></script>
+<script src="/assets/discovery-comparison.js"></script>
 <script src="/assets/style-recommendations.js"></script>
 <script src="/assets/style-store.js"></script>
 <script src="/assets/style-forms.js"></script>
@@ -945,6 +946,8 @@ textarea.fi{resize:vertical;min-height:64px}
 @media(max-width:768px){.col-ss-header{padding:16px 16px 8px}.col-ss-header:first-child{padding-top:4px}}
 .tag-format-controls{display:flex;gap:4px;flex-wrap:wrap;margin:5px 0}
 #col-page-nav[hidden]{display:none}
+#disc-compare-preference{border:0;padding:4px 0 12px;color:var(--t-2);font-size:12px}
+#disc-compare-preference legend{font-weight:600;margin-bottom:4px}
 #tag-picker{max-height:10rem;overflow:auto;align-content:flex-start}
 #tag-picker .tp[hidden]{display:none}
 #tp-scope{color:var(--t-3);font-size:11px;margin-top:4px}
@@ -1292,6 +1295,9 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <button class="btn btn-ghost btn-sm" id="disc-seed-clear" onclick="clearDiscoverySeed()" disabled>Clear starting entry</button>
       </div>
       <div class="disc-content" id="disc-content">
+        <details id="disc-request-timing" class="journal-request-status" hidden>
+          <summary>Latest media request timing</summary><p></p>
+        </details>
         <details class="disc-method">
           <summary>How picks are matched</summary>
           <p>For You, Hidden Gems and New releases look at a sample of works you rated 7/10 or higher across the relevant formats. More like this uses the entry you choose. Tags on those entries help identify specific qualities to look for.</p>
@@ -2197,6 +2203,7 @@ function handleAuthChange(event, session){
     _catalogueOffset = {all:0, fragrances:0, style:0};
     document.getElementById('disc-style-picks').replaceChildren();
     _discCompare = null;
+    document.getElementById('disc-request-timing').hidden = true;
     document.getElementById('disc-compare-body').replaceChildren();
     document.getElementById('disc-seed-query').value = '';
     document.getElementById('disc-seed-entry').replaceChildren();
@@ -3827,7 +3834,17 @@ async function fetchDiscovery(userId, payload){
   });
   var data = await response.json();
   if(!response.ok) throw new Error(data.error || 'Could not load recommendations.');
-  return data.recommendations;
+  if(payload.strategy === 'grounded' && currentUser?.id === userId){
+    var header = response.headers.get('Server-Timing');
+    var diagnostics = document.getElementById('disc-request-timing');
+    var breakdown = (header || '').match(/(?:history|model|verification);dur=\d+(?:\.\d+)?/g);
+    diagnostics.hidden = !breakdown?.length;
+    if(breakdown?.length) diagnostics.querySelector('p').textContent = breakdown.map(function(part){
+      var [phase,ms] = part.split(';dur=');
+      return ({history:'History',model:'Model',verification:'Catalogue check'})[phase] + ' ' + (Number(ms)/1000).toFixed(2) + ' s';
+    }).join(' · ');
+  }
+  return payload.strategy === 'compare-low-ratings' ? data.comparison : data.recommendations;
 }
 
 async function loadDiscovery(force){
@@ -3883,77 +3900,6 @@ async function loadDiscovery(force){
     view.loading = false;
     if(_activeDiscoveryView === view) refresh.disabled = false;
   }
-}
-
-async function compareDiscovery(){
-  if(!currentUser || _discCompare?.pending) return;
-  var body = document.getElementById('disc-compare-body');
-  openModal('disc-compare');
-  if(_discCompare?.lists) return;
-  if(_allEntries.length < 3){
-    body.textContent = 'Log at least three entries to compare the original and updated recommenders.';
-    return;
-  }
-  var userId = currentUser.id;
-  var run = {pending:true};
-  _discCompare = run;
-  body.textContent = 'Building two anonymous sets from your collection…';
-  try {
-    await refreshFingerprint();
-    if(currentUser?.id !== userId || _discCompare !== run) return;
-    var titles = _allEntries.map(function(entry){return entry.title;}).concat(_wlItems.map(function(entry){return entry.title;}));
-    var outcomes = await Promise.all([
-      fetchDiscovery(userId, {strategy:'baseline', tab:'for-you', fingerprint:_fp, entryTitles:titles.slice(0,100)}),
-      fetchDiscovery(userId, {strategy:'grounded', tab:'for-you'})
-    ]);
-    if(currentUser?.id !== userId || _discCompare !== run) return;
-    var count = Math.min(5, outcomes[0].length, outcomes[1].length);
-    run.lists = [
-      {method:'Original', picks:outcomes[0].slice(0,count)},
-      {method:'Updated', picks:outcomes[1].slice(0,count)}
-    ];
-    if(crypto.getRandomValues(new Uint8Array(1))[0] % 2) run.lists.reverse();
-    renderDiscoveryComparison(run.lists, body);
-  } catch(e) {
-    if(_discCompare === run) body.textContent = e.message;
-  } finally {
-    run.pending = false;
-  }
-}
-
-function renderDiscoveryComparison(lists, body){
-  var checks = ['Would try it', 'Already know it', 'I can see why it fits'];
-  body.innerHTML = '<p>Mark any statements that apply to each pick. Reveal the methods when you finish.</p>'
-    + '<div class="disc-compare-grid">' + lists.map(function(list, index){
-      return '<section data-compare-list="' + index + '"><h3>Set ' + ['A','B'][index] + '</h3>'
-        + list.picks.map(function(pick){
-          return '<div class="disc-compare-item"><strong>' + escHtml(pick.title) + '</strong>'
-            + '<div>' + escHtml(FMT_LABEL[pick.format] || pick.format) + '</div>'
-            + '<p>' + escHtml((pick.reasons || [])[0]) + '</p>'
-            + checks.map(function(label, check){
-              return '<label><input type="checkbox" data-compare-metric="' + check + '"> ' + label + '</label>';
-            }).join('') + '</div>';
-        }).join('') + '</section>';
-    }).join('') + '</div>'
-    + '<button class="btn btn-p btn-sm" onclick="revealDiscoveryComparison(this)">Reveal results</button>'
-    + '<div id="disc-compare-summary" role="status"></div>';
-}
-
-function revealDiscoveryComparison(button){
-  if(!_discCompare?.lists) return;
-  var checks = ['would try', 'already known', 'clear reason'];
-  document.getElementById('disc-compare-summary').innerHTML = _discCompare.lists.map(function(list, index){
-    var panel = document.querySelector('[data-compare-list="' + index + '"]');
-    var heading = 'Set ' + ['A','B'][index] + ' · ' + list.method;
-    panel.querySelector('h3').textContent = heading;
-    var summary = checks.map(function(label, metric){
-      return panel.querySelectorAll('[data-compare-metric="' + metric + '"]:checked').length + '/' + list.picks.length + ' ' + label;
-    }).join(' · ');
-    return '<p>' + heading + ' · ' + summary + '</p>';
-  }).join('');
-  document.querySelectorAll('[data-compare-metric]').forEach(function(input){input.disabled = true;});
-  button.textContent = 'Compare again';
-  button.onclick = function(){_discCompare = null; compareDiscovery();};
 }
 
 function _filterDisc(recs){

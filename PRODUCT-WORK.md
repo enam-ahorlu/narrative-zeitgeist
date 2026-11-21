@@ -36,5 +36,16 @@ Queue reorders validate current membership before writing. Existing Watchlist
 items without a manual position follow explicitly ordered items.
 
 Run migration 008 in the staging project before publishing the frontend and
-Discovery API, then verify the hosted paths. A quality test over real feedback
-is still needed to measure the effect of the low-rating signal.
+Discovery API, then verify the hosted paths. Use **Discover → Compare picks → Test the low-rating signal** to check
+whether the signal improves your picks. Eligibility requires a low rating at
+4/10 or below and a favorite at 7/10 or above in the same format. Both runs
+share the same account snapshot, favorite anchors, model and catalogue
+verification. Shared picks are dropped and each format contributes the same
+number of picks to both sets. Check which items you'd try, which you already
+know and whether each reason fits. Choose a set before revealing the methods.
+Treat each small batch as one observation. Repeated feedback is needed to
+judge the effect. An ineligible library uses no provider requests.
+
+For a live timing sample, open **Latest media request timing** on Discover
+after a fresh media batch. This records the history, model, and catalogue
+verification phases from the server response.
