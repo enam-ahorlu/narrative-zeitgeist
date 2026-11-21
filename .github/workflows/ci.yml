@@ -1,5 +1,3 @@
-# Copy this file to .github/workflows/ci.yml. It lives here because Claude's file
-# access cannot write inside .github. Runs lint, unit tests and the browser suite.
 name: CI
 on:
   push:
