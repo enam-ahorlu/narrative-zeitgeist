@@ -269,6 +269,8 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .b-book{background:var(--c-book-bg);color:var(--c-book)}
 .b-match{background:var(--c-match-bg);color:var(--c-match)}
 .b-music{background:var(--c-music-bg);color:var(--c-music)}
+.b-fragrance{background:var(--p-ghost);color:var(--p-rich)}
+.b-wardrobe{background:var(--n-border);color:var(--t-2)}
 .rating{display:inline-flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:13px;font-weight:500}
 .rd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .rd-hi{background:#4A9A7A}.rd-mid{background:#C4963A}.rd-lo{background:#B05252}
@@ -933,11 +935,6 @@ textarea.fi{resize:vertical;min-height:64px}
   .style-stat{padding:8px 12px}
 }
 /* ── Collections: scent/style mode ── */
-#s-collection.col-ss-mode .tbl-wrap,
-#s-collection.col-ss-mode #cg-grid,
-#s-collection.col-ss-mode #col-pagination{display:none!important}
-#col-ss-section{padding-bottom:24px;border-top:1px solid var(--n-border)}
-#s-collection.col-ss-mode #col-ss-section{border-top:0}
 /* One scroll area: the list, cards and scent/style items scroll together instead of splitting the screen */
 .col-scroll{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column}
 .col-scroll>.tbl-wrap,.col-scroll>.cg-grid{flex:none;overflow-y:visible;overflow-x:auto}
@@ -1266,7 +1263,6 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <div class="cg-grid" id="cg-grid"></div>
       <!-- Scent & Style items — shown when Fragrances/Wardrobe pill active, or appended in All mode -->
       <div class="journal-request-status" id="collection-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadCollectionStyle()" hidden>Retry</button></div>
-      <div id="col-ss-section" style="display:none"></div>
       </div>
       <!-- C4: Pagination bar -->
       <div class="col-pagination" id="col-pagination">
@@ -4250,7 +4246,7 @@ async function loadCollectionStyle(){
   var loaded = await journalData.run('collection-style',function(){return store.load();},stillCurrent,{
     loading:'Loading scent and wardrobe items…',error:'Could not load scent and wardrobe items.'
   });
-  if(loaded && stillCurrent()) _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
+  if(loaded && stillCurrent()) renderCollectionPage();
 }
 
 async function loadWatchlistStyle(){
@@ -4263,7 +4259,7 @@ async function loadWatchlistStyle(){
 
 function refreshStyleViews(){
   if(document.getElementById('s-watchlist').classList.contains('active')) renderWatchlist();
-  _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
+  if(document.getElementById('s-collection').classList.contains('active')) renderCollectionPage();
   if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
   refreshStyleDiscovery();
 }

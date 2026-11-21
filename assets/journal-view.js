@@ -5,7 +5,9 @@ const journalView = (() => {
     show: { label:'Show', plural:'Shows', search:'show', badge:'b-show' },
     book: { label:'Book', plural:'Books', search:'book', badge:'b-book' },
     sports_match: { label:'Match', plural:'Matches', search:'match', badge:'b-match' },
-    music: { label:'Music', plural:'Music', search:'music', badge:'b-music' }
+    music: { label:'Music', plural:'Music', search:'music', badge:'b-music' },
+    fragrance: { label:'Fragrance', plural:'Fragrances', search:'fragrance', badge:'b-fragrance' },
+    wardrobe: { label:'Wardrobe', plural:'Wardrobe', search:'wardrobe', badge:'b-wardrobe' }
   });
 
   const aliases = new Map(Object.entries(formats).flatMap(([key, format]) =>

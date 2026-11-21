@@ -11,6 +11,50 @@ function catalogueContext(item){
   return label ? '<span class="catalogue-context"> '+escHtml(label)+'</span>' : '';
 }
 
+/* Fragrances and wardrobe items appear in the collection as ordinary rows. This adapts a Style & Scent record to the
+   entry shape the list, filters, sorting and paging already understand; clicking it opens its own form. */
+function styleAsEntry(kind, item){
+  var fragrance = kind === 'fragrance';
+  var rating = Number(item.rating);
+  var status = String(item.status || '');
+  var tags = (item.tags || []).slice();
+  if(status && tags.map(String).map(function(t){return t.toLowerCase();}).indexOf(status.toLowerCase()) < 0) tags.unshift(status.toLowerCase());
+  var created = item.created ? new Date(item.created).toISOString() : '';
+  return {
+    id:'style:'+kind+':'+item.id, _style:{kind:kind, id:item.id}, format:kind,
+    title:item.name || (fragrance ? 'Fragrance' : 'Wardrobe item'),
+    rating:rating > 0 ? rating : null, tags:tags, created_at:created, date_completed:null,
+    poster_url:safeStylePhoto(item.photoUrl || '') || styleCataloguePhoto(kind, item) || '',
+    catalogue:null, _maker:fragrance ? item.house : item.brand
+  };
+}
+
+/* Only items marked as owned belong in the collection; wishlisted ones live in the watchlist. */
+function isOwnedStyle(item){ return String(item.status || '').toLowerCase() === 'owned'; }
+
+function collectionSource(){
+  var rows = _styleStore && _styleStore.ready
+    ? _loadFrags().filter(isOwnedStyle).map(function(f){return styleAsEntry('fragrance', f);}).concat(_loadWard().filter(isOwnedStyle).map(function(w){return styleAsEntry('wardrobe', w);}))
+    : [];
+  if(!rows.length) return _allEntries;
+  var key = function(e){ return String(e.date_completed || e.created_at || ''); };
+  return _allEntries.concat(rows).map(function(e, i){ return {e:e, i:i}; })
+    .sort(function(a, b){ return key(b.e).localeCompare(key(a.e)) || a.i - b.i; })
+    .map(function(x){ return x.e; });
+}
+
+function openCollectionEntry(entry){
+  if(!entry._style) return openDetailModal(entry);
+  if(entry._style.kind === 'fragrance') openFragranceModal(entry._style.id); else openWardrobeModal(entry._style.id);
+}
+
+function ratingCell(e){
+  var rVal = parseFloat(e.rating);
+  if(!(rVal > 0)) return '<span style="color:var(--t-3)">—</span>';
+  var rdCls = rVal >= 9 ? 'rd-hi' : rVal >= 7.5 ? 'rd-mid' : 'rd-lo';
+  return '<div class="rating"><div class="rd '+rdCls+'"></div>'+rVal+'</div>';
+}
+
 function renderEntriesTable(entries){
   var tbody = document.querySelector('#s-collection .tbl-wrap tbody');
   if(!tbody) return;
@@ -28,11 +72,11 @@ function renderEntriesTable(entries){
     var tr = document.createElement('tr');
     tr.className = 'anim-fadeup' + delay;
     tr.dataset.id = e.id;
-    (function(entry){ tr.onclick = function(){ openDetailModal(entry); }; })(e);
+    (function(entry){ tr.onclick = function(){ openCollectionEntry(entry); }; })(e);
     tr.innerHTML =
-      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+catalogueContext(e)+'</td>'+
+      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+(e._maker?'<span class="catalogue-context"> '+escHtml(e._maker)+'</span>':catalogueContext(e))+'</td>'+
       '<td><span class="badge '+badge+'">'+fmt+'</span></td>'+
-      '<td><div class="rating"><div class="rd '+rdCls+'"></div>'+rVal+'</div></td>'+
+      '<td>'+ratingCell(e)+'</td>'+
       '<td style="color:var(--t-3);font-size:12px">'+_entryDateStr(e)+'</td>'+
       '<td class="col-tags"><div class="tags-cell">'+tagHtml+'</div></td>'+
       '<td style="text-align:right;color:var(--t-3)">›</td>';
@@ -54,13 +98,13 @@ function renderEntriesGrid(entries){
     var card = document.createElement('div');
     card.className = 'cg-card anim-fadeup';
     card.dataset.id = e.id;
-    (function(entry){ card.onclick = function(){ openDetailModal(entry); }; })(e);
+    (function(entry){ card.onclick = function(){ openCollectionEntry(entry); }; })(e);
     card.innerHTML =
       (e.poster_url?'<img class="cg-poster" src="'+escHtml(e.poster_url)+'" alt="">':"<div class='cg-card-strip' style='background:"+grad+"'></div>")+
       '<span class="badge '+badge+'">'+fmt+'</span>'+
-      '<div class="cg-title">'+escHtml(e.title)+catalogueContext(e)+'</div>'+
+      '<div class="cg-title">'+escHtml(e.title)+(e._maker?'<span class="catalogue-context"> '+escHtml(e._maker)+'</span>':catalogueContext(e))+'</div>'+
       '<div class="cg-tags">'+cardTagHtml+'</div>'+
-      '<div class="cg-bottom"><div class="cg-rating">'+rVal+'</div><div class="cg-date">'+_entryDateStr(e)+'</div></div>';
+      '<div class="cg-bottom"><div class="cg-rating">'+(rVal > 0 ? rVal : '—')+'</div><div class="cg-date">'+_entryDateStr(e)+'</div></div>';
     grid.appendChild(card);
   });
 }
@@ -283,14 +327,13 @@ function applyCollectionFilter(){
 }
 
 function renderCollectionPage(){
-  var view = journalView.collectionPage(_allEntries,colFilter,_colSortVal,_collectionPage,COLLECTION_PAGE_SIZE);
+  var view = journalView.collectionPage(collectionSource(),colFilter,_colSortVal,_collectionPage,COLLECTION_PAGE_SIZE);
   _collectionPage = view.page;
   renderEntriesTable(collectionView === 'table' ? view.visible : []);
   renderEntriesGrid(collectionView === 'grid' ? view.visible : []);
   updateColPagination(view.count,view.start,view.visible.length,view.pages);
   updateColChips();
   updateColFilterBtn();
-  _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
 }
 
 function colSort(value){
@@ -330,7 +373,6 @@ function setColPill(el){
   el.classList.add('active');
   colFilter.format=el.textContent.trim();
   var _scr=document.getElementById('s-collection');
-  if(_scr) _scr.classList.toggle('col-ss-mode',colFilter.format==='Fragrances'||colFilter.format==='Wardrobe');
   applyCollectionFilter();
 }
 function toggleTagFilter(el,tag){
@@ -363,43 +405,6 @@ function clearColFilters(){
   document.querySelector('#s-collection .pills .pill').classList.add('active');
   var _ss=document.getElementById('s-collection');if(_ss)_ss.classList.remove('col-ss-mode');
   applyCollectionFilter();
-}
-
-/* ── Render Fragrances/Wardrobe cards inside Collections tab ── */
-function _renderColSS(q,fmt){
-  var section=document.getElementById('col-ss-section');
-  if(!section)return;
-  if(!_styleStore?.ready){
-    section.style.display='none';
-    section.replaceChildren();
-    return;
-  }
-  if(fmt==='Fragrances'){
-    section.style.display='';
-    var items=_loadFrags();
-    if(q)items=items.filter(function(f){return((f.name||'')+' '+(f.house||'')+' '+(f.character||'')+' '+(f.tags||[]).join(' ')).toLowerCase().indexOf(q)>=0;});
-    section.innerHTML=items.length?'<div class="frag-grid" style="padding:4px 30px 0">'+items.map(_fragCardHTML).join('')+'</div>':'<div style="padding:48px 30px;text-align:center;font-size:13px;color:var(--t-3)">No fragrances'+(q?' matching your search':' yet. Add your first scent in the Style &amp; Scent section.')+'</div>';
-  }else if(fmt==='Wardrobe'){
-    section.style.display='';
-    var items=_loadWard();
-    if(q)items=items.filter(function(w){return((w.name||'')+' '+(w.brand||'')+' '+(w.category||'')+' '+(w.tags||[]).join(' ')).toLowerCase().indexOf(q)>=0;});
-    section.innerHTML=items.length?'<div class="ward-grid" style="padding:4px 30px 0">'+items.map(_wardCardHTML).join('')+'</div>':'<div style="padding:48px 30px;text-align:center;font-size:13px;color:var(--t-3)">No wardrobe items'+(q?' matching your search':' yet. Add your first piece in the Style &amp; Scent section.')+'</div>';
-  }else if(fmt==='All'){
-    var frags=_loadFrags();
-    var ward=_loadWard();
-    if(q){
-      frags=frags.filter(function(f){return((f.name||'')+' '+(f.house||'')).toLowerCase().indexOf(q)>=0;});
-      ward=ward.filter(function(w){return((w.name||'')+' '+(w.brand||'')+' '+(w.category||'')).toLowerCase().indexOf(q)>=0;});
-    }
-    if(!frags.length&&!ward.length){section.style.display='none';section.innerHTML='';return;}
-    section.style.display='';
-    var html='';
-    if(frags.length)html+='<div class="col-ss-header">✦ Fragrances</div><div class="frag-grid" style="padding:0 30px">'+frags.map(_fragCardHTML).join('')+'</div>';
-    if(ward.length)html+='<div class="col-ss-header"'+(frags.length?' style="margin-top:8px"':'')+'>✦ Wardrobe</div><div class="ward-grid" style="padding:0 30px">'+ward.map(_wardCardHTML).join('')+'</div>';
-    section.innerHTML=html;
-  }else{
-    section.style.display='none';section.innerHTML='';
-  }
 }
 
 /* ── Filter panel toggle ── */

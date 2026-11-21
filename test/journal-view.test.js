@@ -6,7 +6,8 @@ const { presets, search } = require('../catalogues/tags');
 test('journal uses the same format labels for search, entry forms, and browsing', () => {
   for (const label of ['Match', 'Matches', 'match', 'sports_match']) assert.equal(formatKey(label), 'sports_match');
   assert.equal(formatKey('All'), null);
-  assert.equal(formatKey('Fragrances'), null);
+  assert.equal(formatKey('Fragrances'), 'fragrance');
+  assert.equal(formatKey('Wardrobe'), 'wardrobe');
 });
 
 test('collection filters complete data before sorting, clamping and paginating', () => {

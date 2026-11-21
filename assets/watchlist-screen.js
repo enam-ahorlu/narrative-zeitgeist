@@ -46,6 +46,7 @@ async function wlStyleOwn(btn){
   if(!item) return;
   var changed = await changeStyleItem(kind, Object.assign({}, item, {status: kind === 'fragrance' ? 'owned' : 'Owned'}), false);
   if(changed){ showToast((item.name || 'Item') + ' moved to your collection as owned', '✓'); renderWatchlist(); }
+  else showToast('That change was not saved. Try again in a moment.', '⚠');
 }
 
 function wlStyleOpen(btn){
