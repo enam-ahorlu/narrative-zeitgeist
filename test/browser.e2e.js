@@ -491,10 +491,24 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(discoveryRequests, 3);
   watchlist.push({id:randomUUID(),user_id:users[0].id,title:'Queued film',format:'film',priority:'up_next',saved_at:'2026-09-01',added_to_collection:false});
   await visit('collection');
-  await visit('watchlist');
+  // Return the pre-edit list after a priority change made from the cached screen.
+  const oldWatchlist = structuredClone(watchlist);
+  const resumeRead = Promise.withResolvers();
+  const listQuery = url => url.pathname === '/rest/v1/watchlist' && url.searchParams.get('select') === '*';
+  await page.route(listQuery, async route => {
+    await resumeRead.promise;
+    await route.fulfill({json:oldWatchlist});
+  }, {times:1});
+  const pendingRead = page.waitForRequest(request => listQuery(new URL(request.url())));
   const priority = page.getByRole('combobox',{name:'Priority for Synthetic discovery book'});
-  await priority.selectOption('up_next');
-  await page.getByText('Moved to Up Next',{exact:false}).waitFor();
+  try {
+    await visit('watchlist');
+    await pendingRead;
+    await priority.selectOption('up_next');
+    await page.getByText('Moved to Up Next',{exact:false}).waitFor();
+  } finally {
+    resumeRead.resolve();
+  }
   await page.locator('.wl-stab').getByText('Up Next',{exact:true}).click();
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
   assert.equal(watchlist[0].priority,'up_next');
