@@ -3764,11 +3764,13 @@ var _wlItems       = [];    /* cached watchlist rows */
 var _wlTab         = 'all';
 var _wlMoveId      = null;  /* watchlist id being moved to collection */
 var _watchlistLoadVersion = 0;
+var _pendingWatchlistVersion = null;
 
 async function loadWatchlist(){
   var owner = currentUser?.id;
   if(!owner) return;
   var version = ++_watchlistLoadVersion;
+  _pendingWatchlistVersion = version;
   var stillCurrent = function(){return currentUser?.id === owner && _watchlistLoadVersion === version;};
   var items = await journalData.run('watchlist',function(){
     return journalData.readPages(function(from,to){
@@ -3776,10 +3778,16 @@ async function loadWatchlist(){
         .order('saved_at',{ascending:false}).order('id').range(from,to);
     },stillCurrent);
   },stillCurrent,{loading:'Loading Watchlist…',error:'Could not load your Watchlist.'});
+  if(_pendingWatchlistVersion === version) _pendingWatchlistVersion = null;
   if(!items || !stillCurrent()) return;
   _wlItems = items;
   buildCmdIndex();
   renderWatchlist();
+}
+
+function refreshOverlappingWatchlistRead(){
+  // A pre-write snapshot may omit other rows or contain the old priority.
+  if(_pendingWatchlistVersion === _watchlistLoadVersion) loadWatchlist();
 }
 
 async function setWatchlistPriority(select){
@@ -3794,8 +3802,7 @@ async function setWatchlistPriority(select){
       .eq('id',id).eq('user_id',owner).select('id').single();
     if(currentUser?.id !== owner) return;
     if(result.error) throw result.error;
-    _watchlistLoadVersion++;
-    journalData.status('watchlist','');
+    refreshOverlappingWatchlistRead();
     var savedItem = _wlItems.find(function(row){return row.id === id;});
     if(savedItem){savedItem.priority = priority;savedItem.queue_position = null;}
     renderWatchlist();
@@ -3824,8 +3831,7 @@ async function moveUpNext(button,offset){
     var result = await SUPA.rpc('save_up_next_order',{p_ids:ids});
     if(currentUser?.id !== owner) return;
     if(result.error) throw result.error;
-    ++_watchlistLoadVersion;
-    journalData.status('watchlist','');
+    refreshOverlappingWatchlistRead();
     ids.forEach(function(id,index){
       var item = _wlItems.find(function(row){return row.id === id;});
       if(item && item.priority === 'up_next') item.queue_position = index+1;
@@ -3846,10 +3852,14 @@ async function confirmWlRemove(btn){
   var item  = btn.closest('.wl-item');
   var id    = item.dataset.wlId;
   var title = (item.querySelector('.wl-title')||{}).textContent || 'Item';
+  var owner = currentUser?.id;
+  if(!owner) return;
   if(id){
-    var res = await SUPA.from('watchlist').delete().eq('id', id);
+    var res = await SUPA.from('watchlist').delete().eq('id', id).eq('user_id',owner);
+    if(currentUser?.id !== owner) return;
     if(res.error){ showToast('Could not remove: ' + res.error.message); return; }
   }
+  refreshOverlappingWatchlistRead();
   _wlItems = _wlItems.filter(function(it){ return it.id !== id; });
   _animateRemove(item, function(){ renderWatchlist(); });
   showToast(title + ' removed from Watchlist');
@@ -3901,8 +3911,7 @@ async function passWlItem(btn){
 }
 
 function removeWatchlistRow(id){
-  _watchlistLoadVersion++;
-  journalData.status('watchlist','');
+  refreshOverlappingWatchlistRead();
   _wlItems = _wlItems.filter(function(item){return item.id !== id;});
   buildCmdIndex();
   renderWatchlist();
