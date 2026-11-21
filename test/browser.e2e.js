@@ -786,8 +786,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await verifyPhoto(page,combined.getByRole('img',{name:'Dior Sauvage Eau de Toilette packaging'}));
   const sauvageCard = combined.getByRole('article').filter({hasText:'Sauvage EDT'});
   assert.match(await sauvageCard.getByRole('link',{name:'Product page'}).getAttribute('href'),/^https:\/\/www\.dior\.com\//);
-  await verifyPhoto(page,combined.getByRole('img',{name:'Eau Sauvage bottle'}));
+  await verifyPhoto(page,combined.getByRole('img',{name:'Chanel Allure Homme Eau de Toilette bottle and box'}));
   await verifyPhoto(page,combined.getByRole('img',{name:'1461 Made in England Oxblood Shoes',exact:true}));
+  /* Move the pick window so Colonia is on screen (cold-start picks follow catalogue order, photographed first) */
+  await page.evaluate(() => { _catalogueOffset.all = 2; return renderCombinedDiscovery(); });
+  await combined.locator('article').filter({hasText:'Colonia'}).waitFor();
   const coloniaCard = combined.locator('article').filter({hasText:'Colonia'});
   await coloniaCard.getByRole('button',{name:'Details'}).click();
   assert.equal(await page.locator('#frag-name').inputValue(),'Colonia');

@@ -534,6 +534,34 @@ const FRAGRANCE_PHOTOS = {
     "source": "https://commons.wikimedia.org/wiki/File:Acqua_di_Parma_Colonia.jpg",
     "credit": "Freud, CC BY-SA 3.0",
     "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "allure homme|chanel": {
+    "url": "/catalogues/photos/allure-homme.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Allure_Homme.jpg",
+    "credit": "bisonlux, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0",
+    "alt": "Chanel Allure Homme Eau de Toilette bottle and box"
+  },
+  "fahrenheit|dior": {
+    "url": "/catalogues/photos/fahrenheit-dior.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:DIor_Fahreneit.png",
+    "credit": "Bruce The Deus, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0",
+    "alt": "Dior Fahrenheit Eau de Toilette bottle and box"
+  },
+  "boss bottled|hugo boss": {
+    "url": "/catalogues/photos/boss-bottled.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Boss_Bottled.jpg",
+    "credit": "CoffeeAddict, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0",
+    "alt": "Hugo Boss Boss Bottled Eau de Toilette bottle and box"
+  },
+  "obsession for men|calvin klein": {
+    "url": "/catalogues/photos/obsession-for-men.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Calvinkleinobsession1.jpg",
+    "credit": "Pam Pritchard (uploaded by Munchkinguy), CC BY-SA 2.5",
+    "license": "https://creativecommons.org/licenses/by-sa/2.5",
+    "alt": "Calvin Klein Obsession for Men bottle"
   }
 };
 
