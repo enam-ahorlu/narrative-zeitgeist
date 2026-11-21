@@ -7,14 +7,63 @@ function wlSort(value){
   renderWatchlist();
 }
 
+/* Wishlisted fragrances and wardrobe items live in the Style & Scent store. The watchlist shows them in their own
+   sections (read from the same records, never copied), on the All tab only since they have no Up Next or Maybe priority. */
+function _wlStyleWishes(){
+  var wished = function(item){ return String(item.status || '').toLowerCase() === 'wishlisted'; };
+  return {frags:_loadFrags().filter(wished), wards:_loadWard().filter(wished)};
+}
+
+function _wlStyleRow(kind, item){
+  var fragrance = kind === 'fragrance';
+  var name = item.name || (fragrance ? 'Fragrance' : 'Wardrobe item');
+  var maker = fragrance ? item.house : item.brand;
+  var photo = safeStylePhoto(item.photoUrl || '') || styleCataloguePhoto(kind, item) || '';
+  var initials = name.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
+  var thumb = photo ? '<img src="'+escHtml(photo)+'" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain" onerror="this.remove()">'
+    : '<span style="font-size:14px;color:var(--t-3);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>';
+  var detail = fragrance ? [item.character, item.season].filter(Boolean).join(' · ') : [item.category, item.season].filter(Boolean).join(' · ');
+  return '<div class="wl-item anim-fadeup" data-wl-style="'+kind+'" data-style-id="'+escHtml(item.id)+'">'
+    + '<div class="wl-thumb" style="background:var(--p-ghost)">'+thumb+'</div>'
+    + '<div class="wl-info"><div class="wl-title">'+escHtml(name)+'</div>'
+    + '<div class="wl-meta">'+escHtml([maker, detail].filter(Boolean).join(' · ') || (fragrance ? 'Fragrance' : 'Wardrobe'))+'</div></div>'
+    + '<div class="wl-actions">'
+    + '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlStyleOwn(this)">Mark as owned</button>'
+    + '<button class="btn btn-ghost btn-sm" onclick="wlStyleOpen(this)">Open</button></div></div>';
+}
+
+function _wlStyleHTML(wishes, hasAbove){
+  var html = '';
+  if(wishes.frags.length) html += '<div class="wl-section"'+(hasAbove ? ' style="margin-top:18px"' : '')+'>FRAGRANCES</div>' + wishes.frags.map(function(f){return _wlStyleRow('fragrance', f);}).join('');
+  if(wishes.wards.length) html += '<div class="wl-section"'+(hasAbove || wishes.frags.length ? ' style="margin-top:18px"' : '')+'>WARDROBE</div>' + wishes.wards.map(function(w){return _wlStyleRow('wardrobe', w);}).join('');
+  return html;
+}
+
+async function wlStyleOwn(btn){
+  var row = btn.closest('[data-wl-style]');
+  var kind = row.dataset.wlStyle, id = row.dataset.styleId;
+  var item = (kind === 'fragrance' ? _loadFrags() : _loadWard()).find(function(x){ return x.id === id; });
+  if(!item) return;
+  var changed = await changeStyleItem(kind, Object.assign({}, item, {status: kind === 'fragrance' ? 'owned' : 'Owned'}), false);
+  if(changed){ showToast((item.name || 'Item') + ' moved to your collection as owned', '✓'); renderWatchlist(); }
+}
+
+function wlStyleOpen(btn){
+  var row = btn.closest('[data-wl-style]');
+  if(row.dataset.wlStyle === 'fragrance') openFragranceModal(row.dataset.styleId); else openWardrobeModal(row.dataset.styleId);
+}
+
 function renderWatchlist(){
   var items = journalView.watchlistView(_wlItems,_wlTab,_watchlistSort);
+  var wishes = _wlTab === 'all' ? _wlStyleWishes() : {frags:[], wards:[]};
+  var styleCount = wishes.frags.length + wishes.wards.length;
 
   var listEl  = document.getElementById('wl-list');
   var emptyEl = document.getElementById('wl-empty');
   var phSub   = document.getElementById('wl-ph-sub');
   var badge   = document.getElementById('wl-count-badge');
-  var total   = _wlItems.length;
+  var allWishes = _wlStyleWishes();
+  var total   = _wlItems.length + allWishes.frags.length + allWishes.wards.length;
 
   if(phSub)  phSub.textContent  = total + (total === 1 ? ' saved item' : ' saved items');
   if(badge)  badge.textContent  = total > 0 ? total : '';
@@ -26,6 +75,11 @@ function renderWatchlist(){
 
   if(!listEl) return;
 
+  if(items.length === 0 && styleCount > 0){
+    if(emptyEl) emptyEl.style.display = 'none';
+    listEl.innerHTML = _wlStyleHTML(wishes, false);
+    return;
+  }
   if(items.length === 0){
     if(_wlItems.length === 0){
       /* Watchlist is genuinely empty — show the full onboarding empty state */
@@ -94,7 +148,7 @@ function renderWatchlist(){
         + '</div>';
     });
   });
-  listEl.innerHTML = html;
+  listEl.innerHTML = html + _wlStyleHTML(wishes, true);
 }
 
 function _timeAgo(iso){

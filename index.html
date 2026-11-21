@@ -2406,7 +2406,7 @@ function navigate(scr, opts){
   var t=document.getElementById('s-'+scr);
   if(t){t.classList.add('active');}
   // Per-screen data loading
-  if(scr==='watchlist'){loadWatchlist();}
+  if(scr==='watchlist'){loadWatchlist();loadWatchlistStyle();}
   if(scr==='collection') loadCollectionStyle();
   if(scr==='discover'){openDiscoverScreen();}
   if(scr==='insights'){
@@ -4253,7 +4253,16 @@ async function loadCollectionStyle(){
   if(loaded && stillCurrent()) _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
 }
 
+async function loadWatchlistStyle(){
+  var store = currentStyleStore();
+  if(!store) return;
+  try {
+    if(await store.load() && isCurrentStyleStore(store)) renderWatchlist();
+  } catch { /* the watchlist still shows saved titles; wishlisted scents and wardrobe appear once they load */ }
+}
+
 function refreshStyleViews(){
+  if(document.getElementById('s-watchlist').classList.contains('active')) renderWatchlist();
   _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
   if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
   refreshStyleDiscovery();

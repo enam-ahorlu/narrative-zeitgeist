@@ -728,6 +728,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.getByText('Colonia saved as wishlisted',{exact:false}).waitFor();
   await combined.locator('[data-kind="wardrobe"] [data-status="Owned"]').first().click();
   await page.getByText('saved as owned',{exact:false}).waitFor();
+  await visit('watchlist');
+  await page.locator('#wl-list [data-wl-style="fragrance"]').getByText('Colonia',{exact:false}).waitFor();
+  await page.locator('#wl-list').getByText('FRAGRANCES',{exact:true}).waitFor();
+  assert.equal(await page.locator('#wl-list [data-wl-style] input[type="checkbox"]').count(), 0);
   await visit('collection');
   await page.locator('#s-collection .pills .pill',{hasText:'All'}).click();
   await page.locator('#col-ss-section').waitFor({state:'visible'});
