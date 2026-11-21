@@ -97,3 +97,28 @@ test('legacy browser import reads the source data and comparison value together'
   assert.deepEqual(source.items,[{id:'saved',name:'Bottle'}]);
   assert.deepEqual(readLegacyStyle({getItem:()=>'bad json'},'fragrance').items,[]);
 });
+
+test('dismissed picks load once, survive a failed save as not hidden, and stop at sign-out', async () => {
+  const saved = [];
+  let fail = false;
+  const client = {from(table) {
+    assert.equal(table,'style_dismissals');
+    return {
+      select(){return this;},
+      eq(){return Promise.resolve({data:[{kind:'wardrobe',item_key:'old|brand'}]});},
+      upsert(value,options){saved.push({value,options});return Promise.resolve(fail ? {error:{message:'no'}} : {});}
+    };
+  }};
+  const store = createStyleStore(client,'me');
+  assert.equal(await store.loadDismissals(),true);
+  assert.equal(store.isDismissed('wardrobe','old|brand'),true);
+  assert.equal(await store.dismiss('fragrance','a|b','discarded'),true);
+  assert.equal(store.isDismissed('fragrance','a|b'),true);
+  assert.equal(saved[0].value.reason,'discarded');
+  fail = true;
+  assert.equal(await store.dismiss('fragrance','c|d','not_for_me'),false);
+  assert.equal(store.isDismissed('fragrance','c|d'),false);
+  assert.equal(await store.dismiss('book','x|y','discarded'),false);
+  store.dispose();
+  assert.equal(await store.dismiss('fragrance','e|f'),false);
+});

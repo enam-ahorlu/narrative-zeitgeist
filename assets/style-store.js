@@ -11,6 +11,8 @@ function createStyleStore(client, owner, now = Date.now) {
   let items = {fragrance:EMPTY_STYLE_ITEMS,wardrobe:EMPTY_STYLE_ITEMS};
   let reading = null;
   let loaded = false;
+  let dismissed = {fragrance:new Set(),wardrobe:new Set()};
+  let dismissalsLoaded = false;
   let writing = false;
   let disposed = false;
 
@@ -115,8 +117,33 @@ function createStyleStore(client, owner, now = Date.now) {
     });
   }
 
+  /* Dismissed Discover picks. Kept apart from the saved items so a failure here never blocks the rest. */
+  async function loadDismissals() {
+    if (disposed || dismissalsLoaded) return dismissalsLoaded;
+    const response = await client.from('style_dismissals').select('kind,item_key').eq('user_id',owner);
+    if (disposed || response.error) return false;
+    const next = {fragrance:new Set(),wardrobe:new Set()};
+    for (const {kind,item_key} of response.data || []) if (next[kind]) next[kind].add(item_key);
+    dismissed = next;
+    dismissalsLoaded = true;
+    return true;
+  }
+
+  async function dismiss(kind, key, reason) {
+    if (disposed || !dismissed[kind] || !key) return false;
+    const response = await client.from('style_dismissals').upsert(
+      {user_id:owner,kind,item_key:key,reason:reason === 'discarded' ? 'discarded' : 'not_for_me'},
+      {onConflict:'user_id,kind,item_key',ignoreDuplicates:true});
+    if (disposed || response.error) return false;
+    dismissed[kind].add(key);
+    return true;
+  }
+
   return {
     owner,
+    isDismissed(kind, key) { return Boolean(dismissed[kind]?.has(key)); },
+    loadDismissals,
+    dismiss,
     get ready() { return loaded && !disposed; },
     get busy() { return writing; },
     items(kind) { return items[kind]; },

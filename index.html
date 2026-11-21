@@ -2825,6 +2825,8 @@ async function loadCatalogDiscovery(pill){
       loading:'Loading catalogue picks…',error:'Could not load catalogue picks.'
     });
     if(!loaded || !stillCurrent()) return;
+    await store.loadDismissals();
+    if(!stillCurrent()) return;
     if(pill === 'fragrances') loadFragDiscovery();
     else loadStyleDiscovery();
     discSearch(document.getElementById('disc-search-inp').value);
@@ -3579,6 +3581,8 @@ async function renderCombinedDiscovery(){
     loading:'Loading scent and wardrobe picks…',error:'Could not load scent and wardrobe picks.'
   });
   if(!loaded || !stillCurrent()) return;
+  await store.loadDismissals();
+  if(!stillCurrent()) return;
   var scents = stylePickPage('fragrance',_catalogueOffset.all,3).picks;
   var style = stylePickPage('wardrobe',_catalogueOffset.all,3).picks;
   wrap.innerHTML = (scents.length ? combinedCatalogueSection('Fragrance picks','fragrance',scents) : '')
@@ -4204,9 +4208,34 @@ function styleDiscoveryActions(kind,rec){
     + statuses.map(function(status){
       return '<button class="btn btn-g btn-sm" type="button" data-status="'+status[0]+'" onclick="saveDiscoveryStyle(this)" aria-label="'+status[1]+' · '+escHtml(rec.name)+'">'+status[1]+'</button>';
     }).join('')
+    + '<button class="btn btn-ghost btn-sm" type="button" data-reason="discarded" onclick="dismissStylePick(this)" title="Hide this pick without saying you dislike things like it">Discard</button>'
+    + '<button class="btn btn-ghost btn-sm" type="button" data-reason="not_for_me" onclick="dismissStylePick(this)" title="Tell the app this is not your kind of thing">Not for me</button>'
     + '<button class="btn btn-ghost btn-sm" type="button" onclick="'+(scent ? 'addFragFromDiscover(this)' : 'addWardFromDiscover(this)')+'" data-'+(scent ? 'frag' : 'ward')+'="'+data+'">Details</button>'
     + (productPage ? '<a class="btn btn-ghost btn-sm" href="'+escHtml(productPage)+'" target="_blank" rel="noopener noreferrer">Product page</a>' : '')
     + '</div>';
+}
+
+/* Dismiss a scent or style pick. 'discarded' just hides it; 'not_for_me' is the explicit dislike.
+   Neither changes the ranking, which is built only from what is saved. */
+async function dismissStylePick(button){
+  var controls = button.closest('.style-quick-actions');
+  var rec = JSON.parse(controls.dataset.styleRec);
+  var kind = controls.dataset.kind;
+  var scent = kind === 'fragrance';
+  var discard = button.dataset.reason === 'discarded';
+  var store = _styleStore;
+  if(!store) return;
+  var buttons = controls.querySelectorAll('button');
+  buttons.forEach(function(control){control.disabled = true;});
+  var done = await store.dismiss(kind,styleRecommendations.productKey(rec.name,scent ? rec.house : rec.brand),button.dataset.reason);
+  if(!isCurrentStyleStore(store)) return;
+  if(!done){
+    buttons.forEach(function(control){control.disabled = false;});
+    showToast('Could not save this. Try again.', '⚠');
+    return;
+  }
+  showToast(discard ? 'Discarded. Your taste profile is unchanged.' : 'Dismissed from future recommendations.');
+  refreshStyleDiscovery();
 }
 
 async function saveDiscoveryStyle(button){
@@ -4615,6 +4644,9 @@ function styleDiscoveryPool(kind,category){
   var snapshot = kind === 'fragrance' ? _styleModel.scent(_loadFrags()) : _styleModel.wardrobe(_loadWard());
   var picks = snapshot.picks;
   if(category !== 'all') picks = picks.filter(function(pick){return pick.category === category;});
+  picks = picks.filter(function(pick){
+    return !_styleStore?.isDismissed(kind,styleRecommendations.productKey(pick.name,kind === 'fragrance' ? pick.house : pick.brand));
+  });
   return {cold:!snapshot.profile.count,picks:picks};
 }
 

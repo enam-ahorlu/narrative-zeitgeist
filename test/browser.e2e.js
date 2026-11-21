@@ -28,6 +28,7 @@ let failCollectionLoad = true;
 let failStyleLoad = true;
 const watchlist = [];
 const dismissals = [];
+const styleDismissals = [];
 const styleItems = [];
 const resetRecipients = [];
 const stylesCreated = [];
@@ -204,6 +205,11 @@ function createMocks(assets) {
     if (path === '/rest/v1/tags') return send([]);
     if (['/rest/v1/discovery_feedback','/rest/v1/discovery_catalogue_feedback'].includes(path) && method === 'POST') {
       dismissals.push(body);
+      return route.fulfill({ status:201 });
+    }
+    if (path === '/rest/v1/style_dismissals') {
+      if (method === 'GET') return send(styleDismissals.filter(matchesUser));
+      styleDismissals.push(body);
       return route.fulfill({ status:201 });
     }
     if (path === '/rest/v1/watchlist') {
@@ -575,6 +581,25 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#ward-name').fill('A’s Tropical Wool Suit');
   await page.locator('#ward-save-btn').click();
   await page.locator('#ward-grid').getByText('A’s Tropical Wool Suit').waitFor();
+
+  /* Scent and wardrobe picks can be discarded (harmless) or marked not for me, and then stay hidden */
+  await visit('discover');
+  const stylePicks = page.locator('#disc-style-picks');
+  await stylePicks.getByRole('heading',{name:'Fragrance picks'}).waitFor();
+  const firstScent = stylePicks.getByRole('article').first();
+  const scentName = await firstScent.locator('.rc-title').textContent();
+  await firstScent.getByRole('button',{name:'Discard',exact:true}).click();
+  await page.getByText('Discarded. Your taste profile is unchanged.').waitFor();
+  assert.equal(styleDismissals.at(-1).kind,'fragrance');
+  assert.equal(styleDismissals.at(-1).reason,'discarded');
+  assert.ok(styleDismissals.at(-1).item_key.startsWith(scentName.toLowerCase().replace(/[’']/g,'').normalize('NFKD').replace(/\p{M}/gu,'')));
+  await stylePicks.getByRole('article').filter({hasText:scentName}).first().waitFor({state:'detached'});
+  const wardPick = stylePicks.locator('article', {has: page.getByRole('button',{name:'Not for me',exact:true})}).last();
+  await wardPick.getByRole('button',{name:'Not for me',exact:true}).click();
+  await page.getByText('Dismissed from future recommendations.').waitFor();
+  assert.equal(styleDismissals.at(-1).reason,'not_for_me');
+  assert.equal(styleDismissals.length,2);
+  await visit('wardrobe');
 
   const otherDevice = await openContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const phone = await otherDevice.newPage();

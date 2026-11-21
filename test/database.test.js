@@ -50,6 +50,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/009_quota_refund.sql');
   await apply('migrations/010_duplicate_guard.sql');
   await apply('migrations/011_dismissal_reason.sql');
+  await apply('migrations/012_style_dismissals.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -238,16 +239,20 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await db.query("insert into public.discovery_feedback (title,format,reason) values ('Discarded Book','book','discarded')");
     assert.deepEqual((await db.query("select title,reason from public.discovery_feedback where title in ('Dismissed Book','Discarded Book') order by title")).rows.map(row=>row.reason),['discarded','not_for_me']);
     await assert.rejects(db.query("insert into public.discovery_feedback (title,format,reason) values ('Odd','book','hates')"));
+    await db.query("insert into public.style_dismissals (kind,item_key,reason) values ('fragrance','sauvage|dior','discarded')");
+    await assert.rejects(db.query("insert into public.style_dismissals (kind,item_key,reason) values ('fragrance','x|y','hates')"));
+    await assert.rejects(db.query("insert into public.style_dismissals (kind,item_key) values ('book','x|y')"));
     await assert.rejects(db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Unowned' }]), denied);
     await actAs(b);
     assert.equal((await db.query('select * from public.discovery_feedback')).rows.length, 0);
+    assert.equal((await db.query('select * from public.style_dismissals')).rows.length, 0);
     await assert.rejects(db.query("insert into public.discovery_feedback values ($1,'book','Wrong account')", [a]), denied);
     assert.deepEqual((await db.query('select * from public.style_items')).rows, []);
     assert.equal((await db.query("delete from public.style_items where item_id='f1' returning item_id")).rows.length, 0);
     await db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Private wardrobe' }]);
     await db.exec('reset role');
     await db.query('delete from auth.users where id=$1', [a]);
-    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','discovery_feedback','discovery_catalogue_feedback']) {
+    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','style_dismissals','discovery_feedback','discovery_catalogue_feedback']) {
       assert.equal((await db.query('select * from public.' + table + ' where user_id=$1', [a])).rows.length, 0);
     }
     assert.equal((await db.query('select * from public.profiles where id=$1', [a])).rows.length, 0);
