@@ -464,9 +464,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(discoveryRequests,mediaRequestsBeforeStyleRetry);
 
   await page.locator('#disc-hero-wrap').getByRole('button', { name: '+ Watchlist' }).click();
+  /* Acting on the last pick brings in a fresh batch without a manual refresh */
+  await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
   await visit('watchlist');
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
-  assert.equal(discoveryRequests, 2);
+  assert.equal(discoveryRequests, 3);
   watchlist.push({id:randomUUID(),user_id:users[0].id,title:'Queued film',format:'film',priority:'up_next',saved_at:'2026-09-01',added_to_collection:false});
   await visit('collection');
   await visit('watchlist');
@@ -487,9 +489,18 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('.wl-stab').getByText('Maybe',{exact:true}).click();
   assert.equal(await priority.inputValue(),'maybe');
   await visit('discover');
-  await page.getByRole('button',{name:'Get a fresh batch'}).click();
+  /* The top-up already fetched the fresh batch, so there is no empty list to refill by hand */
   await page.locator('#disc-hero-wrap').getByText('Fresh synthetic book').waitFor();
   assert.ok(discoveryInputs.at(-1).recent.some(item => item.title === 'Synthetic discovery book'));
+  /* Card buttons (Watchlist, Collect, Discard, Not for me) must fit inside the card on a laptop */
+  const clipped = await page.evaluate(() => {
+    const recs = [1,2,3,4].map(n => ({title:'Layout check '+n,format:'book',reasons:['r'],tags:[],meta:'Book'}));
+    _renderDiscovery(recs);
+    const bad = [...document.querySelectorAll('#disc-grid-wrap .rc-foot .btn')].filter(button => button.scrollWidth > button.clientWidth + 1).length;
+    _renderDiscovery(_discRecs);
+    return bad;
+  });
+  assert.equal(clipped,0);
   await visit('watchlist');
   const savedRow = page.locator('#wl-list .wl-item').filter({hasText:'Synthetic discovery book'});
   await savedRow.getByRole('button',{name:'Move to Collection'}).click();

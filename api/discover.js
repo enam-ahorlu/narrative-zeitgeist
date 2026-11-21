@@ -82,7 +82,7 @@ module.exports = async function handler(req, res) {
         },
         body: JSON.stringify({
           model: DISCOVERY_MODEL,
-          max_tokens: grounded || comparison ? 2600 : 8192,
+          max_tokens: grounded || comparison ? 3600 : 8192,
           messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab, avoid, examples)
             : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
         }),

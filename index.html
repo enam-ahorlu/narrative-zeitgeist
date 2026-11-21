@@ -354,7 +354,8 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .rc-reason{display:flex;align-items:flex-start;gap:5px;font-size:11.5px;color:var(--t-2)}
 .rc-dot{width:3px;height:3px;border-radius:50%;background:var(--p-light);margin-top:6px;flex-shrink:0}
 .rc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:9px}
-.rc-foot{display:flex;gap:7px}
+.rc-foot{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.rc-foot .btn{justify-content:center;white-space:nowrap;min-width:0}
 .wl-content{flex:1;overflow:auto;padding:16px 30px 30px}
 .wl-header-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center}
 .wl-status-tabs{display:flex;gap:5px}
@@ -1429,6 +1430,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div id="disc-hero-wrap"></div>
         <div class="journal-request-status" id="discover-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="renderCombinedDiscovery()" hidden>Retry</button></div>
         <div id="disc-grid-wrap"></div>
+        <p id="disc-topup" class="disc-empty" role="status" hidden>Finding more picks…</p>
         <section id="disc-style-picks" aria-label="Scent and style picks" hidden></section>
       </div>
     </div>
@@ -3729,6 +3731,46 @@ function removeDiscoveryPick(item){
   _discRecs = remaining;
   if(document.getElementById('s-discover').classList.contains('active') && !_activeDiscoveryView?.loading &&
     _discPill !== 'fragrances' && _discPill !== 'style') _renderDiscovery(remaining);
+  topUpDiscovery();
+}
+
+/* Keep the screen stocked. Each pick you act on leaves the list; once only a few remain, fetch another batch in the
+   background (it counts toward the hourly request limit like a refresh) and add it below, so you never have to reload. */
+var _discTopUp = null;
+async function topUpDiscovery(){
+  if(_discTopUp || !currentUser || !Array.isArray(_discRecs) || _discPill === 'fragrances' || _discPill === 'style') return;
+  if(!document.getElementById('s-discover').classList.contains('active') || _activeDiscoveryView?.loading) return;
+  if(_filterDisc(_discRecs).length > 4) return;
+  var view = _activeDiscoveryView;
+  var userId = currentUser.id;
+  var tab = _discTabName;
+  var focus = tab === 'because-loved' ? null : journalView.formatKey(_discPill);
+  var seedId = tab === 'because-loved' ? _discSeedId : null;
+  var key = JSON.stringify([tab,focus,seedId]);
+  if(tab === 'because-loved' && !seedId) return;
+  var token = {};
+  _discTopUp = token;
+  var status = document.getElementById('disc-topup');
+  if(status) status.hidden = false;
+  try {
+    var more = await _discoverySession.load(key + ':more',{force:true,tab:tab,focus:focus,seedId:seedId},function(payload){
+      return fetchDiscovery(userId,{strategy:'grounded',...payload});
+    });
+    if(currentUser?.id !== userId || _activeDiscoveryView !== view || !Array.isArray(_discRecs)) return;
+    var fresh = more.filter(function(pick){
+      return !_discRecs.some(function(rec){return mediaIdentity.sameWork(rec,pick);});
+    });
+    if(!fresh.length){showToast('No new picks right now. Try Refresh in a bit.');return;}
+    _discoverySession.extend(key,fresh);
+    _discoverySession.shown(fresh,seedId);
+    _discRecs = _discRecs.concat(fresh);
+    if(document.getElementById('s-discover').classList.contains('active')) _renderDiscovery(_discRecs);
+  } catch(error) {
+    if(currentUser?.id === userId) showToast(error?.message || 'Could not load more picks.', '⚠');
+  } finally {
+    if(_discTopUp === token) _discTopUp = null;
+    if(status) status.hidden = true;
+  }
 }
 
 async function saveToWatchlist(button){

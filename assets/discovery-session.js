@@ -69,12 +69,23 @@ function createDiscoverySession({ now = Date.now, ttl = 30 * 60 * 1000, limit = 
     }
   }
 
+  /* Add picks to an existing batch (used when the screen tops itself up), skipping ones already there or removed. */
+  function extend(key, picks) {
+    const batch = batches.get(key);
+    if (!batch) return;
+    for (const pick of picks) {
+      if (removed.some(known => discoveryIdentity.sameWork(pick,known))) continue;
+      if (batch.picks.some(known => discoveryIdentity.sameWork(pick,known))) continue;
+      batch.picks.push(pick);
+    }
+  }
+
   function invalidate() {
     batches.clear();
     pending.clear();
   }
 
-  return { read, load, shown, remove, invalidate };
+  return { read, load, shown, remove, extend, invalidate };
 }
 
 if (typeof module !== 'undefined') module.exports = { createDiscoverySession };
