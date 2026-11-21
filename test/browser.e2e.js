@@ -694,6 +694,17 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const combined = page.locator('#disc-style-picks');
   await combined.getByRole('heading',{name:'Fragrance picks'}).waitFor();
   await combined.getByRole('heading',{name:'Wardrobe picks'}).waitFor();
+  /* Retry appears only after a failure, never while a request is still loading */
+  assert.deepEqual(await page.evaluate(() => {
+    const retry = document.querySelector('#discover-request-status button');
+    const visible = () => getComputedStyle(retry).display !== 'none';
+    journalData.status('discover','loading','Finding media picks…');
+    const loading = visible();
+    journalData.status('discover','error','Could not load.');
+    const failed = visible();
+    journalData.status('discover','');
+    return {loading,failed};
+  }),{loading:false,failed:true});
   /* Media picks come first; scent and wardrobe picks sit below them, scent before wardrobe */
   assert.equal(await page.evaluate(() => {
     const grid = document.getElementById('disc-grid-wrap');

@@ -70,7 +70,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
       const match = query.startsWith('Catalogue Match') || query.startsWith('Wrong Author');
       return Response.json({docs:match ? [{
         key:'/works/synthetic', title:query.startsWith('Wrong Author')?'Wrong Author':'Catalogue Match',
-        author_name:['Test Author'], first_publish_year:2022
+        author_name:['Test Author'], first_publish_year:2022, cover_i:99
       }] : []});
     }
     throw new Error('Unexpected upstream call');
@@ -89,6 +89,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   assert.deepEqual(result.body.recommendations.map(rec=>rec.title),['Catalogue Match']);
   assert.equal(result.body.recommendations[0].anchor.title,'Original Favorite');
   assert.deepEqual(result.body.recommendations[0].catalog,{provider:'openlibrary',id:'/works/synthetic',year:'2022',creator:'Test Author'});
+  assert.equal(result.body.recommendations[0].poster_url,'https://covers.openlibrary.org/b/id/99-M.jpg');
   assert.equal(result.body.recommendations[0].match_score,undefined);
   assert.deepEqual(result.body.recommendations[0].affinity,{label:'Close match',sharedTags:['epistolary','mystery']});
   assert.match(prompt,/already shown|already saved/);

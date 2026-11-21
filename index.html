@@ -965,7 +965,17 @@ textarea.fi{resize:vertical;min-height:64px}
 .disc-hero .style-poster{width:100px;height:115px;border-radius:var(--r-sm)}
 .style-poster span{font-family:'Cormorant Garamond',serif;font-size:30px;opacity:.7}
 .rc-poster .style-poster span,.disc-hero .style-poster span{color:#fff}
-.style-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--n-surface)}
+.media-poster-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
+/* Catalogue photos usually come on a white studio background. Instead of a white box with hard edges,
+   the picture is blended into the card and its outer edge is feathered. */
+.style-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:6px;box-sizing:border-box;background:transparent;mix-blend-mode:multiply;
+  -webkit-mask-image:linear-gradient(to right,transparent,#000 9%,#000 91%,transparent),linear-gradient(to bottom,transparent,#000 9%,#000 91%,transparent);
+  -webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 9%,#000 91%,transparent),linear-gradient(to bottom,transparent,#000 9%,#000 91%,transparent);mask-composite:intersect}
+/* Dark mode: blending would darken the product, so the photo sits on a soft light mat with rounded corners,
+   a thin border and slightly reduced glare, which reads as a deliberate tile rather than a stray white box. */
+[data-theme="dark"] .style-poster img{mix-blend-mode:normal;-webkit-mask-image:none;mask-image:none;background:#E9E6E0;border-radius:var(--r-sm);filter:brightness(.9) contrast(1.03);box-shadow:inset 0 0 0 1px rgba(200,225,245,.16)}
+[data-theme="dark"] .style-poster{background:transparent}
+.style-poster:has(img) span,.rc-poster:has(.media-poster-img) .rc-initials,.disc-hero-art:has(.media-poster-img) span{visibility:hidden}
 .style-poster a{position:absolute;bottom:3px;right:4px;font-size:10px;padding:1px 4px;color:var(--t-1);background:var(--n-surface);border-radius:3px}
 button.theme-option,button.mini-theme,button.density-opt{font-family:inherit;background:var(--n-surface);color:var(--t-1)}
 button.density-opt.active{background:var(--p-ghost);color:var(--p-rich)}
@@ -977,6 +987,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
 .journal-request-status[hidden],#add-source[hidden]{display:none}
 .catalogue-context{color:var(--t-3);font-size:11px;font-weight:400;margin-left:6px}
 .journal-request-status button{margin-left:8px}
+.journal-request-status button[hidden]{display:none}
 @media(max-width:768px){
   .ph{flex-wrap:wrap;gap:8px}
   .ph-actions{flex-wrap:wrap;min-width:0;max-width:100%}
@@ -3554,8 +3565,14 @@ function _renderHero(rec){
     +'</div></div>'
     +'<div class="disc-hero-right" style="position:relative;z-index:1">'
     +(rec.catalog ? '<div class="disc-hero-match-label">Catalogue checked</div>' : '')
-    +'<div class="disc-hero-actions"><div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(initials)+'</div></div>'
+    +'<div class="disc-hero-actions"><div class="disc-hero-art" style="margin-top:12px;width:90px;height:'+(safeStylePhoto(rec.poster_url) ? '130px' : '90px')+';background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(initials)+mediaPosterImage(rec)+'</div></div>'
     +'</div></div>';
+}
+
+/* Poster or cover from the catalogue check. The initials underneath remain if it fails to load. */
+function mediaPosterImage(rec){
+  var url = safeStylePhoto(rec.poster_url);
+  return url ? '<img class="media-poster-img" src="'+escHtml(url)+'" alt="'+escHtml(rec.title)+' cover" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : '';
 }
 
 function _renderGrid(recs){
@@ -3579,6 +3596,7 @@ function _renderGrid(recs){
       '<div class="rc anim-fadeup'+delay+'">'
       +'<div class="rc-poster" style="background:'+bg+'">'
       +'<div class="rc-initials">'+escHtml(initials)+'</div>'
+      +mediaPosterImage(rec)
        +(rec.catalog ? '<div class="rc-match">Catalogue checked</div>' : '')
       +'</div>'
       +'<div class="rc-body">'
