@@ -87,7 +87,7 @@ async function saveFragrance(){
   var name = (document.getElementById('frag-name').value||'').trim();
   if(!name){ showToast('Please enter a fragrance name'); return; }
   var rawPhoto = document.getElementById('frag-photo').value.trim();
-  var photoUrl = safeFragrancePhoto(rawPhoto);
+  var photoUrl = safeStylePhoto(rawPhoto);
   if(rawPhoto && !photoUrl){showToast('Use an HTTPS image URL.');return;}
   var rVal = parseFloat(document.getElementById('frag-rating').value)||0;
   var draftId = _fragDraftId;
@@ -134,7 +134,7 @@ function openWardrobeModal(id){
   var modal = document.getElementById('m-wardrobe');
   if(!modal) return;
   /* Reset */
-  ['ward-name','ward-brand','ward-fabric','ward-pairing'].forEach(function(k){ var el=document.getElementById(k); if(el) el.value=''; });
+  ['ward-name','ward-brand','ward-fabric','ward-pairing','ward-photo'].forEach(function(k){ var el=document.getElementById(k); if(el) el.value=''; });
   ['ward-color-name'].forEach(function(k){ var el=document.getElementById(k); if(el) el.value=''; });
   var cat=document.getElementById('ward-cat'); if(cat) cat.value='Tops';
   var sea=document.getElementById('ward-season'); if(sea) sea.value='Year-round';
@@ -154,7 +154,7 @@ function openWardrobeModal(id){
     if(w){
       var set=function(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; };
       set('ward-name',w.name); set('ward-brand',w.brand); set('ward-fabric',w.fabric);
-      set('ward-pairing',w.pairing); set('ward-color-name',w.colorName);
+      set('ward-photo',w.photoUrl); set('ward-pairing',w.pairing); set('ward-color-name',w.colorName);
       var catEl=document.getElementById('ward-cat'); if(catEl) catEl.value=w.category||'Tops';
       var seaEl=document.getElementById('ward-season'); if(seaEl) seaEl.value=w.season||'Year-round';
       setStyleChoice('ward-occasion',w.occasion || 'Everyday');
@@ -186,11 +186,15 @@ function closeWardrobeModal(){
 async function saveWardrobeItem(){
   var name=(document.getElementById('ward-name').value||'').trim();
   if(!name){ showToast('Please enter an item name'); return; }
+  var rawPhoto = document.getElementById('ward-photo').value.trim();
+  var photoUrl = safeStylePhoto(rawPhoto);
+  if(rawPhoto && !photoUrl){showToast('Use an HTTPS image URL.');return;}
   var draftId = _wardDraftId;
   var selectedWardTags=Array.from(document.querySelectorAll('#ward-tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
   var w={
     id: _wardEditId || draftId,
     name: name,
+    photoUrl: photoUrl,
     brand:     ((document.getElementById('ward-brand')||{}).value||'').trim(),
     category:  (document.getElementById('ward-cat')||{}).value||'Tops',
     color:     _wardColor,
@@ -260,7 +264,7 @@ function renderCatalogueResults(prefix, value, rows, select){
   if(query.length < 2) return;
   var drop = document.getElementById(prefix + '-cs-drop');
   var candidates = rows.filter(function(row){
-    return row.slice(0,3).some(function(field){return styleRecommendations.catalogueText(field).includes(query);});
+    return styleRecommendations.matchesQuery(query, prefix === 'frag' ? row.slice(0,6) : row);
   }).sort(function(a,b){
     return Number(styleRecommendations.catalogueText(b[0]).startsWith(query)) - Number(styleRecommendations.catalogueText(a[0]).startsWith(query));
   });
@@ -273,8 +277,11 @@ function renderCatalogueResults(prefix, value, rows, select){
     button.style.color = 'inherit';
     button.style.border = 'none';
     button.style.font = 'inherit';
-    button.innerHTML = '<div class="cs-info"><div class="cs-title-txt">' + escHtml(row[0]) +
-      '</div><div class="cs-meta-txt">' + escHtml([row[1],row[2]].filter(Boolean).join(' · ')) + '</div></div>';
+    var kind = prefix === 'frag' ? 'fragrance' : 'wardrobe';
+    var rec = {name:row[0],house:row[1],brand:row[2]};
+    var thumb = styleCataloguePhoto(kind,rec) ? '<div class="style-result-thumb">'+stylePoster(kind,rec,{credit:false})+'</div>' : '';
+    button.innerHTML = thumb + '<div class="cs-info"><div class="cs-title-txt">' + escHtml(row[0]) +
+      '</div><div class="cs-meta-txt">' + escHtml((kind === 'fragrance' ? [row[1],row[5]] : [row[1],row[2]]).filter(Boolean).join(' · ')) + '</div></div>';
     button.addEventListener('click', function(){select(row); clearCatalogueResults(prefix);});
     drop.appendChild(button);
   });
@@ -295,6 +302,8 @@ function onWardNameInput(value){
     document.getElementById('ward-brand').value = row[2];
     document.getElementById('ward-season').value = row[5];
     document.getElementById('ward-pairing').value = row[6];
+    setStyleChoice('ward-occasion',row[4].split(',')[0].trim() || 'Everyday');
+    setStyleTags('ward',row[3].split(',').map(function(tag){return tag.trim();}).filter(Boolean));
   });
 }
 

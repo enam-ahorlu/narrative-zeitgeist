@@ -289,24 +289,89 @@ var FRAG_DB = [
   ["Harvest Mouse", "Zoologist", "Bergamot, clove, chamomile", "Hay, davana, beer accord", "Benzoin, oakmoss, sandalwood, vanilla", "Gourmand, herbal, warm", "Moderate", "Fall/Winter"],
   ["Snowy Owl", "Zoologist", "Mint, coconut, snow accord", "Iris, lily of the valley, rose", "Cedar, ambrette, vanilla, musk", "Cool, powdery, earthy", "Moderate", "Fall/Winter"],
   ["Lazy Sunday Morning", "Maison Margiela Replica", "Aldehydes, pear, lily of the valley", "Iris, rose, orange blossom", "White musk, ambrette, patchouli", "Clean, airy, soft", "Soft–Moderate", "Year-round"],
-  ["From the Garden", "Maison Margiela Replica", "Green mandarin", "Tomato leaf", "Patchouli", "Green, earthy, herbal", "Moderate", "Spring/Summer"]
+  ["From the Garden", "Maison Margiela Replica", "Green mandarin", "Tomato leaf", "Patchouli", "Green, earthy, herbal", "Moderate", "Spring/Summer"],
+  ["N°5 Parfum","Chanel","Aldehydes","May rose, jasmine","","Aldehydic, floral, powdery","Moderate","Year-round"],
+  ["Shalimar Parfum","Guerlain","Bergamot","Iris, jasmine, rose","Vanilla","Amber, powdery, citrus","Strong","Fall/Winter"],
+  ["Mitsouko","Guerlain","Bergamot","Peach","Oakmoss","Chypre, fruity, mossy","Moderate","Spring/Fall"],
+  ["Jicky","Guerlain","Bergamot, lavender","","Vanilla","Aromatic, lavender, amber","Moderate","Year-round"],
+  ["Après l’Ondée","Guerlain","Anise","Violet, iris","Vanilla","Powdery, soft, floral","Soft–Moderate","Spring/Summer"],
+  ["Sous le Vent","Guerlain","","","","Vintage, aromatic, chypre","Moderate","Spring/Fall"],
+  ["L’Aimant","Coty","Aldehydes","Rose, jasmine","Sandalwood","Vintage, aldehydic, floral","Moderate","Year-round"],
+  ["Opium Pour Homme","Yves Saint Laurent","Blackcurrant, star anise","Pepper","Vanilla, cedar","Warm, spicy, amber","Moderate–Strong","Fall/Winter"]
 ];
 
-// Product photographs with source and license details on their linked file pages.
+// Product photographs with source and license details. WebP copies are resized.
 const FRAGRANCE_PHOTOS = {
-  'ck one|calvin klein': {
-    url:'https://upload.wikimedia.org/wikipedia/commons/3/31/CK_One.jpg',
-    source:'https://commons.wikimedia.org/wiki/File:CK_One.jpg',
-    credit:'Gonna Fly Now, CC BY-SA 2.0'
+  "eau sauvage|dior": {
+    "url": "/catalogues/photos/eau-sauvage.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Eau_Sauvage_Christian_Dior.jpg",
+    "credit": "Olinone, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
   },
-  'coco mademoiselle|chanel': {
-    url:'https://upload.wikimedia.org/wikipedia/commons/b/be/Coco_Mademoiselle_2001.jpg',
-    source:'https://commons.wikimedia.org/wiki/File:Coco_Mademoiselle_2001.jpg',
-    credit:'Maria Morri, CC BY-SA 2.0'
+  "n°5 parfum|chanel": {
+    "url": "/catalogues/photos/chanel-no-5.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:CHANEL_N%C2%B05.jpg",
+    "credit": "Foto: Jonn Leffmann, CC BY 3.0",
+    "license": "https://creativecommons.org/licenses/by/3.0"
   },
-  'eau sauvage|dior': {
-    url:'https://upload.wikimedia.org/wikipedia/commons/4/4f/Eau_Sauvage_Christian_Dior.jpg',
-    source:'https://commons.wikimedia.org/wiki/File:Eau_Sauvage_Christian_Dior.jpg',
-    credit:'Olinone, CC BY-SA 4.0'
+  "shalimar parfum|guerlain": {
+    "url": "/catalogues/photos/shalimar.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Shalimar.jpg",
+    "credit": "Sheila in Moonducks, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "jicky|guerlain": {
+    "url": "/catalogues/photos/jicky.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Jicky_(1889).jpg",
+    "credit": "Shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "apres londee|guerlain": {
+    "url": "/catalogues/photos/apres-londee.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Apres_l%27Ondee_(1906).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "sous le vent|guerlain": {
+    "url": "/catalogues/photos/sous-le-vent.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Guerlain_-_Sous_Le_Vent_(1934).jpg",
+    "credit": "shakko, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "laimant|coty": {
+    "url": "/catalogues/photos/laimant.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Bottle_of_L%27Aimant_perfume_-_Coty_-1927-1.jpg",
+    "credit": "DDupard, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "acqua di gio|giorgio armani": {
+    "url": "/catalogues/photos/acqua-di-gio.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Acqua_di_Gio.jpg",
+    "credit": "Gonna Fly Now, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "ultra male|jean paul gaultier": {
+    "url": "/catalogues/photos/ultra-male.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Jean-Paul_Gaultier_Ultra_Male.jpg",
+    "credit": "Amin, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "black opium|yves saint laurent": {
+    "url": "/catalogues/photos/black-opium.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Black_opium.jpg",
+    "credit": "Dsuarez04, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "ck one|calvin klein": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/31/CK_One.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:CK_One.jpg",
+    "credit": "Gonna Fly Now, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0/"
+  },
+  "coco mademoiselle|chanel": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/b/be/Coco_Mademoiselle_2001.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Coco_Mademoiselle_2001.jpg",
+    "credit": "Maria Morri, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0/"
   }
 };

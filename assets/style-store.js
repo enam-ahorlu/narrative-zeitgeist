@@ -3,7 +3,7 @@ const EMPTY_STYLE_ITEMS = Object.freeze([]);
 const STYLE_BROWSER_KEYS = Object.freeze({fragrance:'nz_fragrances',wardrobe:'nz_wardrobe'});
 const STYLE_ITEM_FIELDS = {
   fragrance:['name','house','photoUrl','status','character','projection','season','occasion','notesTop','notesMid','notesBase','review'],
-  wardrobe:['name','brand','category','color','colorName','fabric','season','occasion','status','pairing']
+  wardrobe:['name','brand','photoUrl','category','color','colorName','fabric','season','occasion','status','pairing']
 };
 
 function createStyleStore(client, owner, now = Date.now) {

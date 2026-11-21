@@ -4,8 +4,16 @@ const styleRecommendations = (() => {
     return String(value || '').normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[’']/g,'').trim();
   }
 
-  function fragranceKey(name, house) {
-    return catalogueText(name) + '|' + catalogueText(house);
+  function productKey(name, maker) {
+    return catalogueText(name) + '|' + catalogueText(maker);
+  }
+
+  function matchesQuery(query, fields) {
+    const search = catalogueText(query).replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+    const haystack = catalogueText(fields.join(' ')).replace(/[^\p{L}\p{N}]+/gu,' ');
+    return search.split(' ').every(term => haystack.includes(
+      term === 'footwear' ? 'shoes' : term === 'jewellery' ? 'jewelry' : term
+    ));
   }
 
   function matchesSaved(kind, item, candidate) {
@@ -50,7 +58,7 @@ const styleRecommendations = (() => {
       characters:weights(), houses:weights(), notes:weights(), statuses:statusCounts(items)
     };
     for (const item of items) {
-      const key = fragranceKey(item.name,item.house);
+      const key = productKey(item.name,item.house);
       profile.saved.add(key);
       const rating = Number.parseFloat(item.rating);
       const weight = rating > 0 ? rating / 10 : lower(item.status) === 'wishlisted' ? 0.25 : 0.5;
@@ -77,7 +85,7 @@ const styleRecommendations = (() => {
     for (const item of items) {
       profile.saved.add(catalogueText(item.name));
       addWeights(profile.categories,[lower(item.category)]);
-      addWeights(profile.occasions,[lower(item.occasion)]);
+      addWeights(profile.occasions,delimit(item.occasion,','));
       addWeights(profile.seasons,[lower(item.season)]);
       addWeights(profile.tags,(item.tags || []).map(lower));
     }
@@ -155,12 +163,12 @@ const styleRecommendations = (() => {
       picks.push({ ...garment.item, score:normalized(score), reasons:reasons.length ? reasons : [profile.count ?
         'Complements your existing wardrobe style' : 'Explore this piece from the catalogue'] });
     }
-    return picks.sort((a,b)=>b.score-a.score);
+    return picks.sort((a,b)=>profile.count ? b.score-a.score || Number(b.hasPhoto)-Number(a.hasPhoto) : Number(b.hasPhoto)-Number(a.hasPhoto) || b.score-a.score);
   }
 
-  function create(fragranceRows, wardrobeRows, photos = {}) {
+  function create(fragranceRows, wardrobeRows, photos = {}, wardrobePhotos = {}) {
     const fragrances = fragranceRows.map(([name,house,top,mid,base,character,projection,season]) => {
-      const key = fragranceKey(name,house);
+      const key = productKey(name,house);
       return {
         key, nameKey:catalogueText(name), notes:notes(top,mid,base), words:words(character),
         seasons:delimit(season,'/'), seasonLabel:lower(season), projectionKey:lower(projection), houseKey:lower(house),
@@ -169,7 +177,7 @@ const styleRecommendations = (() => {
     });
     const wardrobe = wardrobeRows.map(([name,category,brand,style,occasions,season,description]) => ({
       key:catalogueText(name), style:lower(style), occasions:lower(occasions), season:lower(season), category:lower(category),
-      item:{name,category,brand,style,occasions,season,description}
+      item:{name,category,brand,style,occasions,season,description,hasPhoto:Object.hasOwn(wardrobePhotos,productKey(name,brand))}
     }));
     const byIdentity = new Map();
     const byName = new Map();
@@ -209,7 +217,7 @@ const styleRecommendations = (() => {
     return picks.slice(start,start+count).concat(picks.slice(0,Math.max(0,start+count-picks.length)));
   }
 
-  return { create, catalogueText, fragranceKey, matchesSaved, page };
+  return { create, catalogueText, productKey, matchesQuery, matchesSaved, page };
 })();
 
 if (typeof module !== 'undefined') module.exports = styleRecommendations;

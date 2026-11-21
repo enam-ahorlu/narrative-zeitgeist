@@ -962,14 +962,16 @@ textarea.fi{resize:vertical;min-height:64px}
 [data-density="compact"] .col-card,[data-density="compact"] .rc-body,[data-density="compact"] .frag-card,[data-density="compact"] .ward-card{padding:10px}
 .style-fingerprint-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;font-size:13px;color:var(--t-2)}
 .style-fingerprint-grid h3,.style-fingerprint-grid p{margin:8px 0}
-.fragrance-poster{position:relative;display:grid;place-items:center;min-height:88px;overflow:hidden;background:rgba(128,128,128,.12)}
-.rc-poster .fragrance-poster{width:100%;height:100%}
-.frag-card .fragrance-poster{height:125px;margin-bottom:12px;border-radius:var(--r-sm);background:var(--p-ghost)}
-.disc-hero .fragrance-poster{width:100px;height:115px;border-radius:var(--r-sm)}
-.fragrance-poster span{font-family:'Cormorant Garamond',serif;font-size:30px;opacity:.7}
-.rc-poster .fragrance-poster span,.disc-hero .fragrance-poster span{color:#fff}
-.fragrance-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--n-surface)}
-.fragrance-poster a{position:absolute;bottom:3px;right:4px;font-size:10px;padding:1px 4px;color:var(--t-1);background:var(--n-surface);border-radius:3px}
+.style-poster{position:relative;display:grid;place-items:center;min-height:88px;overflow:hidden;background:rgba(128,128,128,.12)}
+.rc-poster .style-poster{width:100%;height:100%}
+.frag-card .style-poster,.ward-card .style-poster{height:140px;margin-bottom:12px;border-radius:var(--r-sm);background:var(--p-ghost)}
+.disc-result-thumb .style-poster,.style-result-thumb .style-poster{width:100%;height:100%;min-height:0}
+.style-result-thumb{flex:0 0 42px;height:46px;overflow:hidden;border-radius:var(--r-sm)}
+.disc-hero .style-poster{width:100px;height:115px;border-radius:var(--r-sm)}
+.style-poster span{font-family:'Cormorant Garamond',serif;font-size:30px;opacity:.7}
+.rc-poster .style-poster span,.disc-hero .style-poster span{color:#fff}
+.style-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--n-surface)}
+.style-poster a{position:absolute;bottom:3px;right:4px;font-size:10px;padding:1px 4px;color:var(--t-1);background:var(--n-surface);border-radius:3px}
 button.theme-option,button.mini-theme,button.density-opt{font-family:inherit;background:var(--n-surface);color:var(--t-1)}
 button.density-opt.active{background:var(--p-ghost);color:var(--p-rich)}
 button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-offset:2px}
@@ -1309,8 +1311,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div class="pill" onclick="setDiscPill(this,'books')">Books</div>
         <div class="pill" onclick="setDiscPill(this,'matches')">Matches</div>
         <div class="pill" onclick="setDiscPill(this,'music')">Music</div>
-        <div class="pill" onclick="setDiscPill(this,'fragrances')">✦ Fragrances</div>
-        <div class="pill" onclick="setDiscPill(this,'style')">✦ Style</div>
+        <div class="pill" data-style-catalogue="fragrances" onclick="setDiscPill(this,'fragrances')">✦ Fragrances</div>
+        <div class="pill" data-style-catalogue="style" onclick="setDiscPill(this,'style')">✦ Style</div>
       </div>
       <div class="disc-tabs">
         <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
@@ -1324,6 +1326,12 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <label for="disc-seed-entry">Start from</label>
         <select class="fi fsel" id="disc-seed-entry" onchange="chooseDiscoverySeed(this.value)"></select>
         <button class="btn btn-ghost btn-sm" id="disc-seed-clear" onclick="clearDiscoverySeed()" disabled>Clear starting entry</button>
+      </div>
+      <div id="disc-style-filter" class="disc-seed" hidden>
+        <label for="disc-style-category">Style category</label>
+        <select class="fi fsel" id="disc-style-category" onchange="setDiscStyleCategory(this.value)">
+          <option value="all">All style categories</option>
+        </select>
       </div>
       <div class="disc-content" id="disc-content">
         <details id="disc-request-timing" class="journal-request-status" hidden>
@@ -1588,6 +1596,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <div class="ph">
         <div><div class="ph-title">Fragrances</div><div class="ph-sub">Your scent wardrobe</div></div>
         <div class="ph-actions">
+          <button class="btn btn-glass btn-sm" onclick="openStyleCatalogue('fragrances')">Browse fragrances</button>
           <button class="btn btn-glass btn-sm" id="style-import-fragrance" onclick="importBrowserStyle('fragrance')" hidden>Import browser fragrances</button>
           <button class="btn btn-glass btn-sm" onclick="navigate('wardrobe')"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6.5 4h11L21 8l-9 12L3 8l3.5-4z"/></svg>Wardrobe</button>
           <button class="btn btn-p" onclick="openFragranceModal(null)"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Add Fragrance</button>
@@ -1621,8 +1630,9 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
     <!-- WARDROBE SCREEN -->
     <div class="screen" id="s-wardrobe">
       <div class="ph">
-        <div><div class="ph-title">Wardrobe</div><div class="ph-sub">Your clothing collection</div></div>
+        <div><div class="ph-title">Wardrobe</div><div class="ph-sub">Clothing, footwear, jewelry and accessories</div></div>
         <div class="ph-actions">
+          <button class="btn btn-glass btn-sm" onclick="openStyleCatalogue('style')">Browse style</button>
           <button class="btn btn-glass btn-sm" id="style-import-wardrobe" onclick="importBrowserStyle('wardrobe')" hidden>Import browser wardrobe</button>
           <button class="btn btn-glass btn-sm" onclick="navigate('fragrances')"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3c-1.5 0-3 .7-3 2v1H7a2 2 0 00-2 2v11a2 2 0 002 2h10a2 2 0 002-2V8a2 2 0 00-2-2h-2V5c0-1.3-1.5-2-3-2z"/></svg>Fragrances</button>
           <button class="btn btn-p" onclick="openWardrobeModal(null)"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Add Item</button>
@@ -1640,7 +1650,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <div class="pill" onclick="setWardPill(this,'tops')">Tops</div>
           <div class="pill" onclick="setWardPill(this,'bottoms')">Bottoms</div>
           <div class="pill" onclick="setWardPill(this,'outerwear')">Outerwear</div>
-          <div class="pill" onclick="setWardPill(this,'shoes')">Shoes</div>
+          <div class="pill" onclick="setWardPill(this,'shoes')">Footwear</div>
+          <div class="pill" onclick="setWardPill(this,'jewelry')">Jewelry</div>
           <div class="pill" onclick="setWardPill(this,'accessories')">Accessories</div>
           <div class="pill" onclick="setWardPill(this,'bags')">Bags</div>
           <div class="pill" onclick="setWardPill(this,'knitwear')">Knitwear</div>
@@ -1979,7 +1990,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
             <option value="Tops">Tops</option>
             <option value="Bottoms">Bottoms</option>
             <option value="Outerwear">Outerwear</option>
-            <option value="Shoes">Shoes</option>
+            <option value="Shoes">Footwear</option>
+            <option value="Jewelry">Jewelry</option>
             <option value="Accessories">Accessories</option>
             <option value="Bags">Bags</option>
             <option value="Knitwear">Knitwear</option>
@@ -1988,6 +2000,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
             <option value="Other">Other</option>
           </select>
         </div>
+        <div class="fl fl-full"><label for="ward-photo">PHOTO URL <span style="font-weight:400">(optional)</span></label><input id="ward-photo" class="fi" type="url" placeholder="https://…"></div>
         <div class="fl fl-full">
           <label>COLOUR <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--t-3)">(your palette)</span></label>
           <input id="ward-color-name" class="fi" type="text" placeholder="e.g. Navy, Sage, Cream" style="margin-bottom:8px">
@@ -2119,7 +2132,7 @@ var _allEntries  = [];   /* cached full entry list for Discovery */
 var _discRecs = null; /* Recommendations for the active view. */
 var _discoverySession = createDiscoverySession();
 var _activeDiscoveryView = null;
-var _styleModel = styleRecommendations.create(FRAG_DB,WARD_STYLE_DB,FRAGRANCE_PHOTOS);
+var _styleModel = styleRecommendations.create(FRAG_DB,WARD_PRODUCTS,FRAGRANCE_PHOTOS,WARDROBE_PHOTOS);
 var _discAddRec  = null; /* rec that opened the +Collection modal — dismissed on save */
 var _discPill    = 'all';/* current format pill filter */
 var _discTabName = 'for-you';
@@ -2229,6 +2242,8 @@ function handleAuthChange(event, session){
     _wlMoveId = null;
     tagPickerVersion++;
     _catalogueOffset = {all:0, fragrances:0, style:0};
+    _discStyleCategory = 'all';
+    document.getElementById('disc-style-category').value = 'all';
     document.getElementById('disc-style-picks').replaceChildren();
     _discCompare = null;
     document.getElementById('disc-request-timing').hidden = true;
@@ -2734,7 +2749,12 @@ async function loadCatalogDiscovery(pill){
   }
 }
 
-function setDiscPill(el, pill){
+function openStyleCatalogue(pill){
+  setDiscPill(document.querySelector('[data-style-catalogue="'+pill+'"]'),pill,false);
+  navigate('discover');
+}
+
+function setDiscPill(el, pill, load=true){
   el.closest('.disc-format-pills').querySelectorAll('.pill').forEach(function(p){ p.classList.remove('active'); });
   el.classList.add('active');
   _discPill = pill;
@@ -2744,8 +2764,12 @@ function setDiscPill(el, pill){
   document.getElementById('disc-seed').hidden = _discTabName !== 'because-loved' || pill === 'fragrances' || pill === 'style';
   var catalogue = pill === 'fragrances' || pill === 'style';
   document.querySelector('.disc-tabs').style.display = catalogue ? 'none' : '';
+  document.getElementById('disc-style-filter').hidden = pill !== 'style';
   document.getElementById('disc-sort-sel').style.display = catalogue ? 'none' : '';
-  openDiscoverScreen();
+  var search = document.getElementById('disc-search-inp');
+  search.placeholder = pill === 'style' ? 'Search products, brands or categories…'
+    : pill === 'fragrances' ? 'Search fragrances, houses or notes…' : 'Search recommendations…';
+  if(load) openDiscoverScreen();
 }
 
 /* ── Watchlist: select all / remove selected / sort ── */
@@ -3208,57 +3232,26 @@ function discSearch(val){
   var res=document.getElementById('disc-search-res');
   val=val.trim().toLowerCase();
   if(!val){res.classList.remove('open');res.innerHTML='';return;}
-  /* Fragrance search mode */
-  if(_discPill==='fragrances'){
-    var fragPool=_styleModel.scent(_loadFrags()).picks;
-    var scentQuery = styleRecommendations.catalogueText(val);
-    var fragMatches=fragPool.filter(function(d){
-      return [d.name,d.house,d.character,d.top,d.mid,d.base].some(function(field){
-        return styleRecommendations.catalogueText(field).includes(scentQuery);
-      });
-    });
-    if(!fragMatches.length){
-      res.innerHTML='<div class="disc-no-result">No fragrance matches for "'+escHtml(val)+'"</div>';
-      res.classList.add('open');return;
-    }
-    res.innerHTML=fragMatches.slice(0,5).map(function(d){
-      return '<div class="disc-result-item">'+
-        '<div class="disc-result-thumb" style="background:'+_fragGradient(d.character,d.season)+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
-        '<div class="disc-result-info">'+
-          '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
-          '<div class="disc-result-meta">'+escHtml(d.house)+' · '+escHtml(d.season)+'</div>'+
-          '<div class="disc-result-because">'+escHtml(d.character.split(',').slice(0,2).join(', '))+'</div>'+
-          styleDiscoveryActions('fragrance',d)+
-        '</div>'+
-      '</div>';
-    }).join('');
-    res.classList.add('open');return;
-  }
-  /* Style search mode */
-  if(_discPill==='style'){
-    var stylePool=_styleModel.wardrobe(_loadWard()).picks;
+  if(_discPill==='fragrances' || _discPill==='style'){
+    if(!_styleStore?.ready){res.classList.remove('open');return;}
+    var kind = _discPill==='fragrances' ? 'fragrance' : 'wardrobe';
+    var scent = kind==='fragrance';
     var query = styleRecommendations.catalogueText(val);
-    var styleMatches=stylePool.filter(function(d){
-      return [d.name,d.category,d.brand,d.style,d.occasions,d.season].some(function(field){
-        return styleRecommendations.catalogueText(field).includes(query);
-      });
+    var candidates = styleDiscoveryPool(kind,scent ? 'all' : _discStyleCategory).picks;
+    var matches = candidates.filter(function(rec){
+      var fields = scent ? [rec.name,rec.house,rec.character,rec.top,rec.mid,rec.base]
+        : [rec.name,rec.brand,rec.category,rec.style,rec.occasions,rec.description];
+      return styleRecommendations.matchesQuery(query, fields);
     });
-    if(!styleMatches.length){
-      res.innerHTML='<div class="disc-no-result">No style matches for "'+escHtml(val)+'"</div>';
-      res.classList.add('open');return;
-    }
-    res.innerHTML=styleMatches.slice(0,5).map(function(d){
-      return '<div class="disc-result-item">'+
-        '<div class="disc-result-thumb" style="background:'+_styleGradient(d.style)+'">'+d.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase()+'</div>'+
-        '<div class="disc-result-info">'+
-          '<div class="disc-result-title">'+escHtml(d.name)+'</div>'+
-          '<div class="disc-result-meta">'+escHtml(d.category)+(d.brand?' · '+escHtml(d.brand):'')+'</div>'+
-          '<div class="disc-result-because">'+escHtml(d.description||'')+'</div>'+
-          styleDiscoveryActions('wardrobe',d)+
-        '</div>'+
-      '</div>';
-    }).join('');
-    res.classList.add('open');return;
+    res.innerHTML = matches.length ? matches.slice(0,8).map(function(rec){
+      return '<div class="disc-result-item"><div class="disc-result-thumb">'
+        + stylePoster(kind,rec,{credit:false})+'</div><div class="disc-result-info">'
+        + '<div class="disc-result-title">'+escHtml(rec.name)+'</div>'
+        + '<div class="disc-result-meta">'+escHtml(scent ? rec.house : [rec.brand,rec.category].join(' · '))+'</div>'
+        + styleDiscoveryActions(kind,rec)+'</div></div>';
+    }).join('') : '<div class="disc-no-result">No catalogue matches for “'+escHtml(val)+'”</div>';
+    res.classList.add('open');
+    return;
   }
   /* Default: regular discover search */
   var pool=_filterDisc(_discRecs||[]);
@@ -3485,9 +3478,9 @@ function combinedCatalogueSection(title, kind, recs){
   return '<h3>'+title+'</h3><div class="disc-grid">'+recs.map(function(rec){
     var scent = kind === 'fragrance';
     return '<article class="rc"><div class="rc-poster" style="background:'+rec.gradient+'">'
-      + (scent ? fragrancePoster(rec) : '<span class="rc-initials">'+escHtml(_recInitials(rec.name))+'</span>')
+      + stylePoster(kind,rec)
       + '</div><div class="rc-body"><div class="rc-title">'+escHtml(rec.name)+'</div>'
-      + '<div class="rc-meta">'+escHtml(scent ? rec.house : rec.category)+'</div>'
+      + '<div class="rc-meta">'+escHtml(scent ? rec.house : [rec.brand,rec.category].filter(Boolean).join(' · '))+'</div>'
       + '<p class="rc-because">'+escHtml(rec.reasons[0])+'</p>'
       + styleDiscoveryActions(kind,rec)+'</div></article>';
   }).join('')+'</div>';
@@ -4027,6 +4020,7 @@ function wlMoveToCollection(id){
 
 var _fragFilter = 'all';
 var _wardFilter = 'all';
+var _discStyleCategory = 'all';
 var _fragEditId = null;
 var _wardEditId = null;
 var _fragDraftId = null;
@@ -4035,7 +4029,7 @@ var _wardColor  = '#1B5E76';
 
 var _styleStore = null;
 
-function safeFragrancePhoto(url){
+function safeStylePhoto(url){
   try {
     var parsed = new URL(url);
     return parsed.protocol === 'https:' && !parsed.username && !parsed.password ? parsed.href : '';
@@ -4044,19 +4038,21 @@ function safeFragrancePhoto(url){
   }
 }
 
-function fragranceCataloguePhoto(rec){
-  return FRAGRANCE_PHOTOS[styleRecommendations.fragranceKey(rec.name,rec.house)];
+function styleCataloguePhoto(kind,rec){
+  var fragrance = kind === 'fragrance';
+  var key = styleRecommendations.productKey(rec.name,fragrance ? rec.house : rec.brand);
+  return (fragrance ? FRAGRANCE_PHOTOS : WARDROBE_PHOTOS)[key];
 }
 
-function fragrancePoster(rec){
-  var photo = fragranceCataloguePhoto(rec);
-  var ownUrl = safeFragrancePhoto(rec.photoUrl);
+function stylePoster(kind,rec,{credit=true}={}){
+  var photo = styleCataloguePhoto(kind,rec);
+  var ownUrl = safeStylePhoto(rec.photoUrl);
   var url = ownUrl || photo?.url;
-  var figure = '<div class="fragrance-poster"><span aria-hidden="true">'+escHtml(_recInitials(rec.name))+'</span>';
+  var figure = '<div class="style-poster"><span aria-hidden="true">'+escHtml(_recInitials(rec.name))+'</span>';
   if(url){
-    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml(rec.name)+' bottle" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">';
-    if(!ownUrl && photo){
-      figure += '<a href="'+photo.source+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="Photo credit for '+escHtml(rec.name)+'" title="'+escHtml(photo.credit)+'">Photo credit</a>';
+    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml(rec.name + (kind === 'fragrance' ? ' bottle' : ''))+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">';
+    if(credit && !ownUrl && photo){
+      figure += '<a href="'+escHtml(photo.source)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="Photo credit for '+escHtml(rec.name)+'" title="'+escHtml(photo.credit)+'">Photo credit</a>';
     }
   }
   return figure+'</div>';
@@ -4078,13 +4074,16 @@ function styleRecommendationDetails(kind,rec){
 function styleDiscoveryActions(kind,rec){
   var scent = kind === 'fragrance';
   var data = escHtml(JSON.stringify(rec));
+  var productPage = scent ? '' : WARD_PRODUCT_LINKS[styleRecommendations.productKey(rec.name,rec.brand)];
   var statuses = scent ? [['owned','Owned'],['wishlisted','Wishlist'],['tried','Tried']]
     : [['Owned','Owned'],['Wishlisted','Wishlist']];
   return '<div class="style-quick-actions" data-kind="'+kind+'" data-style-rec="'+data+'">'
     + statuses.map(function(status){
       return '<button class="btn btn-g btn-sm" type="button" data-status="'+status[0]+'" onclick="saveDiscoveryStyle(this)" aria-label="'+status[1]+' · '+escHtml(rec.name)+'">'+status[1]+'</button>';
     }).join('')
-    + '<button class="btn btn-ghost btn-sm" type="button" onclick="'+(scent ? 'addFragFromDiscover(this)' : 'addWardFromDiscover(this)')+'" data-'+(scent ? 'frag' : 'ward')+'="'+data+'">Details</button></div>';
+    + '<button class="btn btn-ghost btn-sm" type="button" onclick="'+(scent ? 'addFragFromDiscover(this)' : 'addWardFromDiscover(this)')+'" data-'+(scent ? 'frag' : 'ward')+'="'+data+'">Details</button>'
+    + (productPage ? '<a class="btn btn-ghost btn-sm" href="'+escHtml(productPage)+'" target="_blank" rel="noopener noreferrer">Product page</a>' : '')
+    + '</div>';
 }
 
 async function saveDiscoveryStyle(button){
@@ -4301,7 +4300,7 @@ function _fragCardHTML(f){
       +'<div class="frag-rating-bar"><div class="frag-rating-fill" style="width:'+pct+'%"></div></div></div>';
   }
   return '<div class="frag-card" onclick="openFragranceModal(\''+f.id+'\')">'
-    +fragrancePoster(f)
+    +stylePoster('fragrance',f)
     +'<div class="frag-card-top"><div><div class="frag-card-name">'+escHtml(f.name)+'</div>'
     +'<div class="frag-card-house">'+escHtml(f.house)+'</div></div>'
     +'<span class="frag-status '+slCls+'">'+slLabel+'</span></div>'
@@ -4373,6 +4372,7 @@ function _wardCardHTML(w){
   var pairLine   = w.pairing ? '<div class="ward-pair">'+escHtml(w.pairing)+'</div>' : '';
   var colorName  = w.colorName || '';
   return '<div class="ward-card" onclick="openWardrobeModal(\''+w.id+'\')">'
+    +(w.photoUrl || styleCataloguePhoto('wardrobe',w) ? stylePoster('wardrobe',w) : '')
     +'<div class="ward-card-top">'
     +'<div class="ward-swatch" style="background:'+(/^#[a-f0-9]{6}$/i.test(w.color) ? w.color : '#888')+'" title="'+escHtml(colorName)+'"></div>'
     +'<div class="ward-info"><div class="ward-name">'+escHtml(w.name)+'</div>'
@@ -4466,11 +4466,24 @@ function _styleGradient(styleWords){
   return 'linear-gradient(135deg,#1A2030,#3A5070)';
 }
 
-function stylePickPage(kind,offset,size){
+function styleDiscoveryPool(kind,category){
+  var snapshot = kind === 'fragrance' ? _styleModel.scent(_loadFrags()) : _styleModel.wardrobe(_loadWard());
+  var picks = snapshot.picks;
+  if(category !== 'all') picks = picks.filter(function(pick){return pick.category === category;});
+  return {cold:!snapshot.profile.count,picks:picks};
+}
+
+function setDiscStyleCategory(category){
+  _discStyleCategory = category;
+  _catalogueOffset.style = 0;
+  loadCatalogDiscovery('style');
+}
+
+function stylePickPage(kind,offset,size,category='all'){
   var isFragrance = kind === 'fragrance';
-  var snapshot = isFragrance ? _styleModel.scent(_loadFrags()) : _styleModel.wardrobe(_loadWard());
+  var snapshot = styleDiscoveryPool(kind,category);
   return {
-    cold:!snapshot.profile.count,
+    cold:snapshot.cold,
     picks:styleRecommendations.page(snapshot.picks,offset,size).map(function(pick){
       var gradient = isFragrance ? _fragGradient(pick.character,pick.season) : _styleGradient(pick.style);
       return {...pick,gradient:gradient};
@@ -4510,7 +4523,7 @@ function _renderFragDiscovery(recs, isColdStart){
     '</div>'+
     '<div class="disc-hero-right" style="position:relative;z-index:1">'+
     '<div class="disc-hero-match-label">'+(isColdStart ? 'Catalogue pick' : 'Picked for your profile')+'</div>'+
-    fragrancePoster(h)+
+    stylePoster('fragrance',h)+
     '</div></div>';
   if(recs.length<=1){gridWrap.innerHTML='';return;}
   var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE SCENT PICKS</div><div class="disc-grid">';
@@ -4520,7 +4533,7 @@ function _renderFragDiscovery(recs, isColdStart){
     var cTags=rec.character.split(',').slice(0,3).map(function(c){return '<span class="tag">'+escHtml(c.trim())+'</span>';}).join('');
     html+='<div class="rc anim-fadeup'+delay+'">'+
       '<div class="rc-poster" style="background:'+rec.gradient+'">'+
-      fragrancePoster(rec)+
+      stylePoster('fragrance',rec)+
       '</div>'+
       '<div class="rc-body">'+
       '<div class="rc-title">'+escHtml(rec.name)+'</div>'+
@@ -4542,7 +4555,7 @@ function _renderFragDiscovery(recs, isColdStart){
 /* ────────────────────────────────────── Style Discovery ── */
 
 function loadStyleDiscovery(){
-  var result = stylePickPage('wardrobe',_catalogueOffset.style,25);
+  var result = stylePickPage('wardrobe',_catalogueOffset.style,25,_discStyleCategory);
   _renderStyleDiscovery(result.picks,result.cold);
 }
 
@@ -4552,12 +4565,11 @@ function _renderStyleDiscovery(recs, isColdStart){
   var gridWrap=document.getElementById('disc-grid-wrap');
   if(!recs||!recs.length){
     heroWrap.innerHTML='';
-    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">You’ve saved all the current wardrobe suggestions.</div>';
+    gridWrap.innerHTML='<div style="text-align:center;padding:64px 16px;color:var(--t-3);font-size:13px">No unsaved products in this category.</div>';
     return;
   }
   var banner=isColdStart?'<div style="background:var(--p-ghost);border:1px solid var(--p-subtle);border-radius:var(--r-lg);padding:12px 16px;margin-bottom:16px;font-size:12.5px;color:var(--t-2);line-height:1.6"><strong style="color:var(--p-rich)">✦ Build your wardrobe</strong> to get personalised style matches. These are timeless pieces to consider first.</div>':'';
   var h=recs[0];
-  var hInit=h.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
   var hReasons=h.reasons.map(function(r){return '<div class="disc-hero-reason"><div class="disc-hero-dot"></div>'+escHtml(r)+'</div>';}).join('');
   var hTags=h.style.split(',').slice(0,4).map(function(s){return '<span class="disc-hero-tag">'+escHtml(s.trim())+'</span>';}).join('');
   heroWrap.innerHTML=banner+
@@ -4573,18 +4585,17 @@ function _renderStyleDiscovery(recs, isColdStart){
     '</div>'+
     '<div class="disc-hero-right" style="position:relative;z-index:1">'+
     '<div class="disc-hero-match-label">'+(isColdStart ? 'Catalogue pick' : 'Picked for your profile')+'</div>'+
-    '<div style="margin-top:12px;width:90px;height:90px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;font-family:\'Cormorant Garamond\',serif;font-size:28px;font-weight:300;color:rgba(255,255,255,.25)">'+escHtml(hInit)+'</div>'+
+    stylePoster('wardrobe',h)+
     '</div></div>';
   if(recs.length<=1){gridWrap.innerHTML='';return;}
   var html='<div style="font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--t-3);margin-bottom:12px">MORE STYLE PICKS</div><div class="disc-grid">';
   recs.slice(1,25).forEach(function(rec,i){
-    var init2=rec.name.split(' ').slice(0,2).map(function(w){return w[0]||'';}).join('').toUpperCase();
     var delay=i<6?' anim-delay-'+(i+1):'';
     var reas2=rec.reasons.map(function(r){return '<div class="rc-reason"><div class="rc-dot"></div>'+escHtml(r)+'</div>';}).join('');
     var sTags=rec.style.split(',').slice(0,3).map(function(s){return '<span class="tag">'+escHtml(s.trim())+'</span>';}).join('');
     html+='<div class="rc anim-fadeup'+delay+'">'+
       '<div class="rc-poster" style="background:'+rec.gradient+'">'+
-      '<div class="rc-initials">'+escHtml(init2)+'</div>'+
+      stylePoster('wardrobe',rec)+
       '</div>'+
       '<div class="rc-body">'+
       '<div class="rc-title">'+escHtml(rec.name)+'</div>'+
@@ -4604,6 +4615,9 @@ function _renderStyleDiscovery(recs, isColdStart){
 
 /* ── Pre-fill wardrobe modal from a discover card ── */
 
+Array.from(new Set(WARD_PRODUCTS.map(function(row){return row[1];}))).sort().forEach(function(category){
+  document.getElementById('disc-style-category').add(new Option(category==='Shoes' ? 'Footwear' : category,category));
+});
 startApp();
 </script>
 </body>

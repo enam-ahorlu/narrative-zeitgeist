@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
+const { existsSync, readFileSync } = require('node:fs');
 const { test } = require('node:test');
 const { runInNewContext, Script } = require('node:vm');
 
@@ -44,6 +44,41 @@ test('expanded catalogues are distinct and compatible with form pickers', () => 
     assert.ok(row[0] && row[6]);
     assert.ok(category.has(row[1]), row[0] + ': ' + row[1]);
     assert.ok(styleSeason.has(row[5]), row[0] + ': ' + row[5]);
+  }
+});
+
+test('catalogue photos match named products and include source and reuse credits', () => {
+  const read = (file, expression) => runInNewContext(readFileSync(file,'utf8') + '\n' + expression);
+  const { productKey } = require('../assets/style-recommendations');
+  const { scents, scentPhotos } = read('catalogues/fragrances.js','({scents:FRAG_DB,scentPhotos:FRAGRANCE_PHOTOS})');
+  const { products, wardrobePhotos, productLinks } = read('catalogues/wardrobe.js',
+    '({products:WARD_PRODUCTS,wardrobePhotos:WARDROBE_PHOTOS,productLinks:WARD_PRODUCT_LINKS})');
+  assert.ok(products.length >= 50);
+  const categories = new Set(products.map(row=>row[1]));
+  for (const category of ['Tops','Bottoms','Dresses','Knitwear','Outerwear','Tailoring','Shoes','Bags','Jewelry','Accessories']) {
+    assert.ok(categories.has(category),category);
+  }
+  assert.ok(products.filter(([name])=>/loafer/i.test(name)).length >= 5);
+  assert.ok(products.every(([name,,brand])=>name && brand));
+  const wardrobeKeys = products.map(([name,,brand])=>productKey(name,brand));
+  for (const category of categories) {
+    assert.ok(products.some(([name,type,brand])=>type === category && wardrobePhotos[productKey(name,brand)]),category);
+  }
+  for (const [photos,keys,min] of [[scentPhotos,scents.map(([name,house])=>productKey(name,house)),12],
+    [wardrobePhotos,wardrobeKeys,16]]) {
+    assert.ok(Object.keys(photos).length >= min);
+    for (const [key,photo] of Object.entries(photos)) {
+      assert.ok(keys.includes(key),key);
+      assert.match(photo.source,/^https:\/\/(commons\.wikimedia\.org\/wiki\/File:|risdmuseum\.org\/art-design\/collection\/)/);
+      assert.match(photo.license,/^https:\/\/creativecommons\.org\//);
+      assert.ok(photo.credit);
+      if (photo.url.startsWith('/')) assert.ok(existsSync(photo.url.slice(1)),photo.url);
+      else assert.match(photo.url,/^https:\/\/upload\.wikimedia\.org\//);
+    }
+  }
+  for (const [key,url] of Object.entries(productLinks)) {
+    assert.ok(wardrobeKeys.includes(key),key);
+    assert.equal(new URL(url).protocol,'https:');
   }
 });
 

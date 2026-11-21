@@ -1,4 +1,69 @@
+/* Named products for Discovery. The full list also supports manual entry. */
+const WARD_PRODUCTS = [
+  ["Adrian Smooth Leather Tassel Loafers","Shoes","Dr. Martens","heritage, chunky, leather","smart casual, everyday","Year-round","A kiltie and tassels give this lug-soled slip-on more texture than a plain penny loafer."],
+  ["Larson Weejuns Penny Loafers","Shoes","G.H.Bass","preppy, heritage, classic","smart casual, workwear","Year-round","A low-profile penny strap pairs with chinos, denim or a casual suit."],
+  ["Jordaan Horsebit Loafers","Shoes","Gucci","tailored, classic, quiet luxury","formal, smart casual","Year-round","A slim leather loafer with metal horsebit hardware."],
+  ["Classic Dan Penny Loafers","Shoes","Sebago","preppy, heritage, classic","everyday, smart casual","Year-round","An apron toe and penny saddle for a traditional collegiate look."],
+  ["Wallabee Suede","Shoes","Clarks Originals","relaxed, heritage, textured","casual, weekend","Year-round","A moccasin toe and crepe sole soften tailored trousers or denim."],
+  ["1461 Made in England Oxblood Shoes","Shoes","Dr. Martens","heritage, leather, workwear","everyday, smart casual","Year-round","A three-eye derby in oxblood leather."],
+  ["1460 Smooth Leather Boots","Shoes","Dr. Martens","heritage, leather, workwear","everyday, weekend","Fall/Winter","The eight-eye lace-up boot with a sturdy silhouette."],
+  ["Samba OG","Shoes","adidas","retro, sporty, streetwear","everyday, casual","Year-round","A low-profile football-derived sneaker with a contrasting toe overlay."],
+  ["Arizona Two-Strap Sandals","Shoes","Birkenstock","minimalist, relaxed, summer","everyday, weekend","Spring/Summer","Two adjustable straps and a contoured footbed suit warm-weather outfits."],
+  ["Chuck Taylor All Star High Top","Shoes","Converse","retro, casual, streetwear","everyday, weekend","Year-round","Canvas uppers and a rubber toe cap work with straight or wide hems."],
+  ["Air Force 1 Low","Shoes","Nike","streetwear, classic, sporty","everyday, casual","Year-round","A fuller basketball silhouette balances wide trousers or shorts."],
+  ["990v6 Made in USA","Shoes","New Balance","sporty, retro, streetwear","everyday, casual","Year-round","Layered running uppers and a substantial midsole."],
+  ["501 Original Fit Jeans – Light Wash","Bottoms","Levi's","casual, classic, heritage","everyday, weekend","Year-round","A straight leg and button fly in light-wash denim."],
+  ["501 Original Fit Jeans – Black","Bottoms","Levi's","minimalist, classic, heritage","everyday, smart casual","Year-round","The straight-leg 501 in black denim."],
+  ["874 Original Work Pants","Bottoms","Dickies","workwear, tailored, streetwear","everyday, workwear","Year-round","A flat-front, straight-leg twill trouser."],
+  ["Pleated Wide Pants","Bottoms","Uniqlo","tailored, minimalist, relaxed","workwear, smart casual","Year-round","A clean waistband and relaxed leg for an easy office silhouette."],
+  ["Double Knee Pant","Bottoms","Carhartt WIP","workwear, streetwear, practical","everyday, weekend","Year-round","Reinforced panels and utility pockets add structure."],
+  ["Uniqlo U Crew Neck T-Shirt","Tops","Uniqlo","minimalist, elevated basics, casual","everyday, weekend","Year-round","A substantial cotton jersey tee with a close crew neckline."],
+  ["L.12.12 Original Polo","Tops","Lacoste","preppy, classic, sporty","everyday, smart casual","Spring/Summer","The piqué polo with a two-button placket."],
+  ["Classic Fit Oxford Shirt","Tops","Polo Ralph Lauren","preppy, workwear, classic","workwear, smart casual","Year-round","A button-down Oxford that also works open over a tee."],
+  ["Minquiers Moderne Breton Shirt","Tops","Saint James","nautical, classic, casual","everyday, weekend","Spring/Summer","A lightweight striped Breton with long sleeves."],
+  ["Aran Fisherman Cable Crewneck","Knitwear","Aran Sweater Market","heritage, textured, warm","weekend, everyday","Fall/Winter","Cable patterns bring depth to a plain winter outfit."],
+  ["Merino Crew Neck Sweater","Knitwear","Uniqlo","minimalist, layering, classic","workwear, everyday","Fall/Winter","Fine-gauge merino for layering over a collared shirt."],
+  ["Lambswool Crew Neck Jumper","Knitwear","Johnstons of Elgin","classic, heritage, quiet luxury","smart casual, workwear","Fall/Winter","A soft knit that sits neatly beneath a jacket."],
+  ["Vintage Burberrys Trench Coat","Outerwear","Burberry","classic, tailored, heritage","workwear, smart casual","Fall/Winter","A belted, double-breasted vintage raincoat."],
+  ["Bedale Wax Jacket","Outerwear","Barbour","heritage, workwear, textured","weekend, smart casual","Fall/Winter","A shorter waxed cotton jacket with corduroy collar."],
+  ["Detroit Jacket","Outerwear","Carhartt WIP","workwear, heritage, streetwear","everyday, weekend","Fall/Winter","A cropped work jacket with a contrasting collar."],
+  ["1996 Retro Nuptse Jacket","Outerwear","The North Face","streetwear, sporty, warm","everyday, weekend","Fall/Winter","Boxy insulation with broad horizontal baffles."],
+  ["Classic Retro-X Fleece Jacket","Outerwear","Patagonia","sporty, heritage, textured","everyday, weekend","Fall/Winter","Pile fleece with a contrast chest pocket."],
+  ["Long Sleeve Mesh Midi Dress","Dresses","GANNI","statement piece, layering, feminine","date night, eveningwear","Year-round","A printed mesh layer that works with simple accessories."],
+  ["Havana Suit","Tailoring","Suitsupply","tailored, classic, workwear","formal, workwear","Year-round","A softer-shouldered suit with a contemporary profile."],
+  ["Ludlow Slim-Fit Suit Jacket","Tailoring","J.Crew","tailored, preppy, classic","workwear, formal","Year-round","A slim jacket that can also be worn as a separate."],
+  ["F-91W Digital Watch","Accessories","Casio","retro, practical, minimalist","everyday, casual","Year-round","A compact digital watch on a black resin strap."],
+  ["Original Wayfarer Sunglasses","Accessories","Ray-Ban","retro, classic, summer","everyday, weekend","Spring/Summer","Angular acetate frames with a strong brow."],
+  ["9FORTY New York Yankees Cap","Accessories","New Era","sporty, streetwear, casual","everyday, weekend","Year-round","A structured baseball cap with an adjustable back."],
+  ["GG Marmont Double G Belt","Accessories","Gucci","statement piece, classic, leather","smart casual, eveningwear","Year-round","A leather belt with a distinctive double-G buckle."],
+  ["Carré 90 Silk Scarf","Accessories","Hermès","classic, statement piece, luxe","smart casual, formal","Year-round","A square silk scarf to tie at the neck, hair or bag handle."],
+  ["Birkin Bag","Bags","Hermès","classic, tailored, quiet luxury","workwear, smart casual","Year-round","A structured leather top-handle bag."],
+  ["Kånken Classic Backpack","Bags","Fjällräven","practical, heritage, travel-friendly","everyday, weekend","Year-round","A rectangular backpack with a wide-opening main zip."],
+  ["Le Pliage Original Tote","Bags","Longchamp","minimalist, practical, travel-friendly","everyday, workwear","Year-round","A lightweight foldable bag with leather trim."],
+  ["Brooklyn Shoulder Bag 28","Bags","Coach","minimalist, relaxed, leather","everyday, smart casual","Year-round","A soft-structured shoulder bag for daily use."],
+  ["Puzzle Bag","Bags","Loewe","sculptural, leather, statement piece","smart casual, weekend","Year-round","Geometric leather panels create a distinctive shape."],
+  ["Tutti Frutti Bracelet","Jewelry","Cartier","heritage, sculptural, statement piece","formal, eveningwear","Year-round","Carved coloured stones define this archival Cartier design."],
+  ["Trinity Ring","Jewelry","Cartier","classic, sculptural, quiet luxury","formal, everyday","Year-round","Three interlocking bands in contrasting gold tones."],
+  ["Return to Tiffany Heart Tag Bracelet","Jewelry","Tiffany & Co.","classic, polished, statement piece","everyday, smart casual","Year-round","A heart-shaped tag on a chain bracelet."],
+  ["One Row Pearl Drop Choker","Jewelry","Vivienne Westwood","statement piece, heritage, sculptural","date night, eveningwear","Year-round","A short pearl strand with the house’s orb motif."],
+  ["Dôme Hoops","Jewelry","Mejuri","minimalist, sculptural, elevated basics","everyday, smart casual","Year-round","Rounded hoops add volume with a clean outline."],
+  ["Crossover Ring","Jewelry","David Yurman","sculptural, textured, classic","eveningwear, smart casual","Year-round","Interlaced bands pair polished and textured surfaces."],
+  ["The Ellie Nap Dress","Dresses","Hill House Home","feminine, summer, relaxed","weekend, smart casual","Spring/Summer","A smocked bodice and tiered skirt suit warm-weather outfits."],
+  ["Tabi Ballerinas","Shoes","Maison Margiela","minimalist, statement piece, sculptural","smart casual, eveningwear","Spring/Summer","A split toe changes the outline of a pared-back flat."],
+  ["Bettina Dress","Dresses","The Reformation","feminine, classic, minimalist","date night, eveningwear","Spring/Summer","A defined waist and flared skirt give this dress a clean silhouette."],
+  ["Aldwych Tuxedo Jacket","Tailoring","Charles Tyrwhitt","tailored, classic, eveningwear","formal, eveningwear","Year-round","A formal dinner jacket for black-tie separates."],
+  ["2.55 Flap Bag","Bags","Chanel","classic, polished, heritage","formal, smart casual","Year-round","A quilted flap bag with a shoulder chain."],
+  ["Vintage Brown Tassel Loafers","Shoes","Tod’s","classic, leather, heritage","smart casual, everyday","Year-round","A brown vintage pair with an apron toe and two tassels."],
+  ["Stadium Short Sleeve Shirt","Tops","Polo Ralph Lauren","retro, sporty, streetwear","casual, weekend","Spring/Summer","A short-sleeved piece from the Stadium collection."],
+  ["Archival Printed Wrap Dresses","Dresses","Diane von Furstenberg","heritage, feminine, statement piece","workwear, smart casual","Year-round","Printed wrap dresses from the 2014 LACMA retrospective."],
+  ["Le Smoking Tuxedo (1988)","Tailoring","Yves Saint Laurent","tailored, heritage, statement piece","formal, eveningwear","Year-round","The 1988 tuxedo at right in the Musée d’Orsay exhibition photograph."],
+  ["Hand-Batik Cotton T-Shirt","Tops","Studio One Eighty Nine","heritage, statement piece, summer","casual, weekend","Spring/Summer","Hand-batik cotton brings a printed detail to a crew-neck tee."],
+  ["Hand-Batik Cotton Ruffle Cuff Shirt","Tops","Studio One Eighty Nine","heritage, feminine, statement piece","smart casual, weekend","Spring/Summer","A hand-batik shirt with ruffle cuffs for texture at the sleeve."],
+  ["1970s Plaid Knit Sweater and Skirt Set","Knitwear","Missoni","heritage, statement piece, textured","smart casual, eveningwear","Fall/Winter","A multicoloured knit set in the RISD Museum collection."]
+];
+
 var WARD_STYLE_DB = [
+  ...WARD_PRODUCTS,
   ["Breton Stripe Tee", "Tops", "Saint James", "casual, minimalist, French, classic, nautical", "everyday, weekend", "Spring/Summer", "The original nautical staple — effortlessly chic"],
   ["Camel Trench Coat", "Outerwear", "", "classic, tailored, investment piece, neutral, capsule staple", "workwear, smart casual, formal", "Fall/Winter", "The definitive transitional layer — works over everything"],
   ["White Linen Shirt", "Tops", "", "minimalist, relaxed, summer, breathable, capsule staple", "everyday, weekend, smart casual", "Spring/Summer", "Effortless warm-weather essential"],
@@ -93,3 +158,123 @@ var WARD_STYLE_DB = [
   ["Leather Cardholder", "Accessories", "", "minimalist, practical, elevated basics", "everyday, workwear, travel-friendly", "Year-round", "A smaller carry option for pockets or compact bags."],
   ["Cotton Twill Cap", "Accessories", "", "casual, streetwear, practical", "casual, weekend, everyday", "Year-round", "An understated way to finish a casual outfit."]
 ];
+
+// Product photographs with source and license details. WebP copies are resized.
+const WARDROBE_PHOTOS = {
+  "1970s plaid knit sweater and skirt set|missoni": {
+    "url": "/catalogues/photos/missoni-knit-set.webp",
+    "source": "https://risdmuseum.org/art-design/collection/sweater-and-skirt-set-200926",
+    "credit": "RISD Museum, CC0",
+    "license": "https://creativecommons.org/publicdomain/zero/1.0/"
+  },
+  "f-91w digital watch|casio": {
+    "url": "/catalogues/photos/casio-f91w.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Casio_F-91W.jpg",
+    "credit": "NotFromUtrecht, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "arizona two-strap sandals|birkenstock": {
+    "url": "/catalogues/photos/birkenstock-arizona.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Birkenstock_Arizona.jpg",
+    "credit": "Elmschrat, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "samba og|adidas": {
+    "url": "/catalogues/photos/samba-og.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Adidas_Samba_OG.jpg",
+    "credit": "LeDroider, CC0",
+    "license": "https://creativecommons.org/publicdomain/zero/1.0/deed.en"
+  },
+  "501 original fit jeans – light wash|levis": {
+    "url": "/catalogues/photos/levis-501-light.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Levi%27s_501.jpg",
+    "credit": "Köttbulleledaren, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "501 original fit jeans – black|levis": {
+    "url": "/catalogues/photos/levis-501-black.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Levi%27s_501_black.jpg",
+    "credit": "Jeangagnon, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "original wayfarer sunglasses|ray-ban": {
+    "url": "/catalogues/photos/wayfarer.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ray_Ban_Original_Wayfarer.jpg",
+    "credit": "Jaschke, CC BY-SA 3.0",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0"
+  },
+  "birkin bag|hermes": {
+    "url": "/catalogues/photos/birkin.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Hermes_Birkin-2.jpg",
+    "credit": "Theorb and Regi51, Public domain",
+    "license": "https://creativecommons.org/publicdomain/mark/1.0/"
+  },
+  "vintage burberrys trench coat|burberry": {
+    "url": "/catalogues/photos/burberry-trench.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Burberrys_Trenchcoat.jpg",
+    "credit": "MB-one, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "1461 made in england oxblood shoes|dr. martens": {
+    "url": "/catalogues/photos/docs-1461.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Unlaced_Dr_Martens_Oxblood_Made_in_England_1461_shoes.jpg",
+    "credit": "Nick-D, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "1460 smooth leather boots|dr. martens": {
+    "url": "/catalogues/photos/docs-1460.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Dr._Martens_1460_01.jpg",
+    "credit": "Pannet, CC BY 4.0",
+    "license": "https://creativecommons.org/licenses/by/4.0"
+  },
+  "kanken classic backpack|fjallraven": {
+    "url": "/catalogues/photos/kanken.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Kanken_Rucksack.jpg",
+    "credit": "idhren, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "tutti frutti bracelet|cartier": {
+    "url": "/catalogues/photos/cartier-tutti-frutti.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Tutti_frutti_bracelet_-_Cartier_(25802475508).jpg",
+    "credit": "Tim Evanson from Cleveland Heights, Ohio, USA, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "2.55 flap bag|chanel": {
+    "url": "/catalogues/photos/chanel-255.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Chanel_2.55.jpg",
+    "credit": "Liu Wen Cheng 我希望成為, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "vintage brown tassel loafers|tods": {
+    "url": "/catalogues/photos/tods-loafer.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:A_brown_Loafer_Shoes_from_TODS.jpg",
+    "credit": "Peachyeung316, CC BY-SA 4.0",
+    "license": "https://creativecommons.org/licenses/by-sa/4.0"
+  },
+  "stadium short sleeve shirt|polo ralph lauren": {
+    "url": "/catalogues/photos/polo-stadium.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Polo_Ralph_Lauren_Stadium_shirt,_short_sleeves.jpg",
+    "credit": "Menswear Market, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  },
+  "archival printed wrap dresses|diane von furstenberg": {
+    "url": "/catalogues/photos/dvf-wrap.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Diane_von_F%C3%BCrstenberg_wrap_dress_display_at_LACMA_04.jpg",
+    "credit": "Bruce Monroe, CC BY-SA 2.0",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0"
+  },
+  "le smoking tuxedo (1988)|yves saint laurent": {
+    "url": "/catalogues/photos/ysl-le-smoking.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:1971_evening_dress_by_Yves_Saint_Laurent_for_Marie-H%C3%A9l%C3%A8ne_de_Rothschild_with_Le_Smoking_suit_from_1988_(mus%C3%A9e_d%27Orsay,_Paris).jpg",
+    "credit": "dalbera, CC BY 2.0",
+    "license": "https://creativecommons.org/licenses/by/2.0"
+  }
+};
+
+const WARD_PRODUCT_LINKS = {
+  "adrian smooth leather tassel loafers|dr. martens": "https://www.drmartens.com/us/en/adrian-smooth-leather-tassel-loafers-black/p/14573001",
+  "larson weejuns penny loafers|g.h.bass": "https://www.ghbass.com/products/men-larson-weejuns-penny-loafer-black",
+  "jordaan horsebit loafers|gucci": "https://www.gucci.com/us/en/pr/men/shoes-for-men/loafers-moccasins-for-men/mens-gucci-jordaan-loafer-p-A00CY6BLM002819",
+  "hand-batik cotton t-shirt|studio one eighty nine": "https://studiooneeightynine.com/collections/unisex/products/hand-batik-cotton-t-shirt-1",
+  "hand-batik cotton ruffle cuff shirt|studio one eighty nine": "https://studiooneeightynine.com/collections/all-products/products/hand-batik-cotton-ruffle-cuff-shirt"
+};

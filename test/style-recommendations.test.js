@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { create, fragranceKey, matchesSaved, page } = require('../assets/style-recommendations');
+const { create, productKey, matchesSaved, page } = require('../assets/style-recommendations');
 
 const scents = [
   ['Bold','House A','Cedar','Amber','Moss','Warm, woody','Moderate','Winter'],
@@ -13,7 +13,7 @@ const wardrobe = [
   ['Straight Trousers','Bottoms','Sample','tailored, classic','work, formal','Winter','Pair with a jacket'],
   ['Kente Shirt','Tops','Sample','casual, graphic','weekend','Summer','Pair with denim']
 ];
-const photos = { [fragranceKey('Clear','House B')]:{url:'fixture'} };
+const photos = { [productKey('Clear','House B')]:{url:'fixture'} };
 
 test('scent profiles weight wishes below tried and rated items and enrich missing notes', () => {
   const model = create(scents,wardrobe,photos);
@@ -49,7 +49,7 @@ test('wardrobe ranking uses saved tags and occasions and excludes normalized mat
   const model = create(scents,wardrobe);
   assert.match(model.wardrobe([]).picks[0].reasons[0],/catalogue/);
   const {profile,picks} = model.wardrobe([
-    {name:'  Wool Jacket  ',category:'Outerwear',status:'Wishlisted',tags:['Tailored'],occasion:'Work',season:'Winter'}
+    {name:'  Wool Jacket  ',category:'Outerwear',status:'Wishlisted',tags:['Tailored'],occasion:'Work, Everyday',season:'Winter'}
   ]);
   assert.equal(profile.tags.tailored,1);
   assert.equal(profile.statuses.wishlisted,1);
@@ -62,4 +62,11 @@ test('catalogue paging wraps without repeating a pick in a short list', () => {
   assert.deepEqual(page(['A','B','C'],2,25),['C','A','B']);
   assert.deepEqual(page(['A','B','C'],4,2),['B','C']);
   assert.deepEqual(page([],1,2),[]);
+});
+
+test('catalogue search accepts brand and product together and common category spellings', () => {
+  const { matchesQuery } = require('../assets/style-recommendations');
+  assert.ok(matchesQuery('dr martens adrian footwear',['Adrian Tassel Loafers','Dr. Martens','Shoes']));
+  assert.ok(matchesQuery('cartier jewellery',['Trinity Ring','Cartier','Jewelry']));
+  assert.equal(matchesQuery('cartier loafers',['Trinity Ring','Cartier','Jewelry']),false);
 });

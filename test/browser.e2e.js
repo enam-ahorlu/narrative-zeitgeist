@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { readFile } = require('node:fs/promises');
+const { readFile, readdir } = require('node:fs/promises');
 const { test } = require('node:test');
 const { randomUUID } = require('node:crypto');
 const { chromium } = require('playwright-core');
@@ -78,7 +78,7 @@ function createMocks(assets) {
     const path = url.pathname;
     const method = request.method();
     const send = (json, status = 200) => route.fulfill({ status, json });
-    if (url.hostname === 'upload.wikimedia.org') {
+    if (url.hostname === 'upload.wikimedia.org' || url.hostname === 'user-photo.example.test') {
       return route.fulfill({ contentType:'image/gif', body:Buffer.from(
         'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') });
     }
@@ -251,7 +251,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
     headless: true
   });
   t.after(() => browser.close());
-  const assets = Object.fromEntries(await Promise.all(Object.entries(fixtures).map(async ([url, [file, contentType]]) =>
+  const photos = await readdir('catalogues/photos');
+  const photoFixtures = Object.fromEntries(photos.map(file => [
+    '/catalogues/photos/' + file, ['catalogues/photos/' + file, 'image/webp']
+  ]));
+  const assets = Object.fromEntries(await Promise.all(Object.entries({...fixtures, ...photoFixtures}).map(async ([url, [file, contentType]]) =>
     [url, { body: await readFile(file), contentType }])));
 
   async function openContext(options = {}) {
@@ -517,9 +521,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#ward-name').fill('Tropical Wool');
   await page.locator('#ward-cs-drop').getByRole('button', { name: /Tropical Wool Suit/ }).click();
   assert.equal(await page.locator('#ward-cat').inputValue(), 'Tailoring');
+  await page.locator('#ward-photo').fill('https://user-photo.example.test/suit.webp');
   await page.locator('#ward-save-btn').click();
-  await page.locator('#ward-grid').getByText('Tropical Wool Suit').waitFor();
+  await page.locator('#ward-grid').getByRole('img',{name:'Tropical Wool Suit',exact:true}).waitFor();
   await page.locator('#ward-grid').getByText('Tropical Wool Suit').click();
+  assert.equal(await page.locator('#ward-photo').inputValue(),'https://user-photo.example.test/suit.webp');
   await page.locator('#ward-name').fill('A’s Tropical Wool Suit');
   await page.locator('#ward-save-btn').click();
   await page.locator('#ward-grid').getByText('A’s Tropical Wool Suit').waitFor();
@@ -530,7 +536,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   phone.on('pageerror', error => errors.push(error.message));
   await phone.goto(origin + '/#wardrobe');
   await signIn(phone, users[0].email);
-  await phone.locator('#ward-grid').getByText('A’s Tropical Wool Suit').waitFor();
+  await phone.locator('#ward-grid').getByRole('img',{name:'A’s Tropical Wool Suit'}).waitFor();
   await phone.locator('#mni-settings').click();
   await phone.evaluate(() => { document.getElementById('auth-email-inp').value = 'unrelated@example.test'; });
   await phone.locator('#settings-password-btn').click();
@@ -602,6 +608,15 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await phone.locator('#frag-grid').getByText('CK One',{exact:true}).waitFor();
   await phone.locator('#mni-insights').tap();
   await phone.locator('#insights-style').getByText(/1 tried/).waitFor();
+  await phone.locator('#mni-style').tap();
+  await phone.locator('#s-fragrances .ph-actions').getByRole('button',{name:'Wardrobe',exact:true}).tap();
+  const browseStyle = phone.getByRole('button',{name:'Browse style'});
+  await fitsPhone(browseStyle,'Browse style');
+  await browseStyle.tap();
+  const phoneCategory = phone.locator('#disc-style-category');
+  await fitsPhone(phoneCategory,'Style category');
+  await phoneCategory.selectOption('Jewelry');
+  await phone.locator('#disc-content').getByRole('img',{name:'Tutti Frutti Bracelet',exact:true}).evaluate(image => image.decode());
 
   await phone.locator('#mni-settings').tap();
   await phone.getByRole('button',{name:'Open Design System'}).tap();
@@ -642,6 +657,8 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await combined.getByRole('heading',{name:'Fragrance picks'}).waitFor();
   await combined.getByRole('heading',{name:'Wardrobe picks'}).waitFor();
   await combined.getByRole('img',{name:'CK One bottle'}).waitFor();
+  await combined.getByRole('img',{name:'Eau Sauvage bottle'}).evaluate(image => image.decode());
+  await combined.getByRole('img',{name:'1461 Made in England Oxblood Shoes',exact:true}).evaluate(image => image.decode());
   const ckCard = combined.locator('article').filter({hasText:'CK One'});
   await ckCard.getByRole('button',{name:'Details'}).click();
   assert.equal(await page.locator('#frag-name').inputValue(),'CK One');
@@ -663,8 +680,24 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-search-inp').press('Escape');
   await page.locator('#disc-search-res').waitFor({ state: 'hidden' });
   await page.locator('.disc-format-pills').getByText('Style', { exact: false }).click();
-  await page.locator('#disc-search-inp').fill('Kente-Panel');
-  await page.locator('#disc-search-res').getByText('Kente-Panel Shirt', { exact: true }).waitFor();
+  await page.locator('#disc-style-category').selectOption('Shoes');
+  await page.locator('#disc-search-inp').fill('dr martens adrian');
+  const loafer = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Adrian Smooth Leather Tassel Loafers'});
+  await loafer.getByRole('link',{name:'Product page'}).waitFor();
+  await loafer.getByRole('button',{name:'Details'}).click();
+  assert.equal(await page.locator('#ward-brand').inputValue(),'Dr. Martens');
+  assert.equal(await page.locator('#ward-cat').inputValue(),'Shoes');
+  await page.locator('#m-wardrobe').getByRole('button',{name:'Cancel'}).click();
+  await page.locator('#disc-search-inp').fill('loafer');
+  await page.locator('#disc-search-res').getByText('Larson Weejuns Penny Loafers',{exact:true}).waitFor();
+  await page.locator('#disc-style-category').selectOption('Jewelry');
+  await page.locator('#disc-search-inp').fill('cartier');
+  const bracelet = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Tutti Frutti Bracelet'});
+  await bracelet.getByRole('img',{name:'Tutti Frutti Bracelet'}).evaluate(image => image.decode());
+  await bracelet.getByRole('button',{name:'Wishlist · Tutti Frutti Bracelet'}).click();
+  await visit('wardrobe');
+  await page.locator('#s-wardrobe .pills').getByText('Jewelry',{exact:true}).click();
+  await page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}).evaluate(image => image.decode());
 
   await visit('settings');
   await page.locator('#delete-account-btn').click();

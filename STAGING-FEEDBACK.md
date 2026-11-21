@@ -35,10 +35,7 @@ Fragrance and wardrobe picks use their local catalogues and separate saved
 profiles. Scent features include notes, character, season, projection and
 house. Wardrobe features include style tags, occasions, categories and season.
 
-## Fragrance photos
+## Style & Scent catalogue
 
-The built-in catalogue previously held text metadata only. Bottle images
-with attribution now cover CK One, Coco Mademoiselle and Eau Sauvage.
-Remaining entries can use a personal HTTPS bottle photo URL and display
-initials when a photo is unavailable. Source and licensing are linked from
-each built-in photo.
+See [the Style & Scent catalogue checklist](STYLE-CATALOGUE.md) for current
+fragrance and wardrobe photo coverage, sources and browsing changes.
