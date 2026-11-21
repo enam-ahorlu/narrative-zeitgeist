@@ -48,6 +48,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/007_journal_workflows.sql');
   await apply('migrations/008_media_workflows.sql');
   await apply('migrations/009_quota_refund.sql');
+  await apply('migrations/010_duplicate_guard.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -147,7 +148,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await assert.rejects(db.query('select public.save_up_next_order($1)',[[first,first,track]]),{code:'P0002'});
     const ids = ['00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000013'];
     for (const id of ids) {
-      await db.query("select public.save_journal_media($1,false,'Same title','music',8,null,null,null,null,'{}',null,$2)",[id,{provider:'fixture',id:'track',kind:'track'}]);
+      await db.query("select public.save_journal_media($1,false,'Same title','music',8,null,null,null,null,'{}',null,$2,$3)",[id,{provider:'fixture',id:'track',kind:'track'},id===ids[1]]);
     }
     assert.deepEqual((await db.query('select catalogue from public.entries_with_tags where id=any($1::uuid[])', [ids])).rows.map(row=>row.catalogue.kind),['track','track']);
     await db.query('select public.dismiss_watchlist_media($1)',[remake]);
@@ -155,6 +156,29 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await actAs(b);
     assert.equal((await db.query('select * from public.discovery_catalogue_feedback')).rows.length,0);
     await assert.rejects(db.query('select public.save_up_next_order($1)',[[first,track]]),{code:'P0002'});
+  });
+
+  await t.test('a work already in the collection cannot be added twice unless it is a deliberate repeat', async () => {
+    await actAs(a);
+    const add = (id,title,format,catalogue=null,repeat=false) => db.query(
+      "select public.save_journal_media($1,false,$2,$3,8,null,null,null,null,'{}',null,$4,$5)",[id,title,format,catalogue,repeat]);
+    const uid = n => '00000000-0000-4000-8000-0000000001' + String(n).padStart(2,'0');
+    await add(uid(1),'Dune','film',{provider:'tmdb',id:'1',year:'1984'});
+    const duplicate = { code:'23505' };
+    await assert.rejects(add(uid(2),'  DUNE ','film',null),duplicate);
+    await assert.rejects(add(uid(3),'Dune','film',{provider:'tmdb',id:'1',year:'1984'}),duplicate);
+    await add(uid(4),'Dune','film',{provider:'tmdb',id:'2',year:'2021'});
+    await add(uid(5),'Dune','book');
+    await add(uid(6),"Don't Look Up",'film');
+    await assert.rejects(add(uid(7),'Dont look up!','film'),duplicate);
+    await add(uid(8),'Blue','music',{provider:'fixture',id:'album-blue',kind:'album'});
+    await add(uid(9),'Blue','music',{provider:'fixture',id:'track-blue',kind:'track'});
+    await assert.rejects(add(uid(10),'Blue','music',{kind:'track'}),duplicate);
+    await add(uid(11),'Dune','film',{provider:'tmdb',id:'1',year:'1984'},true);
+    await add(uid(1),'Dune','film',{provider:'tmdb',id:'1',year:'1984'});
+    assert.equal((await db.query("select count(*)::int n from public.entries where title='Dune' and format='film'")).rows[0].n,3);
+    await actAs(b);
+    await add(uid(12),'Dune','film',{provider:'tmdb',id:'1',year:'1984'});
   });
 
   await t.test('quota is per account, includes a retry interval, and resets after an hour', async () => {

@@ -410,6 +410,18 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
     && Array.from(document.querySelectorAll('#s-collection tbody tr .tc-title')).filter(row=>row.textContent.startsWith('Fixture Track')).length === 2);
   assert.deepEqual(entries.filter(entry=>entry.title==='Fixture Track').map(entry=>entry.catalogue.id),['12345','12345']);
 
+  /* A plain Add of a work that is already in the collection is refused; only Log again repeats it */
+  await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  await page.locator('#add-format').selectOption('Track');
+  await page.locator('#add-title').fill('Fixture Track');
+  await page.locator('#cs-drop').getByText('Fixture Track',{exact:true}).click();
+  const savesBeforeDuplicate = journalDrafts.length;
+  await page.locator('#add-save-btn').click();
+  await page.getByText('is already in your collection',{exact:false}).waitFor();
+  assert.equal(journalDrafts.length,savesBeforeDuplicate);
+  assert.equal(entries.filter(entry=>entry.title==='Fixture Track').length,2);
+  await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
+
   await visit('designsystem');
   const appearance = page.locator('#s-designsystem');
   const preview = appearance.locator('.appearance-preview');
@@ -606,8 +618,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(await phoneTag.getAttribute('aria-pressed'),'true');
   await phone.locator('#add-notes').fill('Logged from a phone');
   await phone.locator('#add-save-btn').tap();
+  await phone.getByText('is already in your collection',{exact:false}).waitFor();
+  assert.ok(!entries.some(entry=>entry.notes==='Logged from a phone'));
+  await phone.locator('#m-add').getByRole('button',{name:'Cancel'}).tap();
   await phone.locator('#m-add').waitFor({state:'hidden'});
-  assert.ok(entries.some(entry=>entry.notes==='Logged from a phone' && entry.catalogue?.kind==='track'));
 
   watchlist.push(...['Mobile first film','Mobile second book'].map((title,index)=>({
     id:randomUUID(),user_id:users[0].id,title,format:index?'book':'film',priority:'up_next',

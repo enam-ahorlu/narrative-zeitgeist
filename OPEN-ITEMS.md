@@ -33,14 +33,14 @@ Snapshot: 21 November 2026, after the production update and the follow-up fixes 
 | P4 | Production Vercel variables and Anthropic spend limit | Compulsory | Production variables confirmed complete. Open, owner action: add `PREVIEW_SUPABASE_SECRET_KEY` in Vercel Preview (secret Claude does not hold) and set the Anthropic spend limit in the Anthropic console |
 | P5 | Apply migrations 003 to 008 to production in order | Compulsory | Done |
 | P6 | Promote `main`, verify, record rollback | Compulsory | Done. Signed-in checks remain under P3 |
-| P7 | Enable leaked-password protection in Supabase Auth (both projects) | Compulsory | Open, owner action (dashboard setting, plan dependent) |
+| P7 | Enable leaked-password protection in Supabase Auth (both projects) | Compulsory | Closed by owner decision (21 Nov 2026): the setting needs the Supabase Pro plan and the organization is on Free. Risk accepted for now. Revisit if the plan is upgraded or the app gains other users |
 | B1 | Settings display name uses `SUPA` instead of undefined `_sb`, with a browser test | Compulsory | Done, live |
 | B2 | Stop serving repo files: `.vercelignore` | Compulsory | Done, confirmed on production |
 | B3 | `/api/search` and `/api/ratings` require a session, no wildcard CORS, method and length checks, with tests | Compulsory | Done, live |
 | B4 | Basic security headers in `vercel.json` | Compulsory | Done, confirmed on production |
 | B5 | `.gitattributes` for LF line endings | Compulsory | Done |
 | B6 | ESLint `no-undef` lint and CI workflow | Suggested | Done, CI passing |
-| M1 | Record migrations in a migration history | Suggested | Done. Production records 003 to 009. Staging was backfilled for 003 to 008 and records 009 |
+| M1 | Record migrations in a migration history | Suggested | Done. Production records 003 to 010. Staging was backfilled for 003 to 008 and records 009 and 010 |
 | N1 | `public.set_updated_at` has no fixed `search_path` (Supabase security advisor warning) | Suggested | Done (migration 009, production and staging). Advisor warning cleared |
 | Q1 | Refund or commit-on-success for the Discovery quota | Suggested | Done (migration 009). Provider failures return the slot through a server-only function; a model answer that cannot be used stays charged. Also fixed: a refused second Compare slot now returns the first |
 | Q2 | Model id from an environment variable | Suggested | Done. Set `DISCOVERY_MODEL` in Vercel to change it; the default is `claude-sonnet-4-6` and anything that is not a plain model id is ignored |
@@ -52,6 +52,7 @@ Snapshot: 21 November 2026, after the production update and the follow-up fixes 
 | Q8 | Catalogue data shape and lazy loading, shared code folder, SDK version note, drop the stray `cowork-artifact-meta` block and the prototype file | Suggested | Done except lazy loading. Stray block and prototype removed, SDK version recorded, `media-identity.js` moved to `shared/` (used by both the page and the server). Decision: catalogues stay eager. They add about 118 KB uncompressed (roughly 25 KB over the wire) and are read synchronously across the Style and Scent code, so lazy loading would touch every reader for a small gain. Revisit if the catalogues grow several times |
 | Q9 | Incremental front-end modularisation (CSS file, ES modules), only when touching those areas | Suggested | Standing rule, not a task: split a screen out of `index.html` when changing it. Recent splits (journal, watchlist, insights, style, entry form, escaping) follow it |
 | Q10 | Optional extra: a JSON export of production data kept outside the repo, refreshed before each migration | Suggested | Done as a script. `npm run export:data` (see `SUPABASE_SETUP.md`) writes to the git-ignored `backups/` folder. Owner action: run it once with your secret key and before each future migration |
+| R1 | Block adding the same work to the collection twice | Compulsory | Done (migration 010, with client check). A new entry for a work already in the collection is refused, by the form and by `save_journal_media` (error 23505). Same work means the same catalogue id, or the same normalised title with no conflicting year or creator, and tracks are kept apart from albums. **Log again** is the deliberate way to repeat and still works. Editing is unaffected. No duplicates existed in production when the rule was added |
 
 ## Tidy
 

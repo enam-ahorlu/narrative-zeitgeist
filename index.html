@@ -2230,6 +2230,7 @@ function handleAuthChange(event, session){
     _discSeedId = '';
     editMode = false;
     _entryDraftId = null;
+    _entryRepeat = false;
     _wlMoveId = null;
     tagPickerVersion++;
     _catalogueOffset = {all:0, fragrances:0, style:0};
@@ -2708,6 +2709,7 @@ function closeModal(id){
     _closeSearchDrop();
     editMode=false;
     _entryDraftId = null;
+    _entryRepeat = false;
     tagPickerVersion++;
     document.getElementById('add-modal-title').textContent='Add Entry';
     document.getElementById('add-save-btn').textContent='Save Entry';
@@ -2965,6 +2967,7 @@ async function confirmDelete(){
 /* ── Save entry with toast ── */
 var editMode=false;
 var _entryDraftId = null;
+var _entryRepeat = false; /* true only while the Add form was opened through Log again */
 /* ── Cover map: title prefix → gradient for all existing entries ── */
 var coverMap={
   'Succession':'linear-gradient(135deg,#1B5E76,#4AADBA)',
@@ -3663,6 +3666,7 @@ function logEntryAgain(){
   closeModal('detail');
   openEntryFromPick(entry);
   loadTagPicker(entry.tags || []);
+  _entryRepeat = true;
 }
 
 function addFromDiscover(button){

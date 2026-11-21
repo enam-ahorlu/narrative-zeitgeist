@@ -17,6 +17,11 @@ function resetEntryForm(){
   setCover(swatch, swatch.style.background);
 }
 
+/* The same work already in the collection, or null. Log again bypasses this on purpose. */
+function existingCollectionEntry(candidate){
+  return _allEntries.find(function(entry){return mediaIdentity.sameWork(entry,candidate);}) || null;
+}
+
 async function saveEntry(){
   var owner = currentUser?.id;
   var button = document.getElementById('add-save-btn');
@@ -30,6 +35,13 @@ async function saveEntry(){
   if(!format){showToast('Please select a format');return;}
   var watchlistId = _wlMoveId;
   var recommendation = _discAddRec;
+  if(!editing && !_entryRepeat){
+    var existing = existingCollectionEntry({title:title,format:format,catalogue:_entryCatalogue});
+    if(existing){
+      showToast('"'+existing.title+'" is already in your collection. Open it and choose Log again to record another time.','⚠');
+      return;
+    }
+  }
 
   button.disabled = true;
   button.textContent = editing ? 'Updating…' : 'Saving…';
@@ -41,11 +53,13 @@ async function saveEntry(){
       p_cover_color:currentCover, p_date_completed:document.getElementById('add-date').value || null,
       p_poster_url:_posterUrl || null,
       p_tags:Array.from(document.querySelectorAll('#tag-picker .tp.sel'),function(tag){return tag.textContent.trim();}),
-      p_watchlist_id:watchlistId, p_catalogue:_entryCatalogue
+      p_watchlist_id:watchlistId, p_catalogue:_entryCatalogue, p_repeat:_entryRepeat
     });
     if(currentUser?.id !== owner) return;
     if(result.error || result.data !== entryId){
-      showToast(result.error?.code === 'P0002' ? result.error.message : 'Could not save the entry. Your form is ready to retry.', '⚠');
+      showToast(result.error?.code === 'P0002' ? result.error.message
+        : result.error?.code === '23505' ? 'This is already in your collection. Open it and choose Log again to record another time.'
+        : 'Could not save the entry. Your form is ready to retry.', '⚠');
       return;
     }
     button.disabled = false;
