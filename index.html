@@ -2625,54 +2625,69 @@ function _authErr(msg){
   el.style.background = 'rgba(181,71,74,.08)';
   el.style.borderColor = 'rgba(181,71,74,.2)';
 }
+function _withTimeout(promise, ms){
+  return new Promise(function(resolve, reject){
+    var timer = setTimeout(function(){ reject(new Error('timeout')); }, ms);
+    promise.then(function(value){ clearTimeout(timer); resolve(value); },
+                 function(error){ clearTimeout(timer); reject(error); });
+  });
+}
 async function enterApp(){
-  if(!SUPA) return;
   _authErr('');
-  var email    = (document.getElementById('auth-email-inp')||{}).value.trim();
+  var btn = document.getElementById('auth-submit-btn');
+  if(!SUPA){
+    _authErr('Sign-in is still loading or unavailable. Reload the page and try again.');
+    return;
+  }
+  var email    = ((document.getElementById('auth-email-inp')||{}).value||'').trim();
   var password = (document.getElementById('auth-pass-inp')||{}).value;
-  var btn      = document.getElementById('auth-submit-btn');
   if(!email)    { _authErr('Please enter your email address.'); return; }
   if(!password) { _authErr('Please enter your password.'); return; }
   if(_authMode === 'signup' && password.length < 6){
     _authErr('Password must be at least 6 characters.');
     return;
   }
+  var idleLabel = _authMode === 'signup' ? 'Create account' : 'Sign in';
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Creating account…' : 'Signing in…'; btn.disabled = true; }
-
-  if(_authMode === 'signup'){
-    var name = ((document.getElementById('auth-name-inp')||{}).value||'').trim();
-    var res  = await SUPA.auth.signUp({
-      email: email, password: password,
-      options: { data: { display_name: name || email.split('@')[0] } }
-    });
-    if(res.error){
-      _authErr(res.error.message);
-    } else if(!res.data.session){
-      /* Email confirmation required — session not yet granted */
-      var errEl = document.getElementById('auth-err');
-      if(errEl){
-        errEl.textContent = '✓ Account created! Check your email to confirm your account before signing in.';
-        errEl.style.color = 'var(--p-mid)';
-        errEl.style.background = 'rgba(74,173,186,.08)';
-        errEl.style.borderColor = 'rgba(74,173,186,.25)';
-        errEl.style.display = 'block';
+  try {
+    if(_authMode === 'signup'){
+      var name = ((document.getElementById('auth-name-inp')||{}).value||'').trim();
+      var res  = await _withTimeout(SUPA.auth.signUp({
+        email: email, password: password,
+        options: { data: { display_name: name || email.split('@')[0] } }
+      }), 20000);
+      if(res.error){
+        _authErr(res.error.message);
+      } else if(!res.data.session){
+        /* Email confirmation required, session not yet granted */
+        var errEl = document.getElementById('auth-err');
+        if(errEl){
+          errEl.textContent = '✓ Account created! Check your email to confirm your account before signing in.';
+          errEl.style.color = 'var(--p-mid)';
+          errEl.style.background = 'rgba(74,173,186,.08)';
+          errEl.style.borderColor = 'rgba(74,173,186,.25)';
+          errEl.style.display = 'block';
+        }
       }
-      if(btn){ btn.textContent = 'Create account'; btn.disabled = false; }
-      return;
-    }
-    /* If session exists, onAuthStateChange handles the transition to the app */
-  } else {
-    var res = await SUPA.auth.signInWithPassword({email: email, password: password});
-    if(res.error){
-      var msg = res.error.message;
-      if(msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('credentials')){
-        msg = 'Incorrect email or password. Please try again.';
+      /* If a session exists, onAuthStateChange handles the transition to the app */
+    } else {
+      var signIn = await _withTimeout(SUPA.auth.signInWithPassword({email: email, password: password}), 20000);
+      if(signIn.error){
+        var msg = signIn.error.message;
+        if(msg.toLowerCase().includes('invalid') || msg.toLowerCase().includes('credentials')){
+          msg = 'Incorrect email or password. Please try again.';
+        }
+        _authErr(msg);
       }
-      _authErr(msg);
     }
+  } catch(e) {
+    /* A hung or failed request must never leave the form silent. A timeout usually
+       means another tab of this app holds the session lock, or the network is down. */
+    _authErr(e && e.message === 'timeout'
+      ? 'Sign-in is taking too long. Close any other tabs of this app, reload this page and try again.'
+      : 'Could not reach the sign-in service. Check your connection and try again.');
   }
-
-  if(btn){ btn.textContent = _authMode === 'signup' ? 'Create account' : 'Sign in'; btn.disabled = false; }
+  if(btn){ btn.textContent = idleLabel; btn.disabled = false; }
 }
 async function signOut(){ await SUPA.auth.signOut(); }
 function openModal(id){
