@@ -35,34 +35,10 @@ consistency problems below.
   dismissal behavior uses titles within a format, so upgrading identity
   requires a compatibility and backfill plan.
 
-## Remaining decisions and scale checks
+## Product and refactor follow-up
 
-1. **Catalogue identity.** Decide which provider IDs identify a distinct work,
-   whether editions or remakes should be grouped, and whether a rewatch or
-   reread should create another entry. The normalized-title comparison can
-   collapse legitimately different works. New Watchlist saves retain the
-   available provider ID to support a future migration.
-2. **Recommendation feedback.** For You samples positively rated works and
-   filters explicit dismissals. A low rating excludes that work from the
-   favorites sample. It does not teach the recommender which characteristics
-   to avoid. Decide whether to add that behavior and how to compare it using
-   the existing blind comparison before changing the ranking.
-3. **Collection size and latency.** The browser now renders at most ten media
-   entries per page, but still loads the full account journal for local
-   filtering and insights. Discovery independently reads the full exclusion
-   history while generating a new batch. Measure account sizes, payloads,
-   and provider latency before adding server-side search, incremental
-   retrieval, or cached candidate pools.
-4. **Browser structure.** Collection and Watchlist projections, Discovery
-   session state, tag lookup, and Style & Scent recommendations and storage
-   have separate modules. The next structural work is to split form and
-   rendering controllers out of the inline script, starting with Style &
-   Scent forms and then the entry editor. Keep the current static deployment.
-5. **Shared loading and error handling.** Collection, Watchlist, and Insights
-   still coordinate requests in the page script. Give each screen one owner
-   for its loading and retry state, and consolidate markup and styling only as
-   those feature boundaries become clear.
-6. **Deferred product decisions.** Decide whether Up Next needs a persistent
-   manual order and whether Music should log individual tracks in addition to
-   albums. Those choices affect stored data and should be handled separately
-   from moving code.
+The next changes add catalogue identity, repeat logging, track lookup,
+persistent Up Next ordering, and a bounded low-rating signal. Entry and Style &
+Scent forms live outside the page script. Collection, Watchlist, and Insights
+share request status handling. See [Product and refactor work](PRODUCT-WORK.md)
+for compatibility decisions, measurements, and release checks.

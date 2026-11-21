@@ -45,6 +45,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/005_style_items.sql');
   await apply('migrations/006_discovery_feedback.sql');
   await apply('migrations/007_journal_workflows.sql');
+  await apply('migrations/008_media_workflows.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -127,6 +128,33 @@ test('migrations protect journal data, enforce quota and cascade account removal
     assert.equal((await db.query("select title from public.discovery_feedback where title='Queue Me'")).rows.length,1);
   });
 
+  await t.test('identified releases, repeat entries and Up Next stay separate and account scoped', async () => {
+    const media = (title,format,id,details={}) => db.query(
+      "select public.save_watchlist_media($1,$2,$3,'[]',null,'{}',$4) as id",
+      [title,format,'fixture:'+id,{provider:'fixture',id,...details}]
+    ).then(result=>result.rows[0].id);
+    await actAs(a);
+    const first = await media('Same title','film','original',{year:'1975'});
+    const remake = await media('Same title','film','remake',{year:'2020'});
+    assert.notEqual(first,remake);
+    assert.equal(first,await media('Translated original','film','original'));
+    const track = await media('Same title','music','track',{kind:'track'});
+    await db.query("update public.watchlist set priority='up_next' where id=any($1::uuid[])",[[first,remake,track]]);
+    await db.query('select public.save_up_next_order($1)',[[track,remake,first]]);
+    assert.deepEqual((await db.query('select id from public.watchlist where id=any($1::uuid[]) order by queue_position',[[first,remake,track]])).rows.map(row=>row.id),[track,remake,first]);
+    await assert.rejects(db.query('select public.save_up_next_order($1)',[[first,first,track]]),{code:'P0002'});
+    const ids = ['00000000-0000-4000-8000-000000000012','00000000-0000-4000-8000-000000000013'];
+    for (const id of ids) {
+      await db.query("select public.save_journal_media($1,false,'Same title','music',8,null,null,null,null,'{}',null,$2)",[id,{provider:'fixture',id:'track',kind:'track'}]);
+    }
+    assert.deepEqual((await db.query('select catalogue from public.entries_with_tags where id=any($1::uuid[])', [ids])).rows.map(row=>row.catalogue.kind),['track','track']);
+    await db.query('select public.dismiss_watchlist_media($1)',[remake]);
+    assert.deepEqual((await db.query('select catalogue_id from public.discovery_catalogue_feedback')).rows.map(row=>row.catalogue_id),['remake']);
+    await actAs(b);
+    assert.equal((await db.query('select * from public.discovery_catalogue_feedback')).rows.length,0);
+    await assert.rejects(db.query('select public.save_up_next_order($1)',[[first,track]]),{code:'P0002'});
+  });
+
   await t.test('quota is per account, includes a retry interval, and resets after an hour', async () => {
     await actAs('', 'anon');
     await assert.rejects(db.query('select public.reserve_discovery_request()'), denied);
@@ -157,7 +185,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Private wardrobe' }]);
     await db.exec('reset role');
     await db.query('delete from auth.users where id=$1', [a]);
-    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','discovery_feedback']) {
+    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','discovery_feedback','discovery_catalogue_feedback']) {
       assert.equal((await db.query('select * from public.' + table + ' where user_id=$1', [a])).rows.length, 0);
     }
     assert.equal((await db.query('select * from public.profiles where id=$1', [a])).rows.length, 0);

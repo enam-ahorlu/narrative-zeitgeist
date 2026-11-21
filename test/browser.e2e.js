@@ -24,6 +24,7 @@ entries.push(...Array.from({length:9},(_,index)=>({
 })));
 const journalDrafts = [];
 let failJournalSave = true;
+let failCollectionLoad = true;
 const watchlist = [];
 const dismissals = [];
 const styleItems = [];
@@ -43,6 +44,10 @@ const fixtures = {
   '/assets/discovery-session.js': ['assets/discovery-session.js', 'text/javascript; charset=utf-8'],
   '/assets/style-store.js': ['assets/style-store.js', 'text/javascript; charset=utf-8'],
   '/assets/style-recommendations.js': ['assets/style-recommendations.js', 'text/javascript; charset=utf-8'],
+  '/assets/media-identity.js': ['assets/media-identity.js', 'text/javascript; charset=utf-8'],
+  '/assets/entry-form.js': ['assets/entry-form.js', 'text/javascript; charset=utf-8'],
+  '/assets/style-forms.js': ['assets/style-forms.js', 'text/javascript; charset=utf-8'],
+  '/assets/journal-data.js': ['assets/journal-data.js', 'text/javascript; charset=utf-8'],
   '/assets/journal-view.js': ['assets/journal-view.js', 'text/javascript; charset=utf-8'],
   '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
   '/catalogues/fragrances.js': ['catalogues/fragrances.js', 'text/javascript; charset=utf-8'],
@@ -76,6 +81,10 @@ function createMocks(assets) {
     if (assets[path]) return route.fulfill(assets[path]);
     if (path === '/api/config') return send({ url: origin, key: 'sb_publishable_synthetic' });
     if (path === '/favicon.ico') return route.fulfill({ status: 204 });
+    if (path === '/api/search' && url.searchParams.get('type') === 'track') return send([{
+      id:'12345',provider:'itunes',_type:'track',kind:'track',creator:'Fixture Artist',year:'2012',
+      title:'Fixture Track',description:'Fixture Artist'
+    }]);
     if (path === '/api/search' || path === '/api/ratings') return send([]);
     if (path === '/auth/v1/token' && method === 'POST') {
       const input = request.postDataJSON();
@@ -139,16 +148,18 @@ function createMocks(assets) {
         title: body.recent?.some(item => item.title === 'Synthetic discovery book') ? 'Fresh synthetic book' : 'Synthetic discovery book',
         format: 'book', affinity:{label:'Close match',sharedTags:['afrofuturism','mystery']},
         reasons: ['Theme match', 'Format match', 'Rating match'], tags: ['afrofuturism'],
-        meta: 'Book', cover_color: null, catalog:{provider:'openlibrary',id:'/works/fixture2'}
+        meta: 'Book', cover_color: null, catalog:{provider:'openlibrary',id:body.recent?.some(item => item.title === 'Synthetic discovery book') ? '/works/fresh' : '/works/fixture2'}
       }] });
     }
-    if (path === '/rest/v1/entries_with_tags') return send(entries.filter(matchesUser)
-      .sort((left,right)=>right.created_at.localeCompare(left.created_at)));
-    if (path === '/rest/v1/rpc/save_journal_entry') {
+    if (path === '/rest/v1/entries_with_tags') {
+      if(failCollectionLoad) return send({message:'Synthetic collection failure'},503);
+      return send(entries.filter(matchesUser).sort((left,right)=>right.created_at.localeCompare(left.created_at)));
+    }
+    if (path === '/rest/v1/rpc/save_journal_media') {
       journalDrafts.push(body.p_entry_id);
       if (failJournalSave) return send({message:'Synthetic transaction failure'},503);
       const item = { title:body.p_title, format:body.p_format, rating:body.p_rating,
-        notes:body.p_notes, tags:body.p_tags, user_id:user.id, id:body.p_entry_id, created_at:'2026-10-01' };
+        notes:body.p_notes, catalogue:body.p_catalogue, tags:body.p_tags, user_id:user.id, id:body.p_entry_id, created_at:'2026-10-01' };
       const existing = entries.find(entry=>matchesUser(entry) && entry.id===item.id);
       if(existing) Object.assign(existing,item);
       else entries.push(item);
@@ -159,14 +170,20 @@ function createMocks(assets) {
       }
       return send(item.id);
     }
-    if (path === '/rest/v1/rpc/save_watchlist_pick') {
+    if (path === '/rest/v1/rpc/save_up_next_order') {
+      body.p_ids.forEach((id,index)=>{
+        watchlist.find(row=>matchesUser(row) && row.id === id).queue_position = index+1;
+      });
+      return route.fulfill({status:204});
+    }
+    if (path === '/rest/v1/rpc/save_watchlist_media') {
       const row = {user_id:user.id,title:body.p_title,format:body.p_format,tags:body.p_tags,
         id:randomUUID(),priority:'maybe',saved_at:'2026-10-01',added_to_collection:false};
       watchlist.push(row);
       return send(row.id);
     }
     if (path === '/rest/v1/tags') return send([]);
-    if (path === '/rest/v1/discovery_feedback' && method === 'POST') {
+    if (['/rest/v1/discovery_feedback','/rest/v1/discovery_catalogue_feedback'].includes(path) && method === 'POST') {
       dismissals.push(body);
       return route.fulfill({ status:201 });
     }
@@ -275,6 +292,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await signIn(page, users[0].email, 'invalid-password');
   await page.getByText('Incorrect email or password', { exact: false }).waitFor();
   await signIn(page, users[0].email);
+  const loadError = page.locator('#collection-request-status');
+  await loadError.getByText('Could not load your collection.').waitFor();
+  failCollectionLoad = false;
+  await loadError.getByRole('button',{name:'Retry'}).click();
   await page.locator('#s-collection').getByText('Journal A 1', { exact: true }).first().waitFor();
   assert.equal(await page.getByText('Journal B 1', { exact: true }).count(), 0);
   const tableRows = page.locator('#s-collection tbody tr');
@@ -337,6 +358,22 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(await page.locator('#add-notes').inputValue(),'');
   await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
 
+  await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
+  await page.locator('#add-format').selectOption('Track');
+  await page.locator('#add-title').fill('Fixture Track');
+  await page.locator('#cs-drop').getByText('Fixture Track',{exact:true}).click();
+  await page.locator('#add-source').getByText('Fixture Artist',{exact:false}).waitFor();
+  await page.locator('#add-notes').fill('First listen');
+  await page.locator('#add-save-btn').click();
+  await tableRows.getByText(/^Fixture Track/).click();
+  await page.locator('#m-detail').getByRole('button',{name:'Log again'}).click();
+  assert.equal(await page.locator('#add-format').inputValue(),'Track');
+  assert.equal(await page.locator('#add-notes').inputValue(),'');
+  await page.locator('#add-save-btn').click();
+  await page.waitForFunction(() => document.querySelectorAll('#s-collection tbody tr .tc-title')
+    && Array.from(document.querySelectorAll('#s-collection tbody tr .tc-title')).filter(row=>row.textContent.startsWith('Fixture Track')).length === 2);
+  assert.deepEqual(entries.filter(entry=>entry.title==='Fixture Track').map(entry=>entry.catalogue.id),['12345','12345']);
+
   await visit('designsystem');
   const appearance = page.locator('#s-designsystem');
   const preview = appearance.locator('.appearance-preview');
@@ -366,12 +403,21 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await visit('watchlist');
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
   assert.equal(discoveryRequests, 2);
+  watchlist.push({id:randomUUID(),user_id:users[0].id,title:'Queued film',format:'film',priority:'up_next',saved_at:'2026-09-01',added_to_collection:false});
+  await visit('collection');
+  await visit('watchlist');
   const priority = page.getByRole('combobox',{name:'Priority for Synthetic discovery book'});
   await priority.selectOption('up_next');
   await page.getByText('Moved to Up Next',{exact:false}).waitFor();
   await page.locator('.wl-stab').getByText('Up Next',{exact:true}).click();
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
   assert.equal(watchlist[0].priority,'up_next');
+  await page.getByRole('button',{name:'Move Synthetic discovery book earlier'}).click();
+  await page.getByText('Up Next order saved').waitFor();
+  assert.equal(await page.locator('#wl-list .wl-title').first().textContent(),'Synthetic discovery book');
+  assert.equal(watchlist[0].queue_position,1);
+  await page.getByRole('combobox',{name:'Priority for Queued film'}).selectOption('maybe');
+  await page.locator('#wl-list .wl-title').getByText('Queued film').waitFor({state:'hidden'});
   await priority.selectOption('maybe');
   await page.getByText('No Up Next items yet.',{exact:false}).waitFor();
   await page.locator('.wl-stab').getByText('Maybe',{exact:true}).click();

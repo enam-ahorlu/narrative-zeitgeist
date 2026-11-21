@@ -1,13 +1,15 @@
+const discoveryIdentity = typeof module !== 'undefined' ? require('./media-identity') : mediaIdentity;
+
 /* Per-account, in-memory coordination for media recommendation batches. */
 function createDiscoverySession({ now = Date.now, ttl = 30 * 60 * 1000, limit = 16 } = {}) {
   const batches = new Map();
   const pending = new Map();
   const rounds = new Map();
-  const removed = new Set();
+  const removed = [];
   let recent = [];
 
   function pickKey(item) {
-    return JSON.stringify([item.format, item.title.trim().toLowerCase()]);
+    return discoveryIdentity.catalogueKey(item) || discoveryIdentity.textKey(item);
   }
 
   function read(key) {
@@ -31,7 +33,7 @@ function createDiscoverySession({ now = Date.now, ttl = 30 * 60 * 1000, limit = 
     ).slice(0, 48);
     const promise = Promise.resolve().then(() => fetchBatch({ tab, focus, seedId, recent:previous, round }))
       .then(picks => {
-        const visible = picks.filter(item => !removed.has(pickKey(item)));
+        const visible = picks.filter(item => !removed.some(known=>discoveryIdentity.sameWork(item,known)));
         if (pending.get(key) === promise) {
           batches.delete(key);
           batches.set(key, { time:now(), picks:visible });
@@ -47,7 +49,11 @@ function createDiscoverySession({ now = Date.now, ttl = 30 * 60 * 1000, limit = 
 
   function shown(picks, seed) {
     const seen = new Set();
-    const displayed = picks.map(({ title, format }) => ({ title, format, seed }));
+    const displayed = picks.map(item => {
+      const {title,format} = item;
+      const catalogue = discoveryIdentity.metadata(item);
+      return {title,format,seed,...(Object.keys(catalogue).length ? {catalogue} : {})};
+    });
     recent = displayed.concat(recent).filter(item => {
       const key = JSON.stringify([pickKey(item),item.seed]);
       if (seen.has(key)) return false;
@@ -57,10 +63,9 @@ function createDiscoverySession({ now = Date.now, ttl = 30 * 60 * 1000, limit = 
   }
 
   function remove(item) {
-    const key = pickKey(item);
-    removed.add(key);
+    if(!removed.some(known=>discoveryIdentity.sameWork(item,known))) removed.push(item);
     for (const batch of batches.values()) {
-      batch.picks = batch.picks.filter(pick => pickKey(pick) !== key);
+      batch.picks = batch.picks.filter(pick => !discoveryIdentity.sameWork(pick,item));
     }
   }
 

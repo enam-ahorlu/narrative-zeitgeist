@@ -16,9 +16,13 @@
 <script src="/catalogues/fragrances.js"></script>
 <script src="/catalogues/wardrobe.js"></script>
 <script src="/assets/journal-view.js"></script>
+<script src="/assets/journal-data.js"></script>
+<script src="/assets/media-identity.js"></script>
 <script src="/assets/discovery-session.js"></script>
 <script src="/assets/style-recommendations.js"></script>
 <script src="/assets/style-store.js"></script>
+<script src="/assets/style-forms.js"></script>
+<script src="/assets/entry-form.js"></script>
 <script src="/catalogues/tags.js"></script>
 <style>
 :root {
@@ -970,6 +974,10 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
 .appearance-preview{gap:10px;padding:12px;background:var(--n-bg);color:var(--t-2);margin-top:12px}
 [data-density="compact"] .appearance-preview{padding:5px 8px}
 .btn-p{box-shadow:inset 0 -2px color-mix(in srgb,var(--theme-accent) 60%,transparent)}
+ .journal-request-status{margin:6px clamp(16px,4vw,30px);padding:6px 10px;border-radius:var(--r-sm);background:var(--p-ghost);font-size:12px;color:var(--t-2);flex-shrink:0}
+.journal-request-status[hidden],#add-source[hidden]{display:none}
+.catalogue-context{color:var(--t-3);font-size:11px;font-weight:400;margin-left:6px}
+.journal-request-status button{margin-left:8px}
 </style>
 </head>
 <body>
@@ -1115,6 +1123,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <button class="btn btn-p" id="col-add-btn" onclick="openModal('add')"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Add Entry<span class="kbd">N</span></button>
         </div>
       </div>
+      <div class="journal-request-status" id="collection-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadEntries()" hidden>Retry</button></div>
+
       <!-- O1: First-run welcome card (dismiss to hide) -->
       <div class="welcome-card" id="welcome-card">
         <div class="welcome-card-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.9)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
@@ -1205,6 +1215,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div><div class="ph-title">Insights</div><div class="ph-sub" id="insights-ph-sub">Your taste fingerprint</div></div>
         <div class="ph-actions"><button class="btn btn-glass btn-sm" onclick="exportInsights()"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Export</button></div>
       </div>
+      <div class="journal-request-status" id="insights-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="refreshFingerprint()" hidden>Retry</button></div>
       <div class="stat-cards">
         <div class="sc anim-fadeup"><div class="sc-v" id="sc-total">—</div><div class="sc-l">Total Entries</div></div>
         <div class="sc anim-fadeup anim-delay-1"><div class="sc-v" id="sc-avg">—</div><div class="sc-l">Average Rating</div></div>
@@ -1320,6 +1331,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <button class="btn btn-ghost btn-sm btn-danger" onclick="wlRemoveSelected()">Remove Selected</button>
         </div>
       </div>
+      <div class="journal-request-status" id="watchlist-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadWatchlist()" hidden>Retry</button></div>
       <div class="wl-content">
         <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
           <div class="wl-status-tabs">
@@ -1327,7 +1339,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
             <div class="wl-stab" data-priority="up_next" onclick="setWlTab(this)">Up Next</div>
             <div class="wl-stab" data-priority="maybe" onclick="setWlTab(this)">Maybe</div>
           </div>
-          <select class="fsel" style="margin-left:auto" onchange="wlSort(this.value)">
+          <select class="fsel" id="wl-sort-sel" style="margin-left:auto" onchange="wlSort(this.value)">
+            <option value="queue" hidden>Sort: Manual order</option>
             <option value="date">Sort: Date Added</option>
             <option value="match">Sort: Match %</option>
             <option value="alpha">Sort: A → Z</option>
@@ -1633,13 +1646,14 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
     <div class="modal-body">
       <div class="fgrid">
         <div class="fl ff"><label>TITLE</label><div class="cs-wrap"><input id="add-title" class="fi" type="text" placeholder="Type to search, or enter manually…" oninput="onTitleInput(this.value)" autocomplete="off"><div class="cs-drop" id="cs-drop"></div></div></div>
-        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="changeEntryFormat(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option>Music</option></select></div>
+        <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="changeEntryFormat(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option value="Music">Music album</option><option value="Track">Music track</option></select></div>
+        <div class="fl ff" id="add-source" hidden></div>
         <div class="fl" id="sport-field" style="display:none"><label for="sport-select">SPORT</label><select id="sport-select" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
         <div class="fl"><label>DATE COMPLETED</label><input id="add-date" class="fi" type="date"></div>
         <div class="fl ff"><label>RATING</label>
-          <div class="ri"><input id="add-rating" type="range" min="1" max="10" step="0.5" value="8" oninput="updateRatingRef(this.value)"><div class="rv" id="rv">8</div></div>
+          <div class="ri"><input id="add-rating" type="range" min="0" max="10" step="0.5" value="8" oninput="updateRatingRef(this.value)"><div class="rv" id="rv">8</div></div>
           <div class="rating-ref" id="rating-ref">
-            <span class="rating-tier" data-min="1" data-max="5.9">≤5 = mixed</span>
+            <span class="rating-tier" data-min="0" data-max="5.9">≤5 = mixed</span>
             <span class="rating-tier" data-min="6" data-max="7.4">6–7 = good</span>
             <span class="rating-tier active" data-min="7.5" data-max="8.9">7.5–8.9 = great</span>
             <span class="rating-tier" data-min="9" data-max="9.9">9–9.9 = excellent</span>
@@ -1756,6 +1770,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
     <div class="modal-foot">
       <div class="del-confirm" id="del-confirm"><span>Delete permanently?</span><button class="btn btn-g btn-sm" onclick="cancelDelete()">Cancel</button><button class="btn btn-ghost btn-sm btn-danger" onclick="confirmDelete()">Confirm</button></div>
       <button class="btn btn-ghost btn-danger" id="del-btn" onclick="startDelete()">Delete</button>
+      <button class="btn btn-g" onclick="logEntryAgain()">Log again</button>
       <button class="btn btn-g" onclick="openEditModal()">Edit</button>
       <button class="btn btn-p" onclick="closeModal('detail')">Close</button>
     </div>
@@ -2166,6 +2181,7 @@ function handleAuthChange(event, session){
     _entriesLoadVersion++;
     _watchlistLoadVersion++;
     _fingerprintVersion++;
+    ['collection','watchlist','insights'].forEach(function(screen){journalData.status(screen,'');});
     if(_charts.timeline){_charts.timeline.data.labels=[];_charts.timeline.data.datasets[0].data=[];_charts.timeline.update();}
     buildCmdIndex();
     clearColFilters();
@@ -2229,16 +2245,20 @@ async function loadEntries(){
   if(!currentUser) return;
   var userId = currentUser.id;
   var version = ++_entriesLoadVersion;
-  var entries = [];
-  var pageSize = 500;
-  for(var offset = 0; ; offset += pageSize){
-    var res = await SUPA.from('entries_with_tags').select('*').eq('user_id', userId)
-      .order('created_at', {ascending:false}).order('id').range(offset, offset + pageSize - 1);
-    if(currentUser?.id !== userId || _entriesLoadVersion !== version) return;
-    if(res.error){ console.error('loadEntries:', res.error); return; }
-    entries.push(...(res.data || []));
-    if(!res.data || res.data.length < pageSize) break;
+  var stillCurrent = function(){return currentUser?.id === userId && _entriesLoadVersion === version;};
+  journalData.status('collection','loading','Loading collection…');
+  var entries;
+  try {
+    entries = await journalData.readPages(function(from,to){
+      return SUPA.from('entries_with_tags').select('*').eq('user_id',userId)
+        .order('created_at',{ascending:false}).order('id').range(from,to);
+    },stillCurrent);
+  } catch {
+    if(stillCurrent()) journalData.status('collection','error','Could not load your collection.');
+    return;
   }
+  if(!entries || !stillCurrent()) return;
+  journalData.status('collection','');
   _allEntries = entries;
   buildCmdIndex();
   renderColTagPills(entries);
@@ -2255,6 +2275,12 @@ function _entryDateStr(e){
   return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
 }
 
+function catalogueContext(item){
+  var details = mediaIdentity.metadata(item);
+  var label = [details.creator,details.year].filter(Boolean).join(' · ');
+  return label ? '<span class="catalogue-context"> '+escHtml(label)+'</span>' : '';
+}
+
 function renderEntriesTable(entries){
   var tbody = document.querySelector('#s-collection .tbl-wrap tbody');
   if(!tbody) return;
@@ -2263,7 +2289,7 @@ function renderEntriesTable(entries){
     var grad  = e.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
     var rVal  = parseFloat(e.rating);
     var rdCls = rVal >= 9 ? 'rd-hi' : rVal >= 7.5 ? 'rd-mid' : 'rd-lo';
-    var fmt   = FMT_LABEL[e.format] || e.format;
+    var fmt   = mediaIdentity.part(e) === 'track' ? 'Track' : FMT_LABEL[e.format] || e.format;
     var badge = FMT_BADGE[e.format] || 'b-show';
     var tags  = Array.isArray(e.tags) ? e.tags : [];
     var tagHtml = tags.slice(0,2).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('') +
@@ -2274,7 +2300,7 @@ function renderEntriesTable(entries){
     tr.dataset.id = e.id;
     (function(entry){ tr.onclick = function(){ openDetailModal(entry); }; })(e);
     tr.innerHTML =
-      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+'</td>'+
+      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+catalogueContext(e)+'</td>'+
       '<td><span class="badge '+badge+'">'+fmt+'</span></td>'+
       '<td><div class="rating"><div class="rd '+rdCls+'"></div>'+rVal+'</div></td>'+
       '<td style="color:var(--t-3);font-size:12px">'+_entryDateStr(e)+'</td>'+
@@ -2291,7 +2317,7 @@ function renderEntriesGrid(entries){
   entries.forEach(function(e){
     var grad  = e.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
     var rVal  = parseFloat(e.rating);
-    var fmt   = FMT_LABEL[e.format] || e.format;
+    var fmt   = mediaIdentity.part(e) === 'track' ? 'Track' : FMT_LABEL[e.format] || e.format;
     var badge = FMT_BADGE[e.format] || 'b-show';
     var tags  = Array.isArray(e.tags) ? e.tags : [];
     var cardTagHtml = tags.slice(0,2).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
@@ -2302,7 +2328,7 @@ function renderEntriesGrid(entries){
     card.innerHTML =
       (e.poster_url?'<img class="cg-poster" src="'+escHtml(e.poster_url)+'" alt="">':"<div class='cg-card-strip' style='background:"+grad+"'></div>")+
       '<span class="badge '+badge+'">'+fmt+'</span>'+
-      '<div class="cg-title">'+escHtml(e.title)+'</div>'+
+      '<div class="cg-title">'+escHtml(e.title)+catalogueContext(e)+'</div>'+
       '<div class="cg-tags">'+cardTagHtml+'</div>'+
       '<div class="cg-bottom"><div class="cg-rating">'+rVal+'</div><div class="cg-date">'+_entryDateStr(e)+'</div></div>';
     grid.appendChild(card);
@@ -2335,7 +2361,7 @@ function openDetailModal(entry){
   currentEntry = entry;
   var rVal  = parseFloat(entry.rating);
   var rdCls = rVal >= 9 ? 'rd-hi' : rVal >= 7.5 ? 'rd-mid' : 'rd-lo';
-  var fmt   = FMT_LABEL[entry.format] || entry.format;
+  var fmt   = mediaIdentity.part(entry) === 'track' ? 'Track' : FMT_LABEL[entry.format] || entry.format;
   var badge = FMT_BADGE[entry.format] || 'b-show';
   var grad  = entry.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
   var initials = entry.title.split(/\s+/).slice(0,3).map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,4);
@@ -2885,22 +2911,6 @@ async function enterApp(){
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Create account' : 'Sign in'; btn.disabled = false; }
 }
 async function signOut(){ await SUPA.auth.signOut(); }
-function resetEntryForm(){
-  ['add-title','add-notes','add-date','add-year','tp-search-inp','sport-select'].forEach(function(id){
-    var field = document.getElementById(id);
-    if(field) field.value = field.tagName === 'SELECT' ? field.options[0].value : '';
-  });
-  var format = document.getElementById('add-format');
-  format.selectedIndex = 0;
-  updateSportField(format);
-  document.getElementById('add-rating').value = 8;
-  updateRatingRef(8);
-  clearPoster();
-  _closeSearchDrop();
-  var swatch = document.querySelector('.cover-swatch');
-  setCover(swatch, swatch.style.background);
-}
-
 function openModal(id){
   var modal = document.getElementById('m-'+id);
   if(modal.classList.contains('open')) return;
@@ -3015,6 +3025,7 @@ function wlRemoveSelected(){
   });
 }
 var _watchlistSort = 'date';
+var _queueSaving = false;
 function wlSort(value){
   _watchlistSort = value;
   renderWatchlist();
@@ -3252,117 +3263,6 @@ function applyCoverColors(){
     strip.style.background=getCoverForTitle(title);
     card.insertBefore(strip,card.firstChild);
   });
-}
-
-async function saveEntry(){
-  var owner = currentUser?.id;
-  var button = document.getElementById('add-save-btn');
-  if(!owner || button.disabled) return;
-  var editing = editMode;
-  var entryId = editing ? currentEntry?.id : _entryDraftId;
-  if(!entryId) return;
-  var title = document.getElementById('add-title').value.trim();
-  if(!title){showToast('Please enter a title');return;}
-  var format = journalView.formatKey(document.getElementById('add-format').value);
-  if(!format){showToast('Please select a format');return;}
-  var watchlistId = _wlMoveId;
-  var recommendation = _discAddRec;
-
-  button.disabled = true;
-  button.textContent = editing ? 'Updating…' : 'Saving…';
-  try {
-    var result = await SUPA.rpc('save_journal_entry',{
-      p_entry_id:entryId, p_edit:editing, p_title:title, p_format:format,
-      p_rating:Number(document.getElementById('add-rating').value),
-      p_notes:document.getElementById('add-notes').value.trim() || null,
-      p_cover_color:currentCover, p_date_completed:document.getElementById('add-date').value || null,
-      p_poster_url:_posterUrl || null,
-      p_tags:Array.from(document.querySelectorAll('#tag-picker .tp.sel'),function(tag){return tag.textContent.trim();}),
-      p_watchlist_id:watchlistId
-    });
-    if(currentUser?.id !== owner) return;
-    if(result.error || result.data !== entryId){
-      showToast(result.error?.code === 'P0002' ? result.error.message : 'Could not save the entry. Your form is ready to retry.', '⚠');
-      return;
-    }
-    button.disabled = false;
-    closeModal('add');
-    showToast(editing ? 'Entry updated' : watchlistId ? 'Moved to Collection' : 'Entry saved to your collection');
-    if(recommendation) removeDiscoveryPick(recommendation);
-    if(watchlistId) removeWatchlistRow(watchlistId);
-    refreshJournal(Boolean(recommendation));
-  } catch {
-    if(currentUser?.id === owner) showToast('Could not confirm the save. Retry this form to check.', '⚠');
-  } finally {
-    button.disabled = false;
-    button.textContent = editMode ? 'Update Entry' : 'Save Entry';
-  }
-}
-
-/* ── Open Add modal pre-filled for editing (E1) ── */
-function openEditModal(){
-  if(!currentEntry){ showToast('No entry selected'); return; }
-  resetEntryForm();
-  editMode=true;
-
-  /* Use currentEntry directly — no DOM scraping */
-  var title  = currentEntry.title  || '';
-  var format = currentEntry.format || 'show';
-  var rVal   = parseFloat(currentEntry.rating) || 8;
-
-  /* Update modal heading + button */
-  document.getElementById('add-modal-title').textContent='Edit Entry';
-  document.getElementById('add-save-btn').textContent='Update Entry';
-
-  /* Pre-fill title */
-  var titleInp=document.getElementById('add-title');
-  if(titleInp) titleInp.value=title;
-
-  /* Pre-fill format — match DB value to dropdown option */
-  var fmt=FMT_LABEL[format]||'Show';
-  var fmtSel=document.getElementById('add-format');
-  if(fmtSel){for(var i=0;i<fmtSel.options.length;i++){if(fmtSel.options[i].text===fmt){fmtSel.selectedIndex=i;break;}}}
-
-  updateSportField(fmtSel);
-
-  /* Pre-fill rating */
-  var ratingInp=document.getElementById('add-rating');
-  if(ratingInp){ratingInp.value=rVal;updateRatingRef(rVal);}
-
-  /* Pre-fill notes from currentEntry */
-  var notesInp=document.getElementById('add-notes');
-  if(notesInp) notesInp.value = (currentEntry && currentEntry.notes) ? currentEntry.notes : '';
-  /* Pre-fill date from currentEntry */
-  var dateInp=document.getElementById('add-date');
-  if(dateInp && currentEntry && currentEntry.date_completed) dateInp.value = currentEntry.date_completed.slice(0,10);
-  /* Pre-fill poster from currentEntry */
-  _posterUrl = currentEntry ? (currentEntry.poster_url || null) : null;
-  if(_posterUrl){ var cpw=document.getElementById('cover-poster-wrap'); var cpi=document.getElementById('cover-poster-img'); if(cpw&&cpi){ cpi.src=_posterUrl; cpw.classList.add('visible'); } }
-
-  /* Load picker with user's real tags, pre-selecting this entry's tags */
-  var detailTags = currentEntry && Array.isArray(currentEntry.tags)
-    ? currentEntry.tags.map(function(t){ return (t.name || t || '').toLowerCase(); })
-    : [];
-  loadTagPicker(detailTags);
-
-  /* Pre-select the cover swatch that matches the entry's current cover */
-  var detailCoverEl=document.getElementById('detail-cover');
-  var entryGrad=detailCoverEl?detailCoverEl.style.background:'';
-  if(entryGrad){
-    currentCover=entryGrad;
-    var matched=false;
-    document.querySelectorAll('.cover-swatch').forEach(function(s){
-      var match=(s.style.background===entryGrad);
-      s.classList.toggle('active',match);
-      if(match)matched=true;
-    });
-    if(!matched)document.querySelector('.cover-swatch').classList.add('active');
-    var prev=document.getElementById('cover-preview');
-    if(prev)prev.style.background=entryGrad;
-  }
-
-  closeModal('detail');
-  openModal('add');
 }
 
 /* ── Tag click in detail → filter Collection (E2) ── */
@@ -4147,7 +4047,7 @@ function _renderHero(rec){
     +'<div style="flex:1;position:relative;z-index:1">'
     +'<div class="disc-hero-badge">⭐ Top Pick</div>'
     +'<div class="disc-hero-title">'+escHtml(rec.title)+'</div>'
-    +'<div class="disc-hero-meta">'+escHtml([FMT_LABEL[rec.format],rec.meta].filter(Boolean).join(' · '))+'</div>'
+    +'<div class="disc-hero-meta">'+escHtml([mediaIdentity.part(rec) === 'track' ? 'Track' : FMT_LABEL[rec.format],rec.meta].filter(Boolean).join(' · '))+'</div>'
     +(rec.anchor ? '<div class="disc-hero-meta">'+escHtml(rec.match_hook)+' · '+escHtml(rec.anchor.rating)+'/10</div>' : '')
     +affinityLabel(rec)
     +'<div class="disc-hero-reasons">'+reasons+'</div>'
@@ -4211,14 +4111,16 @@ var _watchlistSaves = new Set();
 async function saveRecommendation(rec){
   var owner = currentUser?.id;
   if(!owner) return false;
-  var key = JSON.stringify([owner,rec.format,rec.title.trim().toLowerCase()]);
+  var key = JSON.stringify([owner,mediaIdentity.catalogueKey(rec) || mediaIdentity.textKey(rec)]);
   if(_watchlistSaves.has(key)) return false;
   _watchlistSaves.add(key);
   try {
-    var externalId = rec.catalog ? rec.catalog.provider + ':' + rec.catalog.id : null;
-    var result = await SUPA.rpc('save_watchlist_pick',{
+    var catalogue = mediaIdentity.metadata(rec);
+    var externalId = catalogue.provider ? (catalogue.provider + ':' + catalogue.id).slice(0,100) : null;
+    var result = await SUPA.rpc('save_watchlist_media',{
       p_title:rec.title, p_format:rec.format, p_external_id:externalId,
-      p_reasons:rec.reasons || [], p_cover_color:rec.cover_color || null, p_tags:rec.tags || []
+      p_reasons:rec.reasons || [], p_cover_color:rec.cover_color || null, p_tags:rec.tags || [],
+      p_catalogue:Object.keys(catalogue).length ? catalogue : null
     });
     if(currentUser?.id !== owner) return false;
     if(result.error || !result.data) throw new Error('Save failed');
@@ -4237,7 +4139,7 @@ async function saveRecommendation(rec){
 function removeDiscoveryPick(item){
   _discoverySession.remove(item);
   if(!Array.isArray(_discRecs)) return;
-  var remaining = _discRecs.filter(function(rec){return rec.title !== item.title || rec.format !== item.format;});
+  var remaining = _discRecs.filter(function(rec){return !mediaIdentity.sameWork(rec,item);});
   if(remaining.length === _discRecs.length) return;
   _discRecs = remaining;
   if(document.getElementById('s-discover').classList.contains('active') && !_activeDiscoveryView?.loading &&
@@ -4257,8 +4159,18 @@ function openEntryFromPick(pick){
   openModal('add');
   document.getElementById('add-title').value = pick.title;
   var select = document.getElementById('add-format');
-  select.value = FMT_LABEL[pick.format] || 'Show';
+  select.value = mediaIdentity.part(pick) === 'track' ? 'Track' : FMT_LABEL[pick.format] || 'Show';
   updateSportField(select);
+  setEntryCatalogue(pick);
+  applyEntryPoster(pick.poster_url,pick.title,mediaIdentity.metadata(pick).year);
+}
+
+function logEntryAgain(){
+  var entry = currentEntry;
+  if(!entry) return;
+  closeModal('detail');
+  openEntryFromPick(entry);
+  loadTagPicker(entry.tags || []);
 }
 
 function addFromDiscover(button){
@@ -4277,16 +4189,20 @@ async function loadWatchlist(){
   var owner = currentUser?.id;
   if(!owner) return;
   var version = ++_watchlistLoadVersion;
-  var items = [];
-  var pageSize = 500;
-  for(var offset=0; ; offset+=pageSize){
-    var result = await SUPA.from('watchlist').select('*').eq('user_id',owner).eq('added_to_collection',false)
-      .order('saved_at',{ascending:false}).order('id').range(offset,offset+pageSize-1);
-    if(currentUser?.id !== owner || version !== _watchlistLoadVersion) return;
-    if(result.error){console.error('loadWatchlist:',result.error);return;}
-    items.push(...result.data);
-    if(result.data.length < pageSize) break;
+  var stillCurrent = function(){return currentUser?.id === owner && _watchlistLoadVersion === version;};
+  journalData.status('watchlist','loading','Loading Watchlist…');
+  var items;
+  try {
+    items = await journalData.readPages(function(from,to){
+      return SUPA.from('watchlist').select('*').eq('user_id',owner).eq('added_to_collection',false)
+        .order('saved_at',{ascending:false}).order('id').range(from,to);
+    },stillCurrent);
+  } catch {
+    if(stillCurrent()) journalData.status('watchlist','error','Could not load your Watchlist.');
+    return;
   }
+  if(!items || !stillCurrent()) return;
+  journalData.status('watchlist','');
   _wlItems = items;
   buildCmdIndex();
   renderWatchlist();
@@ -4300,13 +4216,14 @@ async function setWatchlistPriority(select){
   if(!item || !owner || !['up_next','maybe'].includes(priority)) return;
   select.disabled = true;
   try {
-    var result = await SUPA.from('watchlist').update({priority:priority})
+    var result = await SUPA.from('watchlist').update({priority:priority,queue_position:null})
       .eq('id',id).eq('user_id',owner).select('id').single();
     if(currentUser?.id !== owner) return;
     if(result.error) throw result.error;
     _watchlistLoadVersion++;
+    journalData.status('watchlist','');
     var savedItem = _wlItems.find(function(row){return row.id === id;});
-    if(savedItem) savedItem.priority = priority;
+    if(savedItem){savedItem.priority = priority;savedItem.queue_position = null;}
     renderWatchlist();
     showToast(priority === 'up_next' ? 'Moved to Up Next' : 'Moved to Maybe');
   } catch(error) {
@@ -4316,6 +4233,38 @@ async function setWatchlistPriority(select){
     }
   } finally {
     select.disabled = false;
+  }
+}
+
+async function moveUpNext(button,offset){
+  var owner = currentUser?.id;
+  if(!owner || _queueSaving) return;
+  var ids = journalView.watchlistView(_wlItems,'up_next','queue').map(function(item){return item.id;});
+  var index = ids.indexOf(button.closest('.wl-item').dataset.wlId);
+  var target = index + offset;
+  if(index < 0 || target < 0 || target >= ids.length) return;
+  [ids[index],ids[target]] = [ids[target],ids[index]];
+  _queueSaving = true;
+  renderWatchlist();
+  try {
+    var result = await SUPA.rpc('save_up_next_order',{p_ids:ids});
+    if(currentUser?.id !== owner) return;
+    if(result.error) throw result.error;
+    ++_watchlistLoadVersion;
+    journalData.status('watchlist','');
+    ids.forEach(function(id,index){
+      var item = _wlItems.find(function(row){return row.id === id;});
+      if(item && item.priority === 'up_next') item.queue_position = index+1;
+    });
+    showToast('Up Next order saved');
+  } catch {
+    if(currentUser?.id === owner){
+      showToast('Could not save this order. Reloading Up Next.', '⚠');
+      loadWatchlist();
+    }
+  } finally {
+    _queueSaving = false;
+    if(currentUser?.id === owner) renderWatchlist();
   }
 }
 
@@ -4360,7 +4309,7 @@ function renderWatchlist(){
   var groups = {};
   var groupOrder = [];
   items.forEach(function(it){
-    var f = it.format || 'show';
+    var f = _wlTab === 'up_next' && _watchlistSort === 'queue' ? 'queue' : it.format || 'show';
     if(!groups[f]){ groups[f] = []; groupOrder.push(f); }
     groups[f].push(it);
   });
@@ -4368,7 +4317,7 @@ function renderWatchlist(){
   var html = '';
   groupOrder.forEach(function(fmt, gi){
     html += '<div class="wl-section"' + (gi > 0 ? ' style="margin-top:18px"' : '') + '>'
-          + (journalView.formats[fmt]?.plural || fmt).toUpperCase() + '</div>';
+          + (fmt === 'queue' ? 'UP NEXT ORDER' : (journalView.formats[fmt]?.plural || fmt).toUpperCase()) + '</div>';
     groups[fmt].forEach(function(it, idx){
       var bg      = it.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
       var initials = it.title.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
@@ -4383,14 +4332,17 @@ function renderWatchlist(){
         +   '<span style="font-size:14px;color:rgba(255,255,255,.25);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>'
         + '</div>'
         + '<div class="wl-info">'
-        +   '<div class="wl-title">'+escHtml(it.title)+'</div>'
-        +   '<div class="wl-meta">'+(FMT_LABEL[it.format]||it.format)+' · Added '+savedAgo+'</div>'
+        +   '<div class="wl-title">'+escHtml(it.title)+catalogueContext(it)+'</div>'
+        +   '<div class="wl-meta">'+(mediaIdentity.part(it)==='track'?'Track':FMT_LABEL[it.format]||it.format)+' · Added '+savedAgo+'</div>'
         +   '<div class="wl-tags">'+tags+'</div>'
         + '</div>'
         + '<select class="wl-priority '+priCls+'" aria-label="Priority for '+escHtml(it.title)+'" onchange="setWatchlistPriority(this)">'
         + '<option value="maybe"'+(journalView.watchlistPriority(it) !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
         + '<option value="up_next"'+(journalView.watchlistPriority(it) === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
         + '<div class="wl-match">'+score+'</div>'
+        + (fmt === 'queue' ? '<div class="wl-order-controls">'
+          + '<button class="btn btn-g btn-sm" title="Move earlier" aria-label="Move '+escHtml(it.title)+' earlier" '+(idx === 0 || _queueSaving ? 'disabled ' : '')+'onclick="moveUpNext(this,-1)">↑</button>'
+          + '<button class="btn btn-g btn-sm" title="Move later" aria-label="Move '+escHtml(it.title)+' later" '+(idx === items.length-1 || _queueSaving ? 'disabled ' : '')+'onclick="moveUpNext(this,1)">↓</button></div>' : '')
         + '<div class="wl-actions">'
         +   '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlMoveToCollection(\''+it.id+'\')">Move to Collection</button>'
         +   '<button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button>'
@@ -4424,6 +4376,10 @@ function setWlTab(el){
   document.querySelectorAll('.wl-stab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
   _wlTab = el.dataset.priority;
+  var select = document.getElementById('wl-sort-sel');
+  select.querySelector('[value="queue"]').hidden = _wlTab !== 'up_next';
+  _watchlistSort = _wlTab === 'up_next' ? 'queue' : 'date';
+  select.value = _watchlistSort;
   renderWatchlist();
 }
 
@@ -4455,8 +4411,12 @@ async function confirmWlRemove(btn){
 
 async function rememberDismissal(item, userId){
   if(!currentUser || currentUser.id !== userId) return false;
-  var result = await SUPA.from('discovery_feedback').upsert(
-    {user_id:userId,title:item.title,format:item.format}, {onConflict:'user_id,format,title',ignoreDuplicates:true});
+  var catalogue = mediaIdentity.metadata(item);
+  var row = {user_id:userId,title:item.title,format:item.format};
+  var result = catalogue.provider
+    ? await SUPA.from('discovery_catalogue_feedback').upsert({...row,provider:catalogue.provider,catalogue_id:catalogue.id,catalogue:catalogue},
+      {onConflict:'user_id,format,provider,catalogue_id',ignoreDuplicates:true})
+    : await SUPA.from('discovery_feedback').upsert(row,{onConflict:'user_id,format,title',ignoreDuplicates:true});
   if(currentUser?.id !== userId) return false;
   if(result.error){
     showToast('Could not save this preference. Try again.', '⚠');
@@ -4481,7 +4441,7 @@ async function passWlItem(btn){
   if(!owner) return;
   btn.disabled = true;
   try {
-    var result = await SUPA.rpc('dismiss_watchlist_pick',{p_id:id});
+    var result = await SUPA.rpc('dismiss_watchlist_media',{p_id:id});
     if(currentUser?.id !== owner) return;
     if(result.error){showToast('Could not dismiss this item. Try again.', '⚠');return;}
     removeWatchlistRow(id);
@@ -4493,6 +4453,7 @@ async function passWlItem(btn){
 
 function removeWatchlistRow(id){
   _watchlistLoadVersion++;
+  journalData.status('watchlist','');
   _wlItems = _wlItems.filter(function(item){return item.id !== id;});
   buildCmdIndex();
   renderWatchlist();
@@ -4599,37 +4560,38 @@ async function saveNewPassword(){
 }
 
 /* ── Taste Fingerprint / Insights ── */
-async function loadFingerprint(){
-  if(!currentUser) return;
-  var userId = currentUser.id;
-  var version = _fingerprintVersion;
-  var res = await SUPA
-    .from('user_fingerprints')
-    .select('*')
-    .eq('user_id', userId)
-    .single();
-  if(currentUser?.id !== userId || version !== _fingerprintVersion) return;
-  if(res.error || !res.data){ renderInsights(null); return; }
-  /* user_fingerprints stores data inside fingerprint_json column */
-  _fp = res.data.fingerprint_json || res.data;
-  renderInsights(_fp);
-  loadTimelineData();
-}
-
 var _fingerprintVersion = 0;
 
+async function loadFingerprint(){
+  return requestFingerprint(false);
+}
+
 async function refreshFingerprint(){
+  return requestFingerprint(true);
+}
+
+async function requestFingerprint(recompute){
   var owner = currentUser?.id;
-  if(!owner) return;
+  if(!owner) return false;
   var version = ++_fingerprintVersion;
-  var result = await SUPA.rpc('compute_fingerprint',{p_user_id:owner});
-  if(currentUser?.id !== owner || version !== _fingerprintVersion) return;
-  if(result.error || !result.data){
-    showToast('Could not refresh your taste profile.', '⚠');
-    return;
+  journalData.status('insights','loading','Loading taste profile…');
+  var stillCurrent = function(){return currentUser?.id === owner && version === _fingerprintVersion;};
+  try {
+    var result = recompute
+      ? await SUPA.rpc('compute_fingerprint',{p_user_id:owner})
+      : await SUPA.from('user_fingerprints').select('fingerprint_json').eq('user_id',owner).maybeSingle();
+    if(!stillCurrent()) return false;
+    if(result.error) throw result.error;
+    if(!result.data && !recompute && _allEntries.length) return requestFingerprint(true);
+    _fp = result.data?.fingerprint_json || result.data;
+    journalData.status('insights','');
+    renderInsights(_fp);
+    loadTimelineData();
+    return true;
+  } catch {
+    if(stillCurrent()) journalData.status('insights','error','Could not load your taste profile.');
+    return false;
   }
-  _fp = result.data;
-  renderInsights(_fp);
 }
 
 function refreshJournal(keepVisibleBatch){
@@ -5136,143 +5098,6 @@ function toggleFpState(){
 /* ══════════════════════════════════════════════
    Content search (TMDB / Google Books / iTunes / TheSportsDB)
    ══════════════════════════════════════════════ */
-var _posterUrl  = null;
-var _csTimer    = null;
-var _csResults  = [];
-var _csRequest = null;
-var _FMT_ICONS  = {Film:'🎬', Show:'📺', Book:'📚', Music:'🎵', Match:'⚽'};
-
-function changeEntryFormat(select){
-  updateSportField(select);
-  if(document.getElementById('cs-drop').classList.contains('open') || _csTimer){
-    onTitleInput(document.getElementById('add-title').value);
-  }
-}
-
-function onTitleInput(value){
-  clearPoster();
-  _closeSearchDrop();
-  var query = value.trim();
-  if(query.length < 2) return;
-  _csTimer = setTimeout(function(){
-    _csTimer = null;
-    _doContentSearch(query);
-  },380);
-}
-
-function _doContentSearch(q){
-  var fmtVal = document.getElementById('add-format').value;
-  var format = journalView.formatKey(fmtVal);
-  var type = journalView.formats[format]?.search || 'all';
-  var request = new AbortController();
-  _csRequest = request;
-  var drop = document.getElementById('cs-drop');
-  if(!drop) return;
-  drop.innerHTML = '<div class="cs-searching">Searching…</div>';
-  drop.classList.add('open');
-  fetch('/api/search?q='+encodeURIComponent(q)+'&type='+type,{signal:request.signal})
-    .then(function(response){
-      if(!response.ok) throw new Error('Search failed');
-      return response.json();
-    })
-    .then(function(list){
-      if(_csRequest !== request) return;
-      _csResults = Array.isArray(list) ? list : [];
-      var isAll = (type === 'all');
-      var manualRow = '<div class="cs-item cs-manual-row" onclick="_closeSearchDrop()">'
-        +'<div class="cs-poster-ph" style="font-size:14px">✏️</div>'
-        +'<div class="cs-info"><div class="cs-title-txt">Add "'+escHtml(q)+'" manually</div>'
-        +'<div class="cs-meta-txt">Fill in the details yourself below</div></div></div>';
-      if(!_csResults.length){
-        drop.innerHTML = '<div class="cs-searching">No results found in any database</div>'+manualRow;
-        return;
-      }
-      var icon = _FMT_ICONS[fmtVal] || '🔍';
-      drop.innerHTML = _csResults.map(function(r, i){
-        var formatLabel = FMT_LABEL[journalView.formatKey(r._type)] || '';
-        var fmtIcon = _FMT_ICONS[formatLabel] || icon;
-        var posterHtml = r.poster_url
-          ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
-          : '<div class="cs-poster-ph">'+fmtIcon+'</div>';
-        var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+formatLabel+'</span>' : '';
-        var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,55):'');
-        return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
-          +posterHtml
-          +'<div class="cs-info">'
-            +'<div class="cs-title-txt">'+typeLabel+escHtml(r.title)+'</div>'
-            +'<div class="cs-meta-txt">'+escHtml(meta)+'</div>'
-          +'</div></div>';
-      }).join('') + '<div class="cs-divider"></div>' + manualRow;
-    })
-    .catch(function(){
-      if(_csRequest === request) drop.textContent = 'Search unavailable. You can enter the title manually.';
-    })
-    .finally(function(){
-      if(_csRequest === request) _csRequest = null;
-    });
-}
-
-function _pickSearchResult(idx){
-  var r = _csResults[idx];
-  if(!r) return;
-  /* Set title */
-  var titleInp = document.getElementById('add-title');
-  if(titleInp) titleInp.value = r.title;
-  /* Auto-set format from result type */
-  var formatLabel = FMT_LABEL[journalView.formatKey(r._type)];
-  if(formatLabel){
-    var formatSelect = document.getElementById('add-format');
-    formatSelect.value = formatLabel;
-    updateSportField(formatSelect);
-  }
-  /* Clear old poster first, then apply new one */
-  clearPoster();
-  _posterUrl = r.poster_url || null;
-  var drop = document.getElementById('cs-drop');
-  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-  var cpw = document.getElementById('cover-poster-wrap');
-  var cpi = document.getElementById('cover-poster-img');
-  var cpt = document.getElementById('cover-poster-title');
-  var cpy = document.getElementById('cover-poster-year');
-  if(cpw && cpi){
-    if(_posterUrl){
-      cpi.src = _posterUrl;
-      if(cpt) cpt.textContent = r.title;
-      if(cpy) cpy.textContent = r.year ? r.year : '';
-      cpw.classList.add('visible');
-    }
-  }
-}
-
-function clearPoster(){
-  _posterUrl = null;
-  var cpw = document.getElementById('cover-poster-wrap');
-  if(cpw) cpw.classList.remove('visible');
-}
-
-function _closeSearchDrop(){
-  clearTimeout(_csTimer);
-  _csTimer = null;
-  _csRequest?.abort();
-  _csRequest = null;
-  _csResults = [];
-  var drop = document.getElementById('cs-drop');
-  if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-}
-
-/* Close search dropdown on outside click */
-document.addEventListener('click', function(e){
-  var drop = document.getElementById('cs-drop');
-  var inp  = document.getElementById('add-title');
-  if(drop && !drop.contains(e.target) && e.target !== inp){
-    drop.classList.remove('open');
-  }
-});
-
-/* ══════════════════════════════════════════════════════════
-   STYLE & SCENT — Account-owned fragrances and wardrobe
-══════════════════════════════════════════════════════════ */
-
 var _fragFilter = 'all';
 var _wardFilter = 'all';
 var _fragEditId = null;
@@ -5321,36 +5146,6 @@ function styleRecommendationDetails(kind,rec){
     name:rec.name, brand:rec.brand, category:rec.category, season:rec.season, occasion:rec.occasions,
     pairing:rec.description, tags:rec.style.split(',').map(function(tag){return tag.trim();}).filter(Boolean)
   };
-}
-
-function setStyleTags(prefix, tags){
-  var picker = document.getElementById(prefix+'-tag-picker');
-  picker.querySelectorAll('[data-saved-tag]').forEach(function(tag){tag.remove();});
-  var pending = new Map(tags.map(function(tag){return [tag.trim().toLowerCase(),tag];}));
-  picker.querySelectorAll('.tp').forEach(function(button){
-    var key = button.textContent.trim().toLowerCase();
-    button.classList.toggle('sel',pending.delete(key));
-  });
-  pending.forEach(function(tag){
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'tp sel';
-    button.dataset.savedTag = '';
-    button.textContent = tag;
-    button.onclick = function(){button.classList.toggle('sel');};
-    picker.appendChild(button);
-  });
-}
-
-function setStyleChoice(id, value){
-  var select = document.getElementById(id);
-  Array.from(select.querySelectorAll('[data-saved-choice]')).forEach(function(option){option.remove();});
-  if(value && !Array.from(select.options).some(function(option){return option.value === value;})){
-    var option = new Option(value,value);
-    option.dataset.savedChoice = '';
-    select.add(option);
-  }
-  select.value = value;
 }
 
 function styleDiscoveryActions(kind,rec){
@@ -5592,103 +5387,6 @@ function setFragPill(el, val){
 }
 
 /* ── Fragrance Modal ── */
-function openFragranceModal(id){
-  _fragDraftId = crypto.randomUUID();
-  _fragEditId = id || null;
-  var modal = document.getElementById('m-fragrance');
-  if(!modal) return;
-  /* Reset fields */
-  var fields = {
-    'frag-name':'','frag-house':'','frag-char':'',
-    'frag-occasion':'','frag-top':'','frag-mid':'','frag-base':'','frag-review':'','frag-photo':''
-  };
-  Object.keys(fields).forEach(function(k){ var el=document.getElementById(k); if(el) el.value=fields[k]; });
-  var sel = document.getElementById('frag-status'); if(sel) sel.value='owned';
-  var proj = document.getElementById('frag-proj'); if(proj) proj.value='Moderate';
-  var seas = document.getElementById('frag-season'); if(seas) seas.value='Year-round';
-  var rat = document.getElementById('frag-rating'); if(rat) rat.value=0;
-  var rv = document.getElementById('frag-rv'); if(rv) rv.textContent='—';
-  var drop = document.getElementById('frag-cs-drop'); if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-  setStyleTags('frag',[]);
-  var ftpInp=document.getElementById('frag-tp-search'); if(ftpInp){ ftpInp.value=''; fragTagSearch(''); }
-  /* Edit mode */
-  var delBtn  = document.getElementById('frag-del-btn');
-  var saveBtn = document.getElementById('frag-save-btn');
-  var titleEl = document.getElementById('frag-modal-title');
-  if(_fragEditId){
-    var f = _loadFrags().find(function(x){ return x.id===_fragEditId; });
-    if(f){
-      var set = function(id, val){ var el=document.getElementById(id); if(el) el.value=val||''; };
-      set('frag-name',f.name); set('frag-house',f.house); set('frag-char',f.character);
-      set('frag-occasion',f.occasion); set('frag-top',f.notesTop); set('frag-mid',f.notesMid);
-      set('frag-base',f.notesBase); set('frag-review',f.review); set('frag-photo',f.photoUrl);
-      setStyleTags('frag',f.tags || []);
-      var stEl=document.getElementById('frag-status'); if(stEl) stEl.value=f.status||'owned';
-      var prEl=document.getElementById('frag-proj'); if(prEl) prEl.value=f.projection||'Moderate';
-      var seEl=document.getElementById('frag-season'); if(seEl) seEl.value=f.season||'Year-round';
-      var raEl=document.getElementById('frag-rating'); if(raEl) raEl.value=f.rating||0;
-      var rvEl=document.getElementById('frag-rv'); if(rvEl) rvEl.textContent=f.rating>0?parseFloat(f.rating).toFixed(1):'—';
-    }
-    if(titleEl) titleEl.textContent='Edit Fragrance';
-    if(saveBtn) saveBtn.textContent='Update Fragrance';
-    if(delBtn)  delBtn.style.display='inline-flex';
-  } else {
-    if(titleEl) titleEl.textContent='Add Fragrance';
-    if(saveBtn) saveBtn.textContent='Save Fragrance';
-    if(delBtn)  delBtn.style.display='none';
-  }
-  modal.classList.add('open');
-}
-
-function closeFragranceModal(){
-  var drop=document.getElementById('frag-cs-drop'); if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
-  var m=document.getElementById('m-fragrance'); if(m) m.classList.remove('open');
-}
-
-async function saveFragrance(){
-  var name = (document.getElementById('frag-name').value||'').trim();
-  if(!name){ showToast('Please enter a fragrance name'); return; }
-  var rawPhoto = document.getElementById('frag-photo').value.trim();
-  var photoUrl = safeFragrancePhoto(rawPhoto);
-  if(rawPhoto && !photoUrl){showToast('Use an HTTPS image URL.');return;}
-  var rVal = parseFloat(document.getElementById('frag-rating').value)||0;
-  var draftId = _fragDraftId;
-  var selectedFragTags = Array.from(document.querySelectorAll('#frag-tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
-  var f = {
-    id: _fragEditId || draftId,
-    name: name,
-    house:     ((document.getElementById('frag-house')||{}).value||'').trim(),
-    status:    (document.getElementById('frag-status')||{}).value||'owned',
-    character: ((document.getElementById('frag-char')||{}).value||'').trim(),
-    projection:(document.getElementById('frag-proj')||{}).value||'Moderate',
-    season:    (document.getElementById('frag-season')||{}).value||'Year-round',
-    occasion:  ((document.getElementById('frag-occasion')||{}).value||'').trim(),
-    notesTop:  ((document.getElementById('frag-top')||{}).value||'').trim(),
-    notesMid:  ((document.getElementById('frag-mid')||{}).value||'').trim(),
-    notesBase: ((document.getElementById('frag-base')||{}).value||'').trim(),
-    rating: rVal,
-    photoUrl: photoUrl,
-    review: ((document.getElementById('frag-review')||{}).value||'').trim(),
-    tags: selectedFragTags,
-    created: Date.now()
-  };
-  var existing = _loadFrags().find(function(item){return item.id === f.id;});
-  if(existing) f.created = existing.created;
-  if(!await changeStyleItem('fragrance', f, false)) return;
-  if(_fragDraftId === draftId) closeFragranceModal();
-  loadFragrances();
-  showToast(existing ? 'Fragrance updated' : 'Fragrance added');
-}
-
-async function deleteFragrance(){
-  if(!_fragEditId || currentStyleStore()?.busy) return;
-  if(!confirm('Remove this fragrance from your wardrobe?')) return;
-  if(!await changeStyleItem('fragrance', {id:_fragEditId}, true)) return;
-  closeFragranceModal();
-  loadFragrances();
-  showToast('Fragrance removed');
-}
-
 /* ══ WARDROBE ══ */
 
 function loadWardrobe(){
@@ -5760,99 +5458,6 @@ function setWardPill(el, val){
 }
 
 /* ── Wardrobe Modal ── */
-function openWardrobeModal(id){
-  _wardDraftId = crypto.randomUUID();
-  clearCatalogueResults('ward');
-  _wardEditId = id || null;
-  var modal = document.getElementById('m-wardrobe');
-  if(!modal) return;
-  /* Reset */
-  ['ward-name','ward-brand','ward-fabric','ward-pairing'].forEach(function(k){ var el=document.getElementById(k); if(el) el.value=''; });
-  ['ward-color-name'].forEach(function(k){ var el=document.getElementById(k); if(el) el.value=''; });
-  var cat=document.getElementById('ward-cat'); if(cat) cat.value='Tops';
-  var sea=document.getElementById('ward-season'); if(sea) sea.value='Year-round';
-  setStyleChoice('ward-occasion','Everyday');
-  var sta=document.getElementById('ward-status'); if(sta) sta.value='Owned';
-  _wardColor='#1B5E76';
-  var cp=document.getElementById('ward-color-picker'); if(cp) cp.value='#1B5E76';
-  document.querySelectorAll('#ward-palette .pal-sw').forEach(function(s){ s.classList.remove('active'); });
-  setStyleTags('ward',[]);
-  var wtpInp=document.getElementById('ward-tp-search'); if(wtpInp){ wtpInp.value=''; wardTagSearch(''); }
-  /* Edit mode */
-  var delBtn  = document.getElementById('ward-del-btn');
-  var saveBtn = document.getElementById('ward-save-btn');
-  var titleEl = document.getElementById('ward-modal-title');
-  if(_wardEditId){
-    var w=_loadWard().find(function(x){ return x.id===_wardEditId; });
-    if(w){
-      var set=function(id,val){ var el=document.getElementById(id); if(el) el.value=val||''; };
-      set('ward-name',w.name); set('ward-brand',w.brand); set('ward-fabric',w.fabric);
-      set('ward-pairing',w.pairing); set('ward-color-name',w.colorName);
-      var catEl=document.getElementById('ward-cat'); if(catEl) catEl.value=w.category||'Tops';
-      var seaEl=document.getElementById('ward-season'); if(seaEl) seaEl.value=w.season||'Year-round';
-      setStyleChoice('ward-occasion',w.occasion || 'Everyday');
-      var staEl=document.getElementById('ward-status'); if(staEl) staEl.value=w.status||'Owned';
-      _wardColor=w.color||'#1B5E76';
-      var cpEl=document.getElementById('ward-color-picker'); if(cpEl) cpEl.value=_wardColor;
-      /* Highlight matching palette swatch */
-      document.querySelectorAll('#ward-palette .pal-sw').forEach(function(s){
-        if(s.dataset.color===_wardColor) s.classList.add('active');
-      });
-      setStyleTags('ward',w.tags || []);
-    }
-    if(titleEl) titleEl.textContent='Edit Item';
-    if(saveBtn) saveBtn.textContent='Update Item';
-    if(delBtn)  delBtn.style.display='inline-flex';
-  } else {
-    if(titleEl) titleEl.textContent='Add Wardrobe Item';
-    if(saveBtn) saveBtn.textContent='Save Item';
-    if(delBtn)  delBtn.style.display='none';
-  }
-  modal.classList.add('open');
-}
-
-function closeWardrobeModal(){
-  clearCatalogueResults('ward');
-  var m=document.getElementById('m-wardrobe'); if(m) m.classList.remove('open');
-}
-
-async function saveWardrobeItem(){
-  var name=(document.getElementById('ward-name').value||'').trim();
-  if(!name){ showToast('Please enter an item name'); return; }
-  var draftId = _wardDraftId;
-  var selectedWardTags=Array.from(document.querySelectorAll('#ward-tag-picker .tp.sel')).map(function(t){ return t.textContent.trim(); });
-  var w={
-    id: _wardEditId || draftId,
-    name: name,
-    brand:     ((document.getElementById('ward-brand')||{}).value||'').trim(),
-    category:  (document.getElementById('ward-cat')||{}).value||'Tops',
-    color:     _wardColor,
-    colorName: ((document.getElementById('ward-color-name')||{}).value||'').trim(),
-    fabric:    ((document.getElementById('ward-fabric')||{}).value||'').trim(),
-    season:    (document.getElementById('ward-season')||{}).value||'Year-round',
-    occasion:  (document.getElementById('ward-occasion')||{}).value||'Everyday',
-    status:    (document.getElementById('ward-status')||{}).value||'Owned',
-    pairing:   ((document.getElementById('ward-pairing')||{}).value||'').trim(),
-    tags: selectedWardTags,
-    created: Date.now()
-  };
-  var existing = _loadWard().find(function(item){return item.id === w.id;});
-  if(existing) w.created = existing.created;
-  if(!await changeStyleItem('wardrobe', w, false)) return;
-  if(_wardDraftId === draftId) closeWardrobeModal();
-  loadWardrobe();
-  showToast(existing ? 'Item updated' : 'Item added to your wardrobe');
-}
-
-async function deleteWardrobeItem(){
-  if(!_wardEditId || currentStyleStore()?.busy) return;
-  if(!confirm('Remove this item from your wardrobe?')) return;
-  if(!await changeStyleItem('wardrobe', {id:_wardEditId}, true)) return;
-  closeWardrobeModal();
-  loadWardrobe();
-  showToast('Item removed');
-}
-
 function pickWardColor(el){
   _wardColor = el.dataset.color||'#1B5E76';
   var nameInp=document.getElementById('ward-color-name');
@@ -6001,20 +5606,6 @@ function _renderFragDiscovery(recs, isColdStart){
 }
 
 /* ── Pre-fill fragrance modal from a discover card ── */
-function addFragFromDiscover(button){
-  var rec = JSON.parse(button.dataset.frag);
-  var detail = styleRecommendationDetails('fragrance',rec);
-  openFragranceModal();
-  document.getElementById('frag-name').value = detail.name;
-  document.getElementById('frag-house').value = detail.house;
-  document.getElementById('frag-char').value = detail.character;
-  document.getElementById('frag-proj').value = detail.projection;
-  document.getElementById('frag-season').value = detail.season;
-  document.getElementById('frag-top').value = detail.notesTop;
-  document.getElementById('frag-mid').value = detail.notesMid;
-  document.getElementById('frag-base').value = detail.notesBase;
-}
-
 /* ────────────────────────────────────── Style Discovery ── */
 
 function loadStyleDiscovery(){
@@ -6079,76 +5670,6 @@ function _renderStyleDiscovery(recs, isColdStart){
 }
 
 /* ── Pre-fill wardrobe modal from a discover card ── */
-function addWardFromDiscover(button){
-  var rec = JSON.parse(button.dataset.ward);
-  var detail = styleRecommendationDetails('wardrobe',rec);
-  openWardrobeModal();
-  document.getElementById('ward-name').value = detail.name;
-  document.getElementById('ward-brand').value = detail.brand;
-  document.getElementById('ward-cat').value = detail.category;
-  document.getElementById('ward-season').value = detail.season;
-  document.getElementById('ward-pairing').value = detail.pairing;
-  setStyleChoice('ward-occasion',detail.occasion || 'Everyday');
-  setStyleTags('ward',detail.tags);
-}
-
-/* ── Catalogue autocomplete ── */
-function clearCatalogueResults(prefix){
-  var drop = document.getElementById(prefix + '-cs-drop');
-  drop.replaceChildren();
-  drop.classList.remove('open');
-}
-
-function renderCatalogueResults(prefix, value, rows, select){
-  clearCatalogueResults(prefix);
-  var query = styleRecommendations.catalogueText(value);
-  if(query.length < 2) return;
-  var drop = document.getElementById(prefix + '-cs-drop');
-  var candidates = rows.filter(function(row){
-    return row.slice(0,3).some(function(field){return styleRecommendations.catalogueText(field).includes(query);});
-  }).sort(function(a,b){
-    return Number(styleRecommendations.catalogueText(b[0]).startsWith(query)) - Number(styleRecommendations.catalogueText(a[0]).startsWith(query));
-  });
-  candidates.slice(0,8).forEach(function(row){
-    var button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'cs-item';
-    button.style.width = '100%';
-    button.style.textAlign = 'left';
-    button.style.color = 'inherit';
-    button.style.border = 'none';
-    button.style.font = 'inherit';
-    button.innerHTML = '<div class="cs-info"><div class="cs-title-txt">' + _sx(row[0]) +
-      '</div><div class="cs-meta-txt">' + _sx([row[1],row[2]].filter(Boolean).join(' · ')) + '</div></div>';
-    button.addEventListener('click', function(){select(row); clearCatalogueResults(prefix);});
-    drop.appendChild(button);
-  });
-  drop.classList.toggle('open', candidates.length > 0);
-}
-
-function onFragNameInput(value){
-  renderCatalogueResults('frag', value, FRAG_DB, function(row){
-    var fields = ['frag-name','frag-house','frag-top','frag-mid','frag-base','frag-char','frag-proj','frag-season'];
-    fields.forEach(function(id, index){document.getElementById(id).value = row[index];});
-  });
-}
-
-function onWardNameInput(value){
-  renderCatalogueResults('ward', value, WARD_STYLE_DB, function(row){
-    document.getElementById('ward-name').value = row[0];
-    document.getElementById('ward-cat').value = row[1];
-    document.getElementById('ward-brand').value = row[2];
-    document.getElementById('ward-season').value = row[5];
-    document.getElementById('ward-pairing').value = row[6];
-  });
-}
-
-document.addEventListener('click', function(e){
-  ['frag','ward'].forEach(function(prefix){
-    var drop = document.getElementById(prefix + '-cs-drop');
-    if(!drop.contains(e.target) && e.target.id !== prefix + '-name') clearCatalogueResults(prefix);
-  });
-});
 
 startApp();
 </script>

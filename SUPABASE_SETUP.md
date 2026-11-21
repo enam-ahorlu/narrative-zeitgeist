@@ -16,6 +16,7 @@ Editor or your migration runner.
 6. `migrations/005_style_items.sql`
 7. `migrations/006_discovery_feedback.sql`
 8. `migrations/007_journal_workflows.sql`
+9. `migrations/008_media_workflows.sql`
 
 For an existing database, verify which historical scripts have already been
 applied and start at the first unapplied migration. The historical scripts add
@@ -29,8 +30,7 @@ app origins used for signup confirmation and password recovery to the
 redirect allow list. For a hosted test, use disposable test accounts with
 mailboxes that can receive the links.
 
-Apply migration 007 before deploying the matching frontend. The migration
-adds authenticated database commands and is compatible with the previous
+Apply migration 008 before deploying the matching frontend and Discovery API. It adds optional media metadata, an Up Next queue position, catalogue-specific dismissals, and authenticated database commands and is compatible with the previous
 frontend during the rollout. Roll back the app by restoring the previous
 deployment if necessary. The added commands can stay in place.
 

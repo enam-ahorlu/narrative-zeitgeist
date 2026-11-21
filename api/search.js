@@ -10,8 +10,8 @@ const RAWG_KEY = process.env.RAWG_API_KEY;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  const { q, type } = req.query;
-  if (!q || q.length < 2) return res.json([]);
+  const { q, type } = req.query || {};
+  if (typeof q !== 'string' || q.trim().length < 2 || q.length > 300) return res.json([]);
 
   try {
     let results = [];
@@ -25,8 +25,8 @@ module.exports = async (req, res) => {
     } else if (type === 'book') {
       results = await fetchBooks(q);
 
-    } else if (type === 'music') {
-      results = await fetchMusic(q);
+    } else if (type === 'music' || type === 'track') {
+      results = await fetchMusic(q,{kind:type === 'track' ? 'track' : 'album'});
 
     } else if (type === 'match') {
       results = await fetchMatch(q);

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const { test } = require('node:test');
-const { selectAnchors } = require('../lib/grounded-discovery');
+const { selectAnchors,lowRatedExamples,discoveryExclusions } = require('../lib/grounded-discovery');
 const discover = require('../api/discover');
 
 const userId = '00000000-0000-4000-8000-000000000001';
@@ -88,7 +88,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   assert.equal(result.status,200);
   assert.deepEqual(result.body.recommendations.map(rec=>rec.title),['Catalogue Match']);
   assert.equal(result.body.recommendations[0].anchor.title,'Original Favorite');
-  assert.deepEqual(result.body.recommendations[0].catalog,{provider:'openlibrary',id:'/works/synthetic'});
+  assert.deepEqual(result.body.recommendations[0].catalog,{provider:'openlibrary',id:'/works/synthetic',year:'2022',creator:'Test Author'});
   assert.equal(result.body.recommendations[0].match_score,undefined);
   assert.deepEqual(result.body.recommendations[0].affinity,{label:'Close match',sharedTags:['epistolary','mystery']});
   assert.match(prompt,/already shown|already saved/);
@@ -96,4 +96,22 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   assert.match(prompt,/2025-05-01/);
   assert.doesNotMatch(prompt,/Old Read|Private text/);
   assert.ok(queried.every(q=>!q.startsWith('Old Read') && !q.startsWith('Deja Vu') && !q.startsWith('Already Saved') && !q.startsWith('Already Shown')));
+});
+
+
+test('low ratings are bounded and same-titled releases and tracks have separate identities', () => {
+  const film = (id,year,rating) => ({id,title:'Same title',format:'film',rating,catalogue:{provider:'tmdb',id,year}});
+  const original = film('original','1980',3);
+  const remake = film('remake','2010',9);
+  const entries = [original,remake,{...original,id:'repeat-entry'},film('third','2020',4),film('fourth','2026',4)];
+  const anchors = selectAnchors(entries);
+  assert.equal(lowRatedExamples(entries,anchors).length,2);
+  assert.ok(lowRatedExamples(entries,anchors).every(entry=>entry.rating<=4));
+  const {known} = discoveryExclusions(anchors,{exclusions:[original]},[]);
+  assert.ok(known(original));
+  assert.ok(!known(remake));
+  const album = {title:'Same title',format:'music',catalogue:{provider:'itunes',id:'one',kind:'album'}};
+  const track = {title:'Same title',format:'music',catalogue:{provider:'itunes',id:'two',kind:'track'}};
+  const musicExclusions = discoveryExclusions([{format:'music'}],{exclusions:[album]},[]);
+  assert.ok(!musicExclusions.known(track));
 });

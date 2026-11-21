@@ -11,6 +11,9 @@ const journalView = (() => {
   const aliases = new Map(Object.entries(formats).flatMap(([key, format]) =>
     [key, format.label, format.plural, format.search].map(name => [name.toLowerCase(), key])));
 
+  aliases.set('track','music');
+  aliases.set('music track','music');
+
   function formatKey(value) {
     return aliases.get(String(value ?? '').toLowerCase()) ?? null;
   }
@@ -56,6 +59,10 @@ const journalView = (() => {
 
   function watchlistView(items, priority, sort) {
     const result = items.filter(item => priority === 'all' || watchlistPriority(item) === priority);
+    if (priority === 'up_next' && sort === 'queue') {
+      result.sort((a,b)=>(a.queue_position ?? Infinity)-(b.queue_position ?? Infinity) ||
+        (a.queue_position == null && b.queue_position == null ? String(a.saved_at).localeCompare(String(b.saved_at)) : 0));
+    }
     if (sort === 'alpha') result.sort((a,b) => a.title.localeCompare(b.title));
     if (sort === 'match') result.sort((a,b) => (Number(b.match_score) || 0) - (Number(a.match_score) || 0));
     return result;
