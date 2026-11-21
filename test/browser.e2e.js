@@ -501,6 +501,15 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-hero-wrap').getByRole('button', {name:'Not for me'}).click();
   await page.getByText('Dismissed from future recommendations.', {exact:false}).waitFor();
   assert.equal(dismissals[0].title, 'Seeded synthetic book');
+  assert.equal(dismissals[0].reason, 'not_for_me');
+  /* Discard hides a pick without recording a dislike */
+  await page.evaluate(async () => {
+    const button = document.createElement('button');
+    button.dataset.rec = JSON.stringify({title:'Film of a book I own', format:'film'});
+    await dismissDiscovery(button, 'discarded');
+  });
+  assert.equal(dismissals.at(-1).title, 'Film of a book I own');
+  assert.equal(dismissals.at(-1).reason, 'discarded');
   await page.getByRole('button',{name:'Clear starting entry'}).click();
   assert.equal(await page.locator('#disc-seed-entry').inputValue(),'');
   await page.getByText('Choose a work to get recommendations connected to it.').waitFor();
@@ -575,6 +584,22 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await phone.goto(origin + '/#wardrobe');
   await signIn(phone, users[0].email);
   await phone.locator('#ward-grid').getByRole('img',{name:'A’s Tropical Wool Suit'}).waitFor();
+  if (process.env.NZ_SHOTS) {
+    /* Optional: screenshots of every screen at phone widths, for layout review (not part of CI) */
+    for (const width of [390, 320]) {
+      await phone.setViewportSize({width, height:780});
+      for (const screen of ['collection','watchlist','discover','insights','fragrances','wardrobe','settings']) {
+        await phone.evaluate(s => navigate(s), screen);
+        await phone.waitForTimeout(700);
+        await phone.screenshot({path:process.env.NZ_SHOTS + '/' + screen + '-' + width + '.png'});
+      }
+      await phone.evaluate(() => { navigate('collection'); openModal('add'); });
+      await phone.waitForTimeout(500);
+      await phone.screenshot({path:process.env.NZ_SHOTS + '/add-modal-' + width + '.png'});
+      await phone.evaluate(() => closeModal('add'));
+    }
+    await phone.setViewportSize({width:390, height:844});
+  }
   await phone.locator('#mni-settings').click();
   await phone.evaluate(() => { document.getElementById('auth-email-inp').value = 'unrelated@example.test'; });
   await phone.locator('#settings-password-btn').click();

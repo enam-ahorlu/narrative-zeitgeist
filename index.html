@@ -1041,6 +1041,33 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
   .ph-actions .btn{white-space:normal}
   .mob-nav-add{width:42px;height:42px}
 }
+
+/* ── Phone layout: the page scrolls as one, nothing is trapped in a small inner box ── */
+@media(max-width:768px){
+  .main{padding-bottom:0}
+  .screen{height:auto;min-height:calc(100dvh - 62px);overflow:visible}
+  .tbl-wrap,.col-scroll,.ig,.disc-content,.wl-content,.ds-wrap,.cg-grid{overflow:visible;flex:none}
+  .col-scroll{display:block}
+  .tbl-wrap{padding-bottom:12px}
+  .cg-grid{padding:12px 16px 24px}
+  .ig{padding-bottom:96px}
+  .disc-content,.wl-content,.ds-wrap{padding-bottom:96px}
+  .col-pagination{position:sticky;bottom:62px;z-index:20;padding:10px 16px}
+  .col-pag-info{max-width:calc(50% - 44px);font-size:11.5px;line-height:1.3}
+  /* Table: title gets the room; date and secondary context step aside */
+  thead th:nth-child(4),tbody td:nth-child(4){display:none}
+  .tc-title{white-space:normal}
+  .tc-title .catalogue-context{display:block;font-size:11px;overflow-wrap:normal;word-break:normal}
+  /* Fragrance and wardrobe screens: same side margins as everything else */
+  #s-fragrances>.style-stats,#s-wardrobe>.style-stats{margin:12px 16px 16px}
+  .style-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  #s-fragrances>.frag-grid,#s-wardrobe>.ward-grid,#s-fragrances>.style-empty,#s-wardrobe>.style-empty{margin-left:16px;margin-right:16px;padding-bottom:96px}
+  /* One Back button is enough */
+  #s-settings .ph-actions .btn-ghost{display:none}
+}
+@media(max-width:520px){
+  .ph-actions .btn,.ph-actions .fsel{flex:1 1 auto}
+}
 </style>
 </head>
 <body>
@@ -3587,7 +3614,8 @@ function _renderHero(rec){
     +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
     +'<button class="btn btn-p btn-sm" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
     +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collection</button>'
-    +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'">Not for me</button>'
+    +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="dismissDiscovery(this,\'discarded\')" data-rec="'+recJson+'" title="Hide this suggestion without saying you dislike things like it">Discard</button>'
+    +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="dismissDiscovery(this)" data-rec="'+recJson+'" title="Tell the app this is not your kind of thing">Not for me</button>'
     +'</div></div>'
     +'<div class="disc-hero-right" style="position:relative;z-index:1">'
     +(rec.catalog ? '<div class="disc-hero-match-label">Catalogue checked</div>' : '')
@@ -3638,7 +3666,8 @@ function _renderGrid(recs){
       +'<div class="rc-foot">'
       +'<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
       +'<button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collect</button>'
-      +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'">Not for me</button>'
+      +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this,\'discarded\')" data-rec="'+recJson+'" title="Hide this suggestion without saying you dislike things like it">Discard</button>'
+      +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'" title="Tell the app this is not your kind of thing">Not for me</button>'
       +'</div></div></div>';
   });
   html += '</div>';
@@ -3814,10 +3843,10 @@ async function confirmWlRemove(btn){
   showToast(title + ' removed from Watchlist');
 }
 
-async function rememberDismissal(item, userId){
+async function rememberDismissal(item, userId, reason){
   if(!currentUser || currentUser.id !== userId) return false;
   var catalogue = mediaIdentity.metadata(item);
-  var row = {user_id:userId,title:item.title,format:item.format};
+  var row = {user_id:userId,title:item.title,format:item.format,reason:reason || 'not_for_me'};
   var result = catalogue.provider
     ? await SUPA.from('discovery_catalogue_feedback').upsert({...row,provider:catalogue.provider,catalogue_id:catalogue.id,catalogue:catalogue},
       {onConflict:'user_id,format,provider,catalogue_id',ignoreDuplicates:true})
@@ -3830,12 +3859,15 @@ async function rememberDismissal(item, userId){
   return true;
 }
 
-async function dismissDiscovery(btn){
+/* reason 'discarded' hides one suggestion (say, a film of a book already collected) and says nothing about taste;
+   'not_for_me' is the explicit dislike. Both keep the pick from coming back. */
+async function dismissDiscovery(btn, reason){
   var item = JSON.parse(btn.dataset.rec);
+  var discard = reason === 'discarded';
   btn.disabled = true;
-  if(await rememberDismissal(item, currentUser?.id)){
+  if(await rememberDismissal(item, currentUser?.id, discard ? 'discarded' : 'not_for_me')){
     removeDiscoveryPick(item);
-    showToast('Dismissed from future recommendations.');
+    showToast(discard ? 'Discarded. Your taste profile is unchanged.' : 'Dismissed from future recommendations.');
   }
   btn.disabled = false;
 }

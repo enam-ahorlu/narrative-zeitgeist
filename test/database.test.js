@@ -49,6 +49,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/008_media_workflows.sql');
   await apply('migrations/009_quota_refund.sql');
   await apply('migrations/010_duplicate_guard.sql');
+  await apply('migrations/011_dismissal_reason.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -234,6 +235,9 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await db.query("insert into public.style_items values ($1,'fragrance','f1',$2)", [a, { name: 'Private fragrance' }]);
     await db.query("insert into public.watchlist (user_id,title,format) values ($1,'Saved Book','book')", [a]);
     await db.query("insert into public.discovery_feedback (title,format) values ('Dismissed Book','book')");
+    await db.query("insert into public.discovery_feedback (title,format,reason) values ('Discarded Book','book','discarded')");
+    assert.deepEqual((await db.query("select title,reason from public.discovery_feedback where title in ('Dismissed Book','Discarded Book') order by title")).rows.map(row=>row.reason),['discarded','not_for_me']);
+    await assert.rejects(db.query("insert into public.discovery_feedback (title,format,reason) values ('Odd','book','hates')"));
     await assert.rejects(db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Unowned' }]), denied);
     await actAs(b);
     assert.equal((await db.query('select * from public.discovery_feedback')).rows.length, 0);
