@@ -1351,8 +1351,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <!-- Hero + grid (populated by JS) -->
         <div id="disc-hero-wrap"></div>
         <div class="journal-request-status" id="discover-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="renderCombinedDiscovery()" hidden>Retry</button></div>
-        <section id="disc-style-picks" aria-label="Scent and style picks" hidden></section>
         <div id="disc-grid-wrap"></div>
+        <section id="disc-style-picks" aria-label="Scent and style picks" hidden></section>
       </div>
     </div>
 
@@ -3381,7 +3381,9 @@ async function loadDiscovery(force,advance){
   var refresh = document.getElementById('disc-refresh');
   var missingSeed = tab === 'because-loved' && !seedId;
   refresh.disabled = missingSeed;
-  renderCombinedDiscovery();
+  /* Scent and wardrobe picks sit below the media picks and appear only once those are ready.
+     Start reading their data now so they are waiting when the media picks arrive. */
+  holdCombinedDiscovery();
 
   if(missingSeed){
     _discState('results');
@@ -3391,6 +3393,7 @@ async function loadDiscovery(force,advance){
   }
   if(!_allEntries.length){
     _discState('nofp');
+    renderCombinedDiscovery();
     return;
   }
   var session = _discoverySession;
@@ -3399,6 +3402,7 @@ async function loadDiscovery(force,advance){
     _discRecs = cached;
     session.shown(cached,seedId);
     _renderDiscovery(cached);
+    renderCombinedDiscovery();
     return;
   }
 
@@ -3415,10 +3419,14 @@ async function loadDiscovery(force,advance){
       loading:'Finding media picks and checking catalogue matches…',
       error:function(error){return error?.message || 'Could not load recommendations.';}
     });
-    if(!picks || !stillCurrent()) return;
-    _discRecs = picks;
-    session.shown(picks,seedId);
-    _renderDiscovery(picks);
+    if(!stillCurrent()) return;
+    if(picks){
+      _discRecs = picks;
+      session.shown(picks,seedId);
+      _renderDiscovery(picks);
+    }
+    /* Show the scent and wardrobe picks last, even if the media request failed */
+    renderCombinedDiscovery();
   } finally {
     view.loading = false;
     if(_activeDiscoveryView === view) refresh.disabled = false;
@@ -3463,6 +3471,16 @@ function affinityLabel(rec){
 }
 
 var _combinedDiscoveryRequest = null;
+function holdCombinedDiscovery(){
+  _combinedDiscoveryRequest = {};
+  var wrap = document.getElementById('disc-style-picks');
+  wrap.hidden = true;
+  journalData.status('discover-style','');
+  var store = currentStyleStore();
+  if(store && _discPill === 'all' && _discTabName === 'for-you'){
+    Promise.resolve(store.load()).catch(function(){});
+  }
+}
 async function renderCombinedDiscovery(){
   var wrap = document.getElementById('disc-style-picks');
   var store = currentStyleStore();
@@ -4121,7 +4139,7 @@ async function saveDiscoveryStyle(button){
 
 function refreshStyleDiscovery(){
   if(!document.getElementById('s-discover').classList.contains('active')) return;
-  if(_discPill === 'all') renderCombinedDiscovery();
+  if(_discPill === 'all'){ if(!_activeDiscoveryView?.loading) renderCombinedDiscovery(); }
   else if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
 }
 

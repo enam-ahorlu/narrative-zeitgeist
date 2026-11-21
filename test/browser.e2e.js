@@ -680,6 +680,13 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const combined = page.locator('#disc-style-picks');
   await combined.getByRole('heading',{name:'Fragrance picks'}).waitFor();
   await combined.getByRole('heading',{name:'Wardrobe picks'}).waitFor();
+  /* Media picks come first; scent and wardrobe picks sit below them, scent before wardrobe */
+  assert.equal(await page.evaluate(() => {
+    const grid = document.getElementById('disc-grid-wrap');
+    const picks = document.getElementById('disc-style-picks');
+    const headings = [...picks.querySelectorAll('h3')].map(node => node.textContent);
+    return Boolean(grid.compareDocumentPosition(picks) & Node.DOCUMENT_POSITION_FOLLOWING) && headings.join('|') === 'Fragrance picks|Wardrobe picks';
+  }),true);
   await verifyPhoto(page,combined.getByRole('img',{name:'Dior Sauvage Eau de Toilette packaging'}));
   const sauvageCard = combined.getByRole('article').filter({hasText:'Sauvage EDT'});
   assert.match(await sauvageCard.getByRole('link',{name:'Product page'}).getAttribute('href'),/^https:\/\/www\.dior\.com\//);
