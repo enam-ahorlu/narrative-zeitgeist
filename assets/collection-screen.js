@@ -21,7 +21,7 @@ function styleAsEntry(kind, item){
   if(status && tags.map(String).map(function(t){return t.toLowerCase();}).indexOf(status.toLowerCase()) < 0) tags.unshift(status.toLowerCase());
   var created = item.created ? new Date(item.created).toISOString() : '';
   return {
-    id:'style:'+kind+':'+item.id, _style:{kind:kind, id:item.id}, format:kind,
+    id:'style:'+kind+':'+item.id, _style:{kind:kind, id:item.id, details:item}, format:kind,
     title:item.name || (fragrance ? 'Fragrance' : 'Wardrobe item'),
     rating:rating > 0 ? rating : null, tags:tags, created_at:created, date_completed:null,
     poster_url:safeStylePhoto(item.photoUrl || '') || styleCataloguePhoto(kind, item) || '',
@@ -32,25 +32,39 @@ function styleAsEntry(kind, item){
 /* Only items marked as owned belong in the collection; wishlisted ones live in the watchlist. */
 function isOwnedStyle(item){ return String(item.status || '').toLowerCase() === 'owned'; }
 
-function collectionSource(){
-  var rows = _styleStore && _styleStore.ready
-    ? _loadFrags().filter(isOwnedStyle).map(function(f){return styleAsEntry('fragrance', f);}).concat(_loadWard().filter(isOwnedStyle).map(function(w){return styleAsEntry('wardrobe', w);}))
-    : [];
-  if(!rows.length) return _allEntries;
-  var key = function(e){ return String(e.date_completed || e.created_at || ''); };
-  return _allEntries.concat(rows).map(function(e, i){ return {e:e, i:i}; })
+function collectionSource(media = _allEntries, fragrances = _loadFrags(), wardrobe = _loadWard()){
+  var rows = fragrances.filter(isOwnedStyle).map(item=>styleAsEntry('fragrance',item))
+    .concat(wardrobe.filter(isOwnedStyle).map(item=>styleAsEntry('wardrobe',item)));
+  if(!rows.length) return media;
+  var key = function(e){ return String(e.created_at || ''); };
+  return media.concat(rows).map(function(e, i){ return {e:e, i:i}; })
     .sort(function(a, b){ return key(b.e).localeCompare(key(a.e)) || a.i - b.i; })
     .map(function(x){ return x.e; });
 }
 
+var collectionOpener = null;
+
 function openCollectionEntry(entry){
-  if(!entry._style) return openDetailModal(entry);
-  if(entry._style.kind === 'fragrance') openFragranceModal(entry._style.id); else openWardrobeModal(entry._style.id);
+  var modal = entry._style ? entry._style.kind : 'detail';
+  collectionOpener = {id:entry.id, modal:modal};
+  if(modal === 'detail') openDetailModal(entry);
+  else if(modal === 'fragrance') openFragranceModal(entry._style.id);
+  else openWardrobeModal(entry._style.id);
+  document.querySelector('#m-'+modal+' .modal-x')?.focus();
+}
+
+function restoreCollectionFocus(modal){
+  if(!collectionOpener || collectionOpener.modal !== modal) return;
+  var id = collectionOpener.id;
+  collectionOpener = null;
+  if(!currentUser || !document.getElementById('s-collection').classList.contains('active')) return;
+  var row = document.querySelector('#s-collection [data-id="'+CSS.escape(id)+'"] .entry-title-button');
+  (row || document.getElementById('col-search-inp')).focus();
 }
 
 function ratingCell(e){
   var rVal = parseFloat(e.rating);
-  if(!(rVal > 0)) return '<span style="color:var(--t-3)">—</span>';
+  if(!Number.isFinite(rVal)) return '<span style="color:var(--t-3)">—</span>';
   var rdCls = rVal >= 9 ? 'rd-hi' : rVal >= 7.5 ? 'rd-mid' : 'rd-lo';
   return '<div class="rating"><div class="rd '+rdCls+'"></div>'+rVal+'</div>';
 }
@@ -72,9 +86,9 @@ function renderEntriesTable(entries){
     var tr = document.createElement('tr');
     tr.className = 'anim-fadeup' + delay;
     tr.dataset.id = e.id;
-    (function(entry){ tr.onclick = function(){ openCollectionEntry(entry); }; })(e);
+    tr.onclick = function(){ openCollectionEntry(e); };
     tr.innerHTML =
-      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+(e._maker?'<span class="catalogue-context"> '+escHtml(e._maker)+'</span>':catalogueContext(e))+'</td>'+
+      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+escHtml(grad)+'"></span>')+ '<button type="button" class="entry-title-button">'+escHtml(e.title)+'</button>'+(e._maker?'<span class="catalogue-context"> '+escHtml(e._maker)+'</span>':catalogueContext(e))+'</td>'+
       '<td><span class="badge '+badge+'">'+fmt+'</span></td>'+
       '<td>'+ratingCell(e)+'</td>'+
       '<td style="color:var(--t-3);font-size:12px">'+_entryDateStr(e)+'</td>'+
@@ -98,36 +112,38 @@ function renderEntriesGrid(entries){
     var card = document.createElement('div');
     card.className = 'cg-card anim-fadeup';
     card.dataset.id = e.id;
-    (function(entry){ card.onclick = function(){ openCollectionEntry(entry); }; })(e);
+    card.onclick = function(){ openCollectionEntry(e); };
     card.innerHTML =
-      (e.poster_url?'<img class="cg-poster" src="'+escHtml(e.poster_url)+'" alt="">':"<div class='cg-card-strip' style='background:"+grad+"'></div>")+
+      (e.poster_url?'<img class="cg-poster" src="'+escHtml(e.poster_url)+'" alt="">':"<div class='cg-card-strip' style='background:"+escHtml(grad)+"'></div>")+
       '<span class="badge '+badge+'">'+fmt+'</span>'+
-      '<div class="cg-title">'+escHtml(e.title)+(e._maker?'<span class="catalogue-context"> '+escHtml(e._maker)+'</span>':catalogueContext(e))+'</div>'+
+      '<div class="cg-title"><button type="button" class="entry-title-button">'+escHtml(e.title)+'</button>'+(e._maker?'<span class="catalogue-context"> '+escHtml(e._maker)+'</span>':catalogueContext(e))+'</div>'+
       '<div class="cg-tags">'+cardTagHtml+'</div>'+
-      '<div class="cg-bottom"><div class="cg-rating">'+(rVal > 0 ? rVal : '—')+'</div><div class="cg-date">'+_entryDateStr(e)+'</div></div>';
+      '<div class="cg-bottom"><div class="cg-rating">'+(Number.isFinite(rVal) ? rVal : '—')+'</div><div class="cg-date">'+_entryDateStr(e)+'</div></div>';
     grid.appendChild(card);
   });
 }
 
 function updateCollectionStats(entries){
   var total  = entries.length;
-  var avg    = total > 0 ? (entries.reduce(function(s,e){ return s+parseFloat(e.rating); }, 0) / total).toFixed(1) : '0.0';
-  var counts = {film:0, show:0, book:0, sports_match:0, music:0};
-  entries.forEach(function(e){ if(counts[e.format] !== undefined) counts[e.format]++; });
+  var ratings = entries.map(function(e){ return parseFloat(e.rating); }).filter(Number.isFinite);
+  var avg = ratings.length ? (ratings.reduce(function(sum,value){return sum+value;},0)/ratings.length).toFixed(1) : '—';
+  var counts = Object.fromEntries(Object.keys(journalView.formats).map(function(format){return [format,0];}));
+  entries.forEach(function(e){ counts[e.format]++; });
   /* update strip stats by ID — robust to any order */
   var _sv = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val; };
   _sv('sv-total', total); _sv('sv-avg', avg);
   _sv('sv-films', counts.film);
+  _sv('sv-fragrance', counts.fragrance); _sv('sv-wardrobe', counts.wardrobe);
   _sv('sv-shows', counts.show); _sv('sv-books', counts.book);
   _sv('sv-matches', counts.sports_match); _sv('sv-music', counts.music);
   var phSub = document.getElementById('col-ph-sub');
-  if(phSub) phSub.textContent = total + ' entr'+(total===1?'y':'ies')+' · Last updated today';
+  if(phSub) phSub.textContent = total + ' entr'+(total===1?'y':'ies')+(_entriesReady && _styleStore?.ready ? '' : ' loaded');
   var allTags = new Set();
   entries.forEach(function(e){ (e.tags||[]).forEach(function(t){ allTags.add(t); }); });
   var sbStats = document.getElementById('sb-stats');
   if(sbStats) sbStats.textContent = total + ' entries · ' + allTags.size + ' themes';
   var wc = document.getElementById('welcome-card');
-  if(wc) wc.style.display = total === 0 ? '' : 'none';
+  if(wc) wc.style.display = total === 0 && _entriesReady && _styleStore?.ready ? '' : 'none';
 }
 
 /* ── Open detail modal populated with real entry data ── */
@@ -276,7 +292,7 @@ function _renderRelatedEntries(entry){
     var initials=e.title.split(/\s+/).slice(0,3).map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,4);
     var thumbHtml=e.poster_url
       ?'<div class="detail-rel-thumb" style="background-image:'+escHtml(cssUrl(e.poster_url))+';background-size:cover;background-position:center"></div>'
-      :'<div class="detail-rel-thumb" style="background:'+grad+'">'+escHtml(initials)+'</div>';
+      :'<div class="detail-rel-thumb" style="background:'+escHtml(grad)+'">'+escHtml(initials)+'</div>';
     var sharedStr=r.shared.slice(0,3).map(function(t){return escHtml(t);}).join(' · ');
     var rVal=parseFloat(e.rating)||0;
     return'<div class="detail-rel-item" onclick="_openRelatedEntry(\''+escJs(e.id)+'\')" style="cursor:pointer">'+
@@ -326,8 +342,15 @@ function applyCollectionFilter(){
   renderCollectionPage();
 }
 
-function renderCollectionPage(){
-  var view = journalView.collectionPage(collectionSource(),colFilter,_colSortVal,_collectionPage,COLLECTION_PAGE_SIZE);
+function refreshCollection(){
+  var source = collectionSource();
+  updateCollectionStats(source);
+  renderColTagPills(source);
+  renderCollectionPage(source);
+}
+
+function renderCollectionPage(source){
+  var view = journalView.collectionPage(source || collectionSource(),colFilter,_colSortVal,_collectionPage,COLLECTION_PAGE_SIZE);
   _collectionPage = view.page;
   renderEntriesTable(collectionView === 'table' ? view.visible : []);
   renderEntriesGrid(collectionView === 'grid' ? view.visible : []);
@@ -475,7 +498,7 @@ function updateColPagination(count,start,length,pages){
   var nav = document.getElementById('col-page-nav');
   var filtered = journalView.hasFilters(colFilter);
   info.textContent = count ? 'Showing ' + (start+1) + '–' + (start+length) + ' of ' + count + (filtered ? ' matching entries' : ' entries')
-    : filtered ? 'No matching media entries' : 'No media entries yet';
+    : filtered ? 'No matching entries' : 'No entries yet';
   nav.hidden = pages < 2;
   document.getElementById('col-page-number').textContent = _collectionPage + ' / ' + pages;
   document.getElementById('col-page-prev').disabled = _collectionPage <= 1;

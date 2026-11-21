@@ -5,18 +5,12 @@
 Use a dedicated staging Supabase project for preview deployments. The migration
 for the collection view requires PostgreSQL 15 or newer.
 
-For an empty database, apply these scripts in the listed order using the SQL
-Editor or your migration runner.
-
-1. `supabase_schema.sql`
-2. `supabase_migration.sql`
-3. `supabase_migration_fix.sql`
-4. `migrations/003_account_isolation.sql`
-5. `migrations/004_discovery_quota.sql`
-6. `migrations/005_style_items.sql`
-7. `migrations/006_discovery_feedback.sql`
-8. `migrations/007_journal_workflows.sql`
-9. `migrations/008_media_workflows.sql`
+For an empty database, run `node scripts/migration-files.js` from the checkout
+you intend to deploy. Apply every file printed, in order, using the SQL Editor
+or your migration runner. The database tests execute that same inventory and
+exercise a real journal save. The three historical scripts come first, followed
+by all numbered migrations. PostgreSQL must use UTF-8 with the ICU root collation
+(`und-x-icu`) for Unicode journal identity.
 
 For an existing database, verify which historical scripts have already been
 applied and start at the first unapplied migration. The historical scripts add
@@ -30,9 +24,10 @@ app origins used for signup confirmation and password recovery to the
 redirect allow list. For a hosted test, use disposable test accounts with
 mailboxes that can receive the links.
 
-Apply migration 008 before deploying the matching frontend and Discovery API. It adds optional media metadata, an Up Next queue position, catalogue-specific dismissals, and authenticated database commands and is compatible with the previous
-frontend during the rollout. Roll back the app by restoring the previous
-deployment if necessary. The added commands can stay in place.
+Apply all pending migrations before deploying the matching frontend and API.
+Migration 013 updates identity matching for existing and new titles. Migration
+014 stores private recommendation comparison results. Both are additive or
+replace compatible functions and leave existing journal rows intact.
 
 ## Vercel environment variables
 
@@ -61,7 +56,7 @@ the production settings.
 Keep the server keys in Vercel or an untracked local environment file. Configure
 the Anthropic project’s spending limit independently of the app’s per-account
 quota of 12 requests per hour. A request that fails because the model provider
-failed or timed out returns its slot; the refund needs the server secret key, so
+failed or timed out, or because all attempted catalogue checks failed, requests a refund of its slot; the refund needs the server secret key, so
 it does nothing in Preview until `PREVIEW_SUPABASE_SECRET_KEY` is set.
 
 ## Backups and the content security policy
@@ -72,6 +67,8 @@ repository:
 ```
 SUPABASE_URL=https://<project>.supabase.co SUPABASE_SECRET_KEY=<secret key> npm run export:data
 ```
+
+For the backup immediately before migration 014, append `-- --before-014` to the npm command. This checks for the new table and skips it only if PostgREST confirms its absence. Every existing table is still exported.
 
 The file goes to `backups/`, which git ignores. It holds real journal data, so
 keep it out of shared folders. The script refuses to run if `backups/` is not

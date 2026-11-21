@@ -4,6 +4,10 @@ const { test } = require('node:test');
 const { PGlite } = require('@electric-sql/pglite');
 const { uuid_ossp } = require('@electric-sql/pglite/contrib/uuid_ossp');
 
+const {historical, numbered} = require('../scripts/migration-files');
+const {TABLES} = require('../scripts/export-data');
+const {sameWork} = require('../shared/media-identity');
+
 const a = '00000000-0000-4000-8000-000000000001';
 const b = '00000000-0000-4000-8000-000000000002';
 const entryA = '00000000-0000-4000-8000-000000000003';
@@ -11,7 +15,7 @@ const entryB = '00000000-0000-4000-8000-000000000004';
 const tagA = '00000000-0000-4000-8000-000000000005';
 const tagB = '00000000-0000-4000-8000-000000000006';
 
-test('migrations protect journal data, enforce quota and cascade account removal', async (t) => {
+async function newDatabase(t) {
   const db = await PGlite.create({ extensions: { uuid_ossp } });
   t.after(() => db.close());
 
@@ -28,10 +32,27 @@ test('migrations protect journal data, enforce quota and cascade account removal
     grant usage on schema auth to anon, authenticated;
     grant execute on function auth.uid() to anon, authenticated;
   `);
+  return db;
+}
+
+test('fresh documented installation can save and reload the current journal form', async t => {
+  const db = await newDatabase(t);
+  for (const file of [...historical,...numbered]) await db.exec(await readFile(file,'utf8'));
+  await db.query('insert into auth.users(id,email) values ($1,$2)',[a,'fresh@example.test']);
+  await db.query("select set_config('request.jwt.claim.sub',$1,false)",[a]);
+  await db.exec('set role authenticated');
+  const saved = await db.query(
+    "select public.save_journal_media(p_entry_id=>$1,p_edit=>false,p_title=>'First film',p_format=>'film',p_rating=>9,p_notes=>'Keep this note',p_cover_color=>null,p_date_completed=>null,p_poster_url=>null,p_tags=>array['drama'],p_watchlist_id=>null,p_catalogue=>$2,p_repeat=>false) as id",
+    [entryA,{provider:'fixture',id:'42',year:'2001'}]);
+  assert.equal(saved.rows[0].id,entryA);
+  const reloaded = await db.query('select notes,catalogue,tags from public.entries_with_tags where id=$1',[entryA]);
+  assert.deepEqual(reloaded.rows,[{notes:'Keep this note',catalogue:{provider:'fixture',id:'42',year:'2001'},tags:['drama']}]);
+});
+
+test('migrations protect journal data, enforce quota and cascade account removal', async (t) => {
+  const db = await newDatabase(t);
   const apply = async file => db.exec(await readFile(file, 'utf8'));
-  await apply('supabase_schema.sql');
-  await apply('supabase_migration.sql');
-  await apply('supabase_migration_fix.sql');
+  for (const file of historical) await apply(file);
   await db.exec(`
     grant select, insert, update, delete on all tables in schema public to anon, authenticated;
     insert into auth.users (id,email) values ('${a}','a@example.test'), ('${b}','b@example.test');
@@ -41,16 +62,9 @@ test('migrations protect journal data, enforce quota and cascade account removal
     insert into public.entry_tags (entry_id,tag_id) values ('${entryA}','${tagA}'), ('${entryA}','${tagB}');
     select public.compute_fingerprint('${a}');
   `);
-  await apply('migrations/003_account_isolation.sql');
-  await apply('migrations/004_discovery_quota.sql');
-  await apply('migrations/005_style_items.sql');
-  await apply('migrations/006_discovery_feedback.sql');
-  await apply('migrations/007_journal_workflows.sql');
-  await apply('migrations/008_media_workflows.sql');
-  await apply('migrations/009_quota_refund.sql');
-  await apply('migrations/010_duplicate_guard.sql');
-  await apply('migrations/011_dismissal_reason.sql');
-  await apply('migrations/012_style_dismissals.sql');
+  for (const file of numbered) await apply(file);
+  const inventory = await db.query("select tablename from pg_tables where schemaname='public' order by tablename");
+  assert.deepEqual(TABLES.slice().sort(), inventory.rows.map(row => row.tablename));
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -61,6 +75,41 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await db.exec('set role ' + role);
   };
   const denied = { code: '42501' };
+
+  await t.test('journal save agrees with browser identity for legacy records and identified works', async () => {
+    await actAs(a);
+    for (const [title, other, left, right, format='film'] of [
+      ['Amélie','Amelie',null,{year:'2001'}],
+      ['愛—情','愛 情',null,null],
+      ['Days & Nights','Days and Nights',null,null],
+      ["Don't Stop",'Don’t Stop',null,null],
+      ['Dune fixture','Dune fixture',{year:'1984'},{year:'2021'}],
+      ['Release','Release',{provider:'tmdb',id:'1'},{provider:'tmdb',id:'2'}],
+      ['Melody','Melody',{kind:'track'},{kind:'album'},'music'],
+      ['Two authors','Two authors',{creator:'José'},{creator:'Jose'},'book']
+    ]) {
+      const save = (name, catalogue) => db.query(
+        "select public.save_journal_media(gen_random_uuid(),false,$1,$2,8,null,null,null,null,'{}',null,$3,false)",
+        [name,format,catalogue]);
+      await db.exec('begin');
+      try {
+        await save(title,left);
+        const same = sameWork({title,format,catalogue:left},{title:other,format,catalogue:right});
+        if (same) await assert.rejects(save(other,right), {code:'23505'});
+        else await save(other,right);
+      } finally { await db.exec('rollback'); }
+    }
+  });
+
+  await t.test('comparison history follows the account and isolates votes', async () => {
+    await actAs(a);
+    await db.query("insert into public.discovery_comparisons(id,sets) values ($1,'[{},{}]')",[entryA]);
+    await actAs(b);
+    assert.equal((await db.query('select * from public.discovery_comparisons')).rows.length,0);
+    await assert.rejects(db.query("insert into public.discovery_comparisons(user_id,id,sets) values ($1,$2,'[{},{}]')",[a,entryB]),denied);
+    await actAs('', 'anon');
+    await assert.rejects(db.query('select * from public.discovery_comparisons'),denied);
+  });
 
   await t.test('each user gets their own rows and fingerprints', async () => {
     await actAs('', 'anon');
@@ -252,7 +301,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await db.query("insert into public.style_items values ($1,'wardrobe','w1',$2)", [b, { name: 'Private wardrobe' }]);
     await db.exec('reset role');
     await db.query('delete from auth.users where id=$1', [a]);
-    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','style_dismissals','discovery_feedback','discovery_catalogue_feedback']) {
+    for (const table of ['entries','tags','watchlist','user_fingerprints','style_items','style_dismissals','discovery_comparisons','discovery_feedback','discovery_catalogue_feedback']) {
       assert.equal((await db.query('select * from public.' + table + ' where user_id=$1', [a])).rows.length, 0);
     }
     assert.equal((await db.query('select * from public.profiles where id=$1', [a])).rows.length, 0);

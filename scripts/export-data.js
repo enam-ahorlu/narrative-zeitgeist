@@ -13,29 +13,35 @@ const KEYS = {
   profiles: 'id', entries: 'id', tags: 'id', entry_tags: 'entry_id,tag_id', watchlist: 'id',
   user_fingerprints: 'user_id', style_items: 'user_id,kind,item_id',
   discovery_feedback: 'user_id,format,title',
-  discovery_catalogue_feedback: 'user_id,format,provider,catalogue_id'
+  discovery_catalogue_feedback: 'user_id,format,provider,catalogue_id',
+  style_dismissals: 'user_id,kind,item_key', discovery_comparisons: 'user_id,id'
 };
 const TABLES = Object.keys(KEYS);
 const PAGE = 1000;
 
-async function exportTables({ url, secret, fetchImpl = fetch }) {
+async function exportTables({ url, secret, fetchImpl = fetch, before014 = false }) {
   const headers = { apikey: secret };
   // The legacy service-role key is a JWT that is also sent as a bearer token.
   if (!secret.startsWith('sb_secret_')) headers.Authorization = 'Bearer ' + secret;
   const data = {};
   for (const table of TABLES) {
     const rows = [];
+    let missing = false;
     for (let from = 0; ; from += PAGE) {
       const response = await fetchImpl(`${url}/rest/v1/${table}?select=*&order=${KEYS[table]}`, {
         headers: { ...headers, Range: `${from}-${from + PAGE - 1}`, 'Range-Unit': 'items' },
         signal: AbortSignal.timeout(30000)
       });
+      if (before014 && table === 'discovery_comparisons' && from === 0 && response.status === 404) {
+        const error = await response.json();
+        if (error.code === 'PGRST205' || error.code === '42P01') { missing = true; break; }
+      }
       if (!response.ok) throw new Error(`Export of ${table} failed with status ${response.status}`);
       const page = await response.json();
       rows.push(...page);
       if (page.length < PAGE) break;
     }
-    data[table] = rows;
+    if (!missing) data[table] = rows;
   }
   return data;
 }
@@ -57,7 +63,8 @@ async function main() {
   }
   const directory = path.join(__dirname, '..', 'backups');
   if (!isIgnored('backups/')) throw new Error('backups/ is not ignored by git. Refusing to write data there.');
-  const data = await exportTables({ url, secret });
+  const data = await exportTables({ url, secret, before014:process.argv.includes('--before-014') });
+  if (!data.discovery_comparisons) console.log('Pre-014 schema: comparison table absent.');
   mkdirSync(directory, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const file = path.join(directory, `narrative-zeitgeist-${stamp}.json`);

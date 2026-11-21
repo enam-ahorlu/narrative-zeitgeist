@@ -12,6 +12,11 @@ const journalData = (() => {
     }
   }
 
+  function readEntries(client, owner, stillCurrent) {
+    return readPages((from,to) => client.from('entries_with_tags').select('*').eq('user_id',owner)
+      .order('created_at',{ascending:false}).order('id').range(from,to), stillCurrent);
+  }
+
   function status(screen, state, message = '') {
     const panel = document.getElementById(screen+'-request-status');
     panel.hidden = !state;
@@ -35,6 +40,6 @@ const journalData = (() => {
     }
   }
 
-  return { readPages, status, run };
+  return { readPages, readEntries, status, run };
 })();
 if (typeof module !== 'undefined') module.exports = journalData;

@@ -2,6 +2,8 @@
 
 Snapshot dated November 21, 2026. This handoff covers the hardening and catalogue work on `codex/narrative-hardening`. Use the code and numbered migrations on that branch when a historical design note differs from current behavior.
 
+For the subsequent review branch, use [Review fixes](REVIEW-FIXES.md) and the current setup guide. The snapshot below describes an earlier deployment.
+
 ## Start here
 
 | Item | Current state |

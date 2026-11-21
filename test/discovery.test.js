@@ -39,6 +39,9 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   let prompt;
   const queried = [];
   let quotaCalls = 0;
+  let lookup = 'ok';
+  let refunds = 0;
+  process.env.SUPABASE_SECRET_KEY = 'sb_secret_fixture';
   const item = (title, anchor = 'A1') => ({
     title, format:'book', creator:'Test Author', anchor, connection:'Comparable use of letters.', sharedTags:['epistolary','Mystery','not a logged tag']
   });
@@ -46,6 +49,7 @@ test('authenticated Discovery excludes all history pages and requires verified, 
     const url = new URL(address);
     if (url.pathname === '/auth/v1/user') return Response.json({id:userId});
     if (url.pathname === '/rest/v1/rpc/reserve_discovery_request') { quotaCalls++; return Response.json(0); }
+    if (url.pathname.endsWith('/refund_discovery_request')) { refunds++; return Response.json(null); }
     if (url.pathname.startsWith('/rest/v1/')) {
       assert.equal(url.searchParams.get('user_id'), 'eq.' + userId);
       const offset = Number(url.searchParams.get('offset'));
@@ -67,6 +71,8 @@ test('authenticated Discovery excludes all history pages and requires verified, 
     if (url.hostname === 'openlibrary.org') {
       const query = url.searchParams.get('q');
       queried.push(query);
+      if (lookup === 'outage' || (lookup === 'partial' && !query.startsWith('Catalogue Match'))) return new Response('',{status:503});
+      if (lookup === 'empty') return Response.json({docs:[]});
       const match = query.startsWith('Catalogue Match') || query.startsWith('Wrong Author');
       return Response.json({docs:match ? [{
         key:'/works/synthetic', title:query.startsWith('Wrong Author')?'Wrong Author':'Catalogue Match',
@@ -97,6 +103,16 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   assert.match(prompt,/2025-05-01/);
   assert.doesNotMatch(prompt,/Old Read|Private text/);
   assert.ok(queried.every(q=>!q.startsWith('Old Read') && !q.startsWith('Deja Vu') && !q.startsWith('Already Saved') && !q.startsWith('Already Shown')));
+  lookup = 'empty';
+  assert.deepEqual((await invoke(seedId)).body.recommendations,[]);
+  lookup = 'partial';
+  assert.deepEqual((await invoke(seedId)).body.recommendations.map(p=>p.title),['Catalogue Match']);
+  assert.equal(refunds,0);
+  lookup = 'outage';
+  const failed = await invoke(seedId);
+  assert.equal(failed.status,503);
+  assert.match(failed.body.error,/slot was returned/);
+  assert.equal(refunds,1);
 });
 
 
@@ -175,4 +191,20 @@ test('blind low-rating comparison shares history, removes overlap and validates 
   assert.deepEqual(result.body.comparison.with.map(pick=>pick.title),['With Signal']);
   assert.equal(prompts.filter(prompt=>prompt.includes('The Disliked Work')).length,1);
   assert.ok(prompts.every(prompt=>prompt.includes('The Favorite') && !prompt.includes('Private annotation')));
+});
+
+test('comparison history counts a later journal match once per suggested pick', () => {
+  const {comparisonOutcomes} = require('../assets/discovery-comparison');
+  const {sameWork} = require('../shared/media-identity');
+  const title = {title:'A film',format:'film',catalogue:{provider:'tmdb',id:'1'}};
+  const other = {...title,catalogue:{provider:'tmdb',id:'2'}};
+  const rows = [{created_at:'2026-01-02',preference:'B',sets:[
+    {method:'Original',picks:[other]}, {method:'Updated',picks:[title]}
+  ]}];
+  const early = {...other,created_at:'2026-01-01'};
+  const late = {...title,created_at:'2026-02-01'};
+  const methods = comparisonOutcomes(rows,[early,late,late],sameWork);
+  assert.equal(methods.get('Updated').logged,1);
+  assert.equal(methods.get('Updated').preferred,1);
+  assert.equal(methods.get('Original').logged,0);
 });

@@ -2,6 +2,8 @@
 
 Snapshot: 21 November 2026, after the production update and the follow-up fixes (production is on the commit `main` points to). Combines the open work in `HANDOFF.md`, the findings in `CRITIQUE.md` and the checks of the Supabase and Vercel projects. Priority is Compulsory (part of the production update) or Suggested (worth doing, not blocking). Update the status column as items close. Everything here should eventually be done.
 
+The implementation and verification record for the subsequent code review is in [Review fixes](REVIEW-FIXES.md). The table below records the earlier release.
+
 ## Repository and access state
 
 | Item | State |
