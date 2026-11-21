@@ -727,7 +727,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await combined.getByRole('button',{name:'Wishlist · Colonia'}).click();
   await page.getByText('Colonia saved as wishlisted',{exact:false}).waitFor();
   await combined.locator('[data-kind="wardrobe"] [data-status="Owned"]').first().click();
-  await page.getByText('saved as owned',{exact:false}).waitFor();
+  await page.locator('#m-wardrobe.open').waitFor();
+  assert.equal(await page.locator('#ward-status').inputValue(), 'Owned');
+  assert.notEqual(await page.locator('#ward-name').inputValue(), '');
+  await page.locator('#ward-save-btn').click();
+  await page.getByText('Item added',{exact:false}).waitFor();
   await visit('watchlist');
   await page.locator('#wl-list [data-wl-style="fragrance"]').getByText('Colonia',{exact:false}).waitFor();
   await page.locator('#wl-list').getByText('FRAGRANCES',{exact:true}).waitFor();

@@ -4173,6 +4173,19 @@ async function saveDiscoveryStyle(button){
   var saved = (scent ? _loadFrags() : _loadWard()).find(function(item){
     return styleRecommendations.matchesSaved(kind,item,rec);
   });
+  if(status.toLowerCase() !== 'wishlisted'){
+    /* Owned and Tried open the form (rating, tags, notes) instead of saving a bare record */
+    if(saved){
+      if(scent) openFragranceModal(saved.id); else openWardrobeModal(saved.id);
+    } else if(scent){
+      addFragFromDiscover({dataset:{frag:JSON.stringify(rec)}});
+    } else {
+      addWardFromDiscover({dataset:{ward:JSON.stringify(rec)}});
+    }
+    var statusField = document.getElementById(scent ? 'frag-status' : 'ward-status');
+    if(statusField) statusField.value = status;
+    return;
+  }
   var details = styleRecommendationDetails(kind,rec);
   var item = {...details, id:crypto.randomUUID(), created:Date.now(), ...saved, status:status};
   var buttons = controls.querySelectorAll('button');
