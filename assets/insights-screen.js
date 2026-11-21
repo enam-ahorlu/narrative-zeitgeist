@@ -220,12 +220,23 @@ function renderTasteOverview(){
       return '<li><strong>'+escHtml(item.title)+'</strong> <span>'+escHtml(label(item.format).replace(/s$/,''))+' · '+item.rating+'</span></li>';
     }).join('');
   }
+  var kinds = tasteInsights.byFormat(_allEntries, journalTags.groupOf);
+  var genrePanels = kinds.map(function(group){
+    var maxCount = Math.max.apply(null, group.genres.concat(group.tropes).map(function(row){return row.count;}));
+    function rows(list){return list.map(function(row){
+      return bar(row.tag, row.count/maxCount*100, row.count+(row.avg !== null ? ' · '+row.avg.toFixed(1) : ''), color(group.format));
+    }).join('');}
+    var body = (group.genres.length ? '<div class="taste-sub">Genres</div>'+rows(group.genres) : '')
+      + (group.tropes.length ? '<div class="taste-sub">Tropes and themes</div>'+rows(group.tropes) : '');
+    return section(label(group.format)+': what you lean towards', body);
+  }).join('');
   var highs = entryList(summary.extremes.high), lows = entryList(summary.extremes.low);
 
   panel.innerHTML = '<div class="ct">Your taste, beyond tags</div>'
     + '<div class="cs">Built from every entry in your collection: what you log, how you rate it, and how that has moved.</div>'
     + (summary.highlights.length ? '<ul class="taste-highlights">'+summary.highlights.map(function(line){return '<li>'+escHtml(line)+'</li>';}).join('')+'</ul>' : '')
     + '<div class="taste-grid">'
+    + genrePanels
     + section('Where your entries go', formatRows)
     + section('How you rate', spreadRows)
     + section('Pace by quarter', activity)

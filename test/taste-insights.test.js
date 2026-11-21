@@ -63,3 +63,17 @@ test('highlights are plain sentences without dashes', () => {
   assert.ok(lines.length >= 3);
   for (const line of lines) assert.doesNotMatch(line, /[—–]/);
 });
+
+test('byFormat splits genres from tropes per format', () => {
+  const journalTags = require('../catalogues/tags');
+  const entries = [
+    entry('A', 'film', 9, ['thriller', 'slow burn']), entry('B', 'film', 7, ['thriller', 'comedy']),
+    entry('C', 'music', 8, ['jazz', 'melancholic']), entry('D', 'book', 6, ['unrelated tag'])
+  ];
+  const result = taste.byFormat(entries, journalTags.groupOf);
+  const film = result.find(item => item.format === 'film');
+  assert.deepEqual(film.genres.map(row => [row.tag, row.count, row.avg]), [['thriller', 2, 8], ['comedy', 1, 7]]);
+  assert.deepEqual(film.tropes.map(row => row.tag), ['slow burn']);
+  assert.deepEqual(result.find(item => item.format === 'music').genres.map(row => row.tag), ['jazz']);
+  assert.equal(result.find(item => item.format === 'book'), undefined);
+});

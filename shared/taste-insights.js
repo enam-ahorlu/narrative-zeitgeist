@@ -133,6 +133,32 @@ const tasteInsights = (() => {
     return [...keys.values()].filter(count => count > 1).length;
   }
 
+  /* Per format: the most common genres and tropes, with how often and how well you rate them.
+     classify(tag, format) returns 'genre', 'trope' or null (see journalTags.groupOf). */
+  function byFormat(entries, classify) {
+    const out = [];
+    for (const {format} of formatMix(entries)) {
+      const items = entries.filter(entry => entry.format === format);
+      const tally = {genre:new Map(), trope:new Map()};
+      for (const entry of items) {
+        const rating = ratingOf(entry);
+        for (const tag of tagsOf(entry)) {
+          const kind = classify(tag, format);
+          if (!kind || !tally[kind]) continue;
+          const row = tally[kind].get(tag) || {tag, count:0, ratings:[]};
+          row.count++;
+          if (rating !== null) row.ratings.push(rating);
+          tally[kind].set(tag, row);
+        }
+      }
+      const top = map => [...map.values()].map(row => ({tag:row.tag, count:row.count, avg:round1(mean(row.ratings))}))
+        .sort((a, b) => b.count - a.count || (b.avg ?? 0) - (a.avg ?? 0) || a.tag.localeCompare(b.tag)).slice(0, 5);
+      const genres = top(tally.genre), tropes = top(tally.trope);
+      if (genres.length || tropes.length) out.push({format, total:items.length, genres, tropes});
+    }
+    return out;
+  }
+
   function summarize(entries) {
     const list = Array.isArray(entries) ? entries : [];
     const ratings = list.map(ratingOf).filter(value => value !== null);
@@ -189,6 +215,6 @@ const tasteInsights = (() => {
     return lines;
   }
 
-  return {summarize, highlights, formatMix, ratingSpread, quarters, drift, bridgeTags, tagPairs, decades, extremes, repeats, FORMAT_NAMES};
+  return {summarize, byFormat, highlights, formatMix, ratingSpread, quarters, drift, bridgeTags, tagPairs, decades, extremes, repeats, FORMAT_NAMES};
 })();
 if (typeof module !== 'undefined') module.exports = tasteInsights;

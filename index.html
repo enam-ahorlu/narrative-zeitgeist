@@ -17,6 +17,7 @@
 <script src="/assets/insights-screen.js"></script>
 <script src="/shared/media-identity.js"></script>
 <script src="/shared/taste-insights.js"></script>
+<script src="/assets/photo-cutout.js"></script>
 <script src="/assets/discovery-session.js"></script>
 <script src="/assets/discovery-comparison.js"></script>
 <script src="/assets/style-recommendations.js"></script>
@@ -962,6 +963,7 @@ textarea.fi{resize:vertical;min-height:64px}
 .taste-highlights li{padding-left:14px;position:relative}
 .taste-highlights li::before{content:'';position:absolute;left:0;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--p-light)}
 .taste-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:18px;margin-top:14px}
+.taste-sub{margin:8px 0 4px;font-size:11px;color:var(--t-3)}
 .taste-panel h3{margin:0 0 8px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--t-3)}
 .taste-row{display:grid;grid-template-columns:minmax(64px,92px) 1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--t-2);margin-bottom:6px}
 .taste-bar{height:8px;border-radius:4px;background:var(--n-dust);overflow:hidden}
@@ -975,7 +977,7 @@ textarea.fi{resize:vertical;min-height:64px}
 .taste-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
 .taste-list{margin:0;padding:0;list-style:none;display:grid;gap:6px;font-size:12.5px;color:var(--t-2)}
 .taste-list span{color:var(--t-3)}
-.style-poster{position:relative;display:grid;place-items:center;min-height:88px;overflow:hidden;background:rgba(128,128,128,.12)}
+.style-poster{position:relative;display:grid;place-items:center;min-height:88px;overflow:hidden;background:transparent}
 .rc-poster .style-poster{width:100%;height:100%}
 .frag-card .style-poster,.ward-card .style-poster{height:140px;margin-bottom:12px;border-radius:var(--r-sm);background:var(--p-ghost)}
 .disc-result-thumb .style-poster,.style-result-thumb .style-poster{width:100%;height:100%;min-height:0}
@@ -983,16 +985,19 @@ textarea.fi{resize:vertical;min-height:64px}
 .disc-hero .style-poster{width:100px;height:115px;border-radius:var(--r-sm)}
 .style-poster span{font-family:'Cormorant Garamond',serif;font-size:30px;opacity:.7}
 .rc-poster .style-poster span,.disc-hero .style-poster span{color:#fff}
-.media-poster-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center top}
-/* Catalogue photos usually come on a white studio background. Instead of a white box with hard edges,
-   the picture is blended into the card and its outer edge is feathered. */
-.style-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:6px;box-sizing:border-box;background:transparent;mix-blend-mode:multiply;
-  -webkit-mask-image:linear-gradient(to right,transparent,#000 9%,#000 91%,transparent),linear-gradient(to bottom,transparent,#000 9%,#000 91%,transparent);
-  -webkit-mask-composite:source-in;mask-image:linear-gradient(to right,transparent,#000 9%,#000 91%,transparent),linear-gradient(to bottom,transparent,#000 9%,#000 91%,transparent);mask-composite:intersect}
-/* Dark mode: blending would darken the product, so the photo sits on a soft light mat with rounded corners,
-   a thin border and slightly reduced glare, which reads as a deliberate tile rather than a stray white box. */
-[data-theme="dark"] .style-poster img{mix-blend-mode:normal;-webkit-mask-image:none;mask-image:none;background:#E9E6E0;border-radius:var(--r-sm);filter:brightness(.9) contrast(1.03);box-shadow:inset 0 0 0 1px rgba(200,225,245,.16)}
+.media-poster-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;padding:4px;box-sizing:border-box;opacity:0;transition:opacity .3s;filter:drop-shadow(0 3px 6px rgba(0,0,0,.35))}
+.media-poster-img.is-loaded{opacity:1}
+/* Catalogue photos come on studio backgrounds. assets/photo-cutout.js removes a plain background in the browser
+   (data-cutout="done") so the product sits on the page. Photos it cannot cut out (busy or cross-origin backgrounds,
+   data-cutout="skip") are shown as a rounded tile. Photos stay invisible until that decision is made. */
+.style-poster img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;padding:6px;box-sizing:border-box;transition:opacity .25s}
+.style-poster img:not([data-cutout]){opacity:0}
+.style-poster img[data-cutout="done"]{filter:drop-shadow(0 5px 6px rgba(20,40,55,.2))}
+.style-poster img[data-cutout="skip"]{border-radius:12px;filter:drop-shadow(0 3px 8px rgba(20,40,55,.18))}
 [data-theme="dark"] .style-poster{background:transparent}
+[data-theme="dark"] .style-poster:has(img[data-cutout="done"]){background:radial-gradient(ellipse at 50% 42%,rgba(255,255,255,.17),rgba(255,255,255,0) 70%)}
+[data-theme="dark"] .style-poster img[data-cutout="done"]{filter:drop-shadow(0 6px 9px rgba(0,0,0,.55))}
+[data-theme="dark"] .style-poster img[data-cutout="skip"]{filter:drop-shadow(0 4px 10px rgba(0,0,0,.5)) brightness(.94)}
 .style-poster:has(img) span,.rc-poster:has(.media-poster-img) .rc-initials,.disc-hero-art:has(.media-poster-img) span{visibility:hidden}
 .style-poster a{position:absolute;bottom:3px;right:4px;font-size:10px;padding:1px 4px;color:var(--t-1);background:var(--n-surface);border-radius:3px}
 button.theme-option,button.mini-theme,button.density-opt{font-family:inherit;background:var(--n-surface);color:var(--t-1)}
@@ -1281,8 +1286,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div class="sc anim-fadeup anim-delay-2"><div class="sc-v" id="sc-themes">—</div><div class="sc-l">Unique Themes</div></div>
         <div class="sc anim-fadeup anim-delay-3"><div class="sc-v" id="sc-top" style="font-size:14px;padding-top:4px">—</div><div class="sc-l">Top Theme</div></div>
       </div>
-      <section class="card card-full anim-fadeup" id="insights-taste" aria-label="Taste overview" hidden></section>
       <div class="ig">
+        <section class="card card-full anim-fadeup" id="insights-taste" aria-label="Taste overview" hidden></section>
         <div class="card anim-fadeup">
           <div class="ct">Taste Fingerprint</div>
           <div class="cs">Tags you use often on highly rated entries rank higher.</div>
@@ -3591,7 +3596,7 @@ function _renderHero(rec){
 /* Poster or cover from the catalogue check. The initials underneath remain if it fails to load. */
 function mediaPosterImage(rec){
   var url = safeStylePhoto(rec.poster_url);
-  return url ? '<img class="media-poster-img" src="'+escHtml(url)+'" alt="'+escHtml(rec.title)+' cover" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">' : '';
+  return url ? '<img class="media-poster-img" src="'+escHtml(url)+'" alt="'+escHtml(rec.title)+' cover" loading="lazy" referrerpolicy="no-referrer" onload="this.classList.add(\'is-loaded\')" onerror="this.remove()">' : '';
 }
 
 function _renderGrid(recs){
@@ -4120,7 +4125,7 @@ function stylePoster(kind,rec,{credit=true}={}){
   var url = ownUrl || photo?.url;
   var figure = '<div class="style-poster"><span aria-hidden="true">'+escHtml(_recInitials(rec.name))+'</span>';
   if(url){
-    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml((!ownUrl && photo?.alt) || rec.name + (kind === 'fragrance' ? ' bottle' : ''))+'" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">';
+    figure += '<img src="'+escHtml(url)+'" alt="'+escHtml((!ownUrl && photo?.alt) || rec.name + (kind === 'fragrance' ? ' bottle' : ''))+'" loading="lazy" referrerpolicy="no-referrer" onload="photoCutout.apply(this)" onerror="this.remove()">';
     if(credit && !ownUrl && photo){
       figure += '<a href="'+escHtml(photo.source)+'" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" aria-label="Photo credit for '+escHtml(rec.name)+'" title="'+escHtml(photo.credit)+'">Photo credit</a>';
     }

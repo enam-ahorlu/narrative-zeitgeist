@@ -151,7 +151,25 @@ const journalTags = (() => {
       }
     };
   }
-  return { normalize, presets, search };
+  /* Genre or trope classification for taste summaries. A genre says what kind of thing it is (per format);
+     a trope is a theme, device or mood. Anything else returns null. */
+  const genreSets = {
+    film:new Set(['action','adventure','thriller','horror','psychological horror','slasher','crime','film noir','heist','spy','neo-noir','drama','romance','rom-com','comedy','animation','documentary','biopic','historical','period piece','war film','western','sci-fi','fantasy','superhero','martial arts','body horror','found footage','mockumentary','arthouse','experimental','mystery','political thriller','african cinema','nollywood','ghallywood','korean cinema','slow cinema']),
+    show:new Set(['prestige drama','limited series','procedural','legal drama','medical drama','police procedural','true crime','docuseries','reality tv','talk show','sitcom','animated series','soap opera','mini-series','anthology','telenovela','drama','comedy','crime','thriller','horror','sci-fi','fantasy','romance','animation','documentary','mystery','spy','workplace drama']),
+    book:new Set(['literary fiction','contemporary fiction','historical fiction','short stories','novella','poetry','essay collection','memoir','autobiography','biography','narrative nonfiction','self-help','philosophy','psychology','sociology','economics','science','nature writing','travel writing','food writing','graphic novel','manga','young adult','middle grade','children','hard sci-fi','space opera','cli-fi','weird fiction','gothic','horror fiction','cozy mystery','police procedural fiction','legal thriller','medical thriller','techno-thriller','romance fiction','paranormal romance','epic fantasy','urban fantasy','high fantasy','low fantasy','grimdark','sci-fi','fantasy','mystery','thriller','crime','horror','romance','translated fiction','speculative fiction','afrofuturism','solarpunk']),
+    music:new Set(musicGenreTags),
+    sports_match:new Set(sportsTags)
+  };
+  const tropeSet = new Set(entryTagPresets.slice(0, entryTagPresets.indexOf('atmospheric')).concat(['diaspora','postcolonial','oral history','coming home','environmental justice','intergenerational','quiet horror','afrofuturism','solarpunk','microhistory','reportage',
+    'atmospheric','cinematic','lyrical','immersive','meditative','dark & gritty','cozy','melancholic','euphoric','tense','haunting','hopeful','bleak','whimsical','surreal','dreamlike','unsettling','warm','cold & clinical','chaotic','quiet','intense','playful',
+    'mystery','cliffhanger','espionage','whodunit','locked-room mystery','investigation','bottle episode','season finale','serialized','underdog']));
+  function groupOf(tag, format) {
+    const key = normalize(String(tag));
+    if (genreSets[format] && genreSets[format].has(key)) return 'genre';
+    if (tropeSet.has(key)) return 'trope';
+    return null;
+  }
+  return { normalize, presets, search, groupOf };
 })();
 
 if (typeof module !== 'undefined') module.exports = journalTags;

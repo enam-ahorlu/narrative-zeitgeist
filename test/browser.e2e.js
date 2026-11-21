@@ -58,6 +58,7 @@ const fixtures = {
   '/assets/journal-data.js': ['assets/journal-data.js', 'text/javascript; charset=utf-8'],
   '/assets/journal-view.js': ['assets/journal-view.js', 'text/javascript; charset=utf-8'],
   '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
+  '/assets/photo-cutout.js': ['assets/photo-cutout.js', 'text/javascript; charset=utf-8'],
   '/shared/taste-insights.js': ['shared/taste-insights.js', 'text/javascript; charset=utf-8'],
   '/catalogues/fragrances.js': ['catalogues/fragrances.js', 'text/javascript; charset=utf-8'],
   '/catalogues/tags.js': ['catalogues/tags.js', 'text/javascript; charset=utf-8'],
@@ -733,7 +734,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
     /* The overview needs a few entries; add synthetic rows to the in-page list only */
     const base = {user_id:'x', created_at:'2026-01-01', cover_color:null};
     _allEntries.push(
-      {...base, id:'t1', title:'Overview film', format:'film', rating:9, tags:['mystery'], date_completed:'2026-01-05'},
+      {...base, id:'t1', title:'Overview film', format:'film', rating:9, tags:['mystery','thriller','slow burn'], date_completed:'2026-01-05'},
       {...base, id:'t2', title:'Overview book', format:'book', rating:8, tags:['mystery'], date_completed:'2026-02-05'},
       {...base, id:'t3', title:'Overview show', format:'show', rating:7, tags:[], date_completed:'2026-03-05'});
     renderTasteOverview();
@@ -742,6 +743,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await taste.getByRole('heading',{name:'Where your entries go'}).waitFor();
   await taste.getByRole('heading',{name:'How you rate'}).waitFor();
   assert.ok(await taste.locator('.taste-highlights li').count() >= 1);
+  await taste.getByRole('heading',{name:'Films: what you lean towards'}).waitFor();
+  assert.ok(await taste.locator('.taste-sub',{hasText:'Genres'}).count() >= 1);
+  assert.ok(await taste.locator('.taste-sub',{hasText:'Tropes and themes'}).count() >= 1);
+  assert.equal(await page.evaluate(() => !!document.querySelector('.ig > #insights-taste')), true);
+  assert.equal(await page.evaluate(() => { const ig = document.querySelector('#screen-insights .ig, .ig'); ig.scrollTop = 40; return ig.scrollTop > 0; }), true);
   await page.locator('#insights-style').getByText('0 owned · 1 wishlisted · 0 tried').waitFor();
   await page.locator('#insights-style').getByText('1 owned · 0 wishlisted',{exact:true}).waitFor();
   await visit('fragrances');
