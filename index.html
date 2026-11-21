@@ -17,6 +17,9 @@
 <script src="/catalogues/wardrobe.js"></script>
 <script src="/assets/journal-view.js"></script>
 <script src="/assets/journal-data.js"></script>
+<script src="/assets/collection-screen.js"></script>
+<script src="/assets/watchlist-screen.js"></script>
+<script src="/assets/insights-screen.js"></script>
 <script src="/assets/media-identity.js"></script>
 <script src="/assets/discovery-session.js"></script>
 <script src="/assets/discovery-comparison.js"></script>
@@ -1226,6 +1229,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <!-- Card grid view (hidden until toggled) -->
       <div class="cg-grid" id="cg-grid"></div>
       <!-- Scent & Style items — shown when Fragrances/Wardrobe pill active, or appended in All mode -->
+      <div class="journal-request-status" id="collection-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadCollectionStyle()" hidden>Retry</button></div>
       <div id="col-ss-section" style="display:none"></div>
       <!-- C4: Pagination bar -->
       <div class="col-pagination" id="col-pagination">
@@ -1267,6 +1271,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <div class="fp-list" id="fp-list"></div>
         </div>
         <div class="card anim-fadeup anim-delay-1"><div class="ct">Taste DNA</div><div class="cs">Your profile across 6 dimensions</div><canvas id="radarChart" style="max-height:200px"></canvas></div>
+        <div class="journal-request-status" id="insights-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="renderStyleFingerprint()" hidden>Retry</button></div>
         <section class="card card-full" id="insights-style" aria-label="Scent and wardrobe fingerprint" hidden></section>
         <div class="card card-full anim-fadeup anim-delay-2">
           <div class="ct">Patterns Discovered</div><div class="cs">Things about your taste you might not have noticed</div>
@@ -1329,12 +1334,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <p>For You, Hidden Gems and New releases look at a sample of works you rated 7/10 or higher across the relevant formats. More like this uses the entry you choose. Tags on those entries help identify specific qualities to look for.</p>
           <p>Close match means the pick was linked to an entry you rated at least 8/10 and the recommender suggested two or more shared tags. Shared taste indicates some tag overlap. Explore gives you a connection to consider when there’s no suggested overlap.</p>
         </details>
-        <!-- Loading -->
-        <div id="disc-loading" style="display:none;text-align:center;padding:64px 20px">
-          <div style="width:36px;height:36px;border:3px solid var(--n-border);border-top-color:var(--p-light);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px"></div>
-          <div style="font-size:13px;color:var(--t-2);font-weight:500">Finding your next obsession…</div>
-          <div style="font-size:11.5px;color:var(--t-3);margin-top:4px">Checking suggestions against media catalogues</div>
-        </div>
+        <div class="journal-request-status" id="discover-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="retryDiscovery()" hidden>Retry</button></div>
+
         <!-- Not enough data -->
         <div id="disc-nofp" style="display:none;text-align:center;padding:64px 20px">
           <svg width="40" height="40" fill="none" viewBox="0 0 24 24" stroke="var(--t-3)" stroke-width="1.2" style="margin-bottom:12px"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
@@ -1342,13 +1343,11 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <div style="font-size:12.5px;color:var(--t-3);margin-bottom:16px">Rate a favorite for For You, or select a logged work in More like this.</div>
           <button class="btn btn-p btn-sm" onclick="openModal('add')">+ Add Entry</button>
         </div>
-        <!-- Error -->
-        <div id="disc-err" style="display:none;text-align:center;padding:64px 20px">
-          <div style="font-size:13px;color:var(--t-2);margin-bottom:8px" id="disc-err-msg" role="status">Something went wrong.</div>
-          <button class="btn btn-glass btn-sm" onclick="retryDiscovery()">Try Again</button>
-        </div>
+
+
         <!-- Hero + grid (populated by JS) -->
         <div id="disc-hero-wrap"></div>
+        <div class="journal-request-status" id="discover-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="renderCombinedDiscovery()" hidden>Retry</button></div>
         <section id="disc-style-picks" aria-label="Scent and style picks" hidden></section>
         <div id="disc-grid-wrap"></div>
       </div>
@@ -1594,6 +1593,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <button class="btn btn-p" onclick="openFragranceModal(null)"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Add Fragrance</button>
         </div>
       </div>
+      <div class="journal-request-status" id="fragrance-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="openStyleScreen('fragrance')" hidden>Retry</button></div>
       <div class="style-stats">
         <div class="style-stat"><div class="style-stat-v" id="fs-owned">—</div><div class="style-stat-l">Owned</div></div>
         <div class="style-stat"><div class="style-stat-v" id="fs-wish">—</div><div class="style-stat-l">Wishlisted</div></div>
@@ -1628,6 +1628,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <button class="btn btn-p" onclick="openWardrobeModal(null)"><svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>Add Item</button>
         </div>
       </div>
+      <div class="journal-request-status" id="wardrobe-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="openStyleScreen('wardrobe')" hidden>Retry</button></div>
       <div class="style-stats">
         <div class="style-stat"><div class="style-stat-v" id="ws-total">—</div><div class="style-stat-l">Total Items</div></div>
         <div class="style-stat"><div class="style-stat-v" id="ws-owned">—</div><div class="style-stat-l">Owned</div></div>
@@ -2125,7 +2126,7 @@ var _discTabName = 'for-you';
 var _discSeedId = '';
 var _catalogueOffset = {all:0, fragrances:0, style:0};
 var _discCompare = null;
-var _discSortVal = 'match';  /* current sort: match | newest | reviewed */
+var _discSortVal = 'match';  /* Recommended or newest. */
 
 /* ── Lookup tables ── */
 var FMT_LABEL = Object.fromEntries(Object.entries(journalView.formats).map(function(pair){return [pair[0],pair[1].label];}));
@@ -2214,7 +2215,7 @@ function handleAuthChange(event, session){
     _entriesLoadVersion++;
     _watchlistLoadVersion++;
     _fingerprintVersion++;
-    ['collection','watchlist','insights'].forEach(function(screen){journalData.status(screen,'');});
+    ['collection','collection-style','watchlist','insights','insights-style','discover','discover-style','fragrance','wardrobe'].forEach(function(screen){journalData.status(screen,'');});
     if(_charts.timeline){_charts.timeline.data.labels=[];_charts.timeline.data.datasets[0].data=[];_charts.timeline.update();}
     buildCmdIndex();
     clearColFilters();
@@ -2280,19 +2281,13 @@ async function loadEntries(){
   var userId = currentUser.id;
   var version = ++_entriesLoadVersion;
   var stillCurrent = function(){return currentUser?.id === userId && _entriesLoadVersion === version;};
-  journalData.status('collection','loading','Loading collection…');
-  var entries;
-  try {
-    entries = await journalData.readPages(function(from,to){
+  var entries = await journalData.run('collection',function(){
+    return journalData.readPages(function(from,to){
       return SUPA.from('entries_with_tags').select('*').eq('user_id',userId)
         .order('created_at',{ascending:false}).order('id').range(from,to);
     },stillCurrent);
-  } catch {
-    if(stillCurrent()) journalData.status('collection','error','Could not load your collection.');
-    return;
-  }
+  },stillCurrent,{loading:'Loading collection…',error:'Could not load your collection.'});
   if(!entries || !stillCurrent()) return;
-  journalData.status('collection','');
   _allEntries = entries;
   buildCmdIndex();
   renderColTagPills(entries);
@@ -2303,259 +2298,6 @@ async function loadEntries(){
   showDiscoverySeeds(document.getElementById('disc-seed-query').value);
   return true;
 }
-
-function _entryDateStr(e){
-  var d = e.date_completed ? new Date(e.date_completed) : new Date(e.created_at);
-  return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
-}
-
-function catalogueContext(item){
-  var details = mediaIdentity.metadata(item);
-  var label = [details.creator,details.year].filter(Boolean).join(' · ');
-  return label ? '<span class="catalogue-context"> '+escHtml(label)+'</span>' : '';
-}
-
-function renderEntriesTable(entries){
-  var tbody = document.querySelector('#s-collection .tbl-wrap tbody');
-  if(!tbody) return;
-  tbody.innerHTML = '';
-  entries.forEach(function(e, i){
-    var grad  = e.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
-    var rVal  = parseFloat(e.rating);
-    var rdCls = rVal >= 9 ? 'rd-hi' : rVal >= 7.5 ? 'rd-mid' : 'rd-lo';
-    var fmt   = mediaIdentity.part(e) === 'track' ? 'Track' : FMT_LABEL[e.format] || e.format;
-    var badge = FMT_BADGE[e.format] || 'b-show';
-    var tags  = Array.isArray(e.tags) ? e.tags : [];
-    var tagHtml = tags.slice(0,2).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('') +
-      (tags.length > 2 ? '<span class="tag-more">+'+(tags.length-2)+'</span>' : '');
-    var delay = i < 5 ? ' anim-delay-'+(i+1) : '';
-    var tr = document.createElement('tr');
-    tr.className = 'anim-fadeup' + delay;
-    tr.dataset.id = e.id;
-    (function(entry){ tr.onclick = function(){ openDetailModal(entry); }; })(e);
-    tr.innerHTML =
-      '<td class="tc-title">'+(e.poster_url?'<img class="entry-thumb" src="'+escHtml(e.poster_url)+'" alt="">':'<span class="entry-cover-dot" style="background:'+grad+'"></span>')+escHtml(e.title)+catalogueContext(e)+'</td>'+
-      '<td><span class="badge '+badge+'">'+fmt+'</span></td>'+
-      '<td><div class="rating"><div class="rd '+rdCls+'"></div>'+rVal+'</div></td>'+
-      '<td style="color:var(--t-3);font-size:12px">'+_entryDateStr(e)+'</td>'+
-      '<td class="col-tags"><div class="tags-cell">'+tagHtml+'</div></td>'+
-      '<td style="text-align:right;color:var(--t-3)">›</td>';
-    tbody.appendChild(tr);
-  });
-}
-
-function renderEntriesGrid(entries){
-  var grid = document.getElementById('cg-grid');
-  if(!grid) return;
-  grid.innerHTML = '';
-  entries.forEach(function(e){
-    var grad  = e.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
-    var rVal  = parseFloat(e.rating);
-    var fmt   = mediaIdentity.part(e) === 'track' ? 'Track' : FMT_LABEL[e.format] || e.format;
-    var badge = FMT_BADGE[e.format] || 'b-show';
-    var tags  = Array.isArray(e.tags) ? e.tags : [];
-    var cardTagHtml = tags.slice(0,2).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
-    var card = document.createElement('div');
-    card.className = 'cg-card anim-fadeup';
-    card.dataset.id = e.id;
-    (function(entry){ card.onclick = function(){ openDetailModal(entry); }; })(e);
-    card.innerHTML =
-      (e.poster_url?'<img class="cg-poster" src="'+escHtml(e.poster_url)+'" alt="">':"<div class='cg-card-strip' style='background:"+grad+"'></div>")+
-      '<span class="badge '+badge+'">'+fmt+'</span>'+
-      '<div class="cg-title">'+escHtml(e.title)+catalogueContext(e)+'</div>'+
-      '<div class="cg-tags">'+cardTagHtml+'</div>'+
-      '<div class="cg-bottom"><div class="cg-rating">'+rVal+'</div><div class="cg-date">'+_entryDateStr(e)+'</div></div>';
-    grid.appendChild(card);
-  });
-}
-
-function updateCollectionStats(entries){
-  var total  = entries.length;
-  var avg    = total > 0 ? (entries.reduce(function(s,e){ return s+parseFloat(e.rating); }, 0) / total).toFixed(1) : '0.0';
-  var counts = {film:0, show:0, book:0, sports_match:0, music:0};
-  entries.forEach(function(e){ if(counts[e.format] !== undefined) counts[e.format]++; });
-  /* update strip stats by ID — robust to any order */
-  var _sv = function(id, val){ var el=document.getElementById(id); if(el) el.textContent=val; };
-  _sv('sv-total', total); _sv('sv-avg', avg);
-  _sv('sv-films', counts.film);
-  _sv('sv-shows', counts.show); _sv('sv-books', counts.book);
-  _sv('sv-matches', counts.sports_match); _sv('sv-music', counts.music);
-  var phSub = document.getElementById('col-ph-sub');
-  if(phSub) phSub.textContent = total + ' entr'+(total===1?'y':'ies')+' · Last updated today';
-  var allTags = new Set();
-  entries.forEach(function(e){ (e.tags||[]).forEach(function(t){ allTags.add(t); }); });
-  var sbStats = document.getElementById('sb-stats');
-  if(sbStats) sbStats.textContent = total + ' entries · ' + allTags.size + ' themes';
-  var wc = document.getElementById('welcome-card');
-  if(wc) wc.style.display = total === 0 ? '' : 'none';
-}
-
-/* ── Open detail modal populated with real entry data ── */
-function openDetailModal(entry){
-  currentEntry = entry;
-  var rVal  = parseFloat(entry.rating);
-  var rdCls = rVal >= 9 ? 'rd-hi' : rVal >= 7.5 ? 'rd-mid' : 'rd-lo';
-  var fmt   = mediaIdentity.part(entry) === 'track' ? 'Track' : FMT_LABEL[entry.format] || entry.format;
-  var badge = FMT_BADGE[entry.format] || 'b-show';
-  var grad  = entry.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
-  var initials = entry.title.split(/\s+/).slice(0,3).map(function(w){ return w[0]||''; }).join('').toUpperCase().slice(0,4);
-  var tags  = Array.isArray(entry.tags) ? entry.tags : [];
-
-  document.querySelector('#m-detail .modal-title').textContent = entry.title;
-
-  var heroInfo = document.getElementById('detail-hero-info');
-  if(heroInfo) heroInfo.innerHTML =
-    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">'+
-      '<span class="badge '+badge+'">'+fmt+'</span>'+
-      '<span style="font-size:12px;color:var(--t-3)">Completed '+_entryDateStr(entry)+'</span>'+
-    '</div>'+
-    '<div class="rating" style="font-size:36px;margin-bottom:5px">'+
-      '<div class="rd '+rdCls+'" style="width:10px;height:10px"></div>'+rVal+
-    '</div>'+
-    '<div style="font-size:11px;color:var(--t-3)">Your rating</div>'+
-    '<div id="ext-ratings"></div>';
-
-  var dc = document.getElementById('detail-cover');
-  if(dc){
-    if(entry.poster_url){
-      dc.style.backgroundImage='url('+entry.poster_url+')';
-      dc.style.backgroundSize='cover';
-      dc.style.backgroundPosition='center';
-      dc.style.background='';
-      dc.textContent='';
-    } else {
-      dc.style.backgroundImage='';
-      dc.style.background=grad;
-      dc.textContent=initials;
-    }
-  }
-
-  var ts = document.getElementById('detail-tags-section');
-  if(ts) ts.innerHTML =
-    '<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;color:var(--t-2);margin-bottom:6px">TAGS</div>'+
-    '<div style="display:flex;gap:5px;flex-wrap:wrap">'+
-      (tags.length ? tags.map(function(t){ return '<span class="tag tag-link" onclick="filterByTag(\''+escHtml(t)+'\')">'+escHtml(t)+'</span>'; }).join('') : '<span style="font-size:12px;color:var(--t-3)">No tags added</span>')+
-    '</div>'+
-    '<div class="tag-hint">Tap a tag to see all entries with that theme →</div>';
-
-  var ns = document.getElementById('detail-notes-section');
-  if(ns) ns.innerHTML =
-    '<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;color:var(--t-2);margin-bottom:6px">NOTES</div>'+
-    '<div style="font-size:13px;color:var(--t-2);line-height:1.65;padding:12px;background:var(--n-bg);border-radius:var(--r-sm)">'+
-      (entry.notes ? escHtml(entry.notes) : '<em style="opacity:.5">No notes for this entry.</em>')+
-    '</div>';
-
-  openModal('detail');
-  _renderDetailInfluence(entry);
-  _renderRelatedEntries(entry);
-
-  /* Fetch external ratings (OMDb) for films and shows */
-  var _extEl = document.getElementById('ext-ratings');
-  if(_extEl) _extEl.innerHTML = '';
-  if(entry.format === 'film' || entry.format === 'show'){
-    fetch('/api/ratings?title='+encodeURIComponent(entry.title))
-      .then(function(r){ return r.json(); })
-      .then(function(d){
-        if(currentEntry !== entry || !document.getElementById('m-detail').classList.contains('open')) return;
-        if(!d || (!d.imdb && !d.rt && !d.metacritic)) return;
-        var el = document.getElementById('ext-ratings');
-        if(!el) return;
-        var html = '<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">';
-        if(d.imdb)       html += '<span class="ext-rb"><span class="ext-rb-src">IMDb</span>'+escHtml(d.imdb)+'</span>';
-        if(d.rt)         html += '<span class="ext-rb"><span class="ext-rb-src">RT</span>'+escHtml(d.rt)+'</span>';
-        if(d.metacritic) html += '<span class="ext-rb"><span class="ext-rb-src">MC</span>'+escHtml(d.metacritic)+'</span>';
-        html += '</div>';
-        el.innerHTML = html;
-      })
-      .catch(function(){});
-  }
-}
-
-/* ── Render live Taste Influence in detail modal ── */
-function _renderDetailInfluence(entry){
-  var el=document.querySelector('.detail-influence');
-  if(!el)return;
-  var tags=Array.isArray(entry.tags)?entry.tags:[];
-  if(!tags.length||!_fp||!(_fp.primary_themes||[]).length){
-    el.innerHTML='<div class="di-label">Taste Influence</div>'+
-      '<div class="di-text">'+(tags.length?'Fingerprint not yet computed.':'Add tags to see this entry\'s influence on your taste fingerprint.')+'</div>';
-    return;
-  }
-  var themes=(_fp.primary_themes||[]).slice(0,20);
-  var matched=themes.filter(function(t){
-    return tags.some(function(tag){return tag.toLowerCase()===t.tag.toLowerCase();});
-  }).slice(0,3);
-  if(!matched.length){
-    el.innerHTML='<div class="di-label">Taste Influence</div>'+
-      '<div class="di-text">This entry\'s tags don\'t overlap with your current top themes — log more similar entries to build impact.</div>';
-    return;
-  }
-  var topTheme=matched[0].tag;
-  var ratingVal=parseFloat(entry.rating)||0;
-  var similar=(_allEntries||[]).filter(function(e){
-    return e.id!==entry.id&&(e.tags||[]).some(function(t){return t.toLowerCase()===topTheme.toLowerCase();});
-  });
-  var rank=similar.filter(function(e){return parseFloat(e.rating)>ratingVal;}).length+1;
-  var total=similar.length+1;
-  var impact=matched.length>=2?'high':ratingVal>=8.5?'high':ratingVal>=7?'medium':'low';
-  var themeNames=matched.map(function(t){return '<strong>'+escHtml(t.tag)+'</strong>';});
-  var themeStr=themeNames.length===1?themeNames[0]:themeNames.length===2?themeNames[0]+' and '+themeNames[1]:themeNames[0]+', '+themeNames[1]+' and '+themeNames[2];
-  el.innerHTML='<div class="di-label">Taste Influence</div>'+
-    '<div class="di-text">This entry contributes to your '+themeStr+' fingerprint score'+(matched.length>1?'s':'')+'. Weighted impact: <strong>'+impact+'</strong>'+(total>1?' — ranked '+rank+' of '+total+' in this theme.':'.')+'</div>';
-}
-
-/* ── Render live Related Entries in detail modal ── */
-function _renderRelatedEntries(entry){
-  var container=document.querySelector('.detail-related');
-  if(!container)return;
-  var tags=Array.isArray(entry.tags)?entry.tags:[];
-  var others=(_allEntries||[]).filter(function(e){return e.id!==entry.id;});
-  if(!tags.length||!others.length){
-    container.innerHTML='<div class="detail-rel-label">From your collection — similar taste</div>'+
-      '<div style="font-size:12.5px;color:var(--t-3);padding:8px 0">'+(others.length?'Add tags to find similar entries.':'No other entries in your collection yet.')+'</div>';
-    return;
-  }
-  var scored=others.map(function(e){
-    var eTags=(e.tags||[]).map(function(t){return t.toLowerCase();});
-    var shared=tags.filter(function(t){return eTags.indexOf(t.toLowerCase())>=0;});
-    return{entry:e,shared:shared,score:shared.length};
-  }).filter(function(r){return r.score>0;})
-    .sort(function(a,b){return b.score-a.score||parseFloat(b.entry.rating)-parseFloat(a.entry.rating);})
-    .slice(0,3);
-  if(!scored.length){
-    container.innerHTML='<div class="detail-rel-label">From your collection — similar taste</div>'+
-      '<div style="font-size:12.5px;color:var(--t-3);padding:8px 0">No other entries share these tags yet.</div>';
-    return;
-  }
-  var itemsHtml=scored.map(function(r){
-    var e=r.entry;
-    var grad=e.cover_color||'linear-gradient(135deg,#1B5E76,#4AADBA)';
-    var initials=e.title.split(/\s+/).slice(0,3).map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,4);
-    var thumbHtml=e.poster_url
-      ?'<div class="detail-rel-thumb" style="background-image:url('+escHtml(e.poster_url)+');background-size:cover;background-position:center"></div>'
-      :'<div class="detail-rel-thumb" style="background:'+grad+'">'+escHtml(initials)+'</div>';
-    var sharedStr=r.shared.slice(0,3).map(function(t){return escHtml(t);}).join(' · ');
-    var rVal=parseFloat(e.rating)||0;
-    return'<div class="detail-rel-item" onclick="_openRelatedEntry(\''+escHtml(String(e.id))+'\')" style="cursor:pointer">'+
-      thumbHtml+
-      '<div class="detail-rel-info">'+
-        '<div class="detail-rel-title">'+escHtml(e.title)+'</div>'+
-        '<div class="detail-rel-shared">Shares: '+sharedStr+'</div>'+
-      '</div>'+
-      '<div class="detail-rel-rating">'+rVal+'</div>'+
-    '</div>';
-  }).join('');
-  container.innerHTML='<div class="detail-rel-label">From your collection — similar taste</div>'+
-    '<div class="detail-rel-items">'+itemsHtml+'</div>';
-}
-
-/* Navigate to a related entry without closing the modal — just replaces modal contents */
-function _openRelatedEntry(id){
-  var e=(_allEntries||[]).find(function(x){return String(x.id)===String(id);});
-  if(e)openDetailModal(e);
-}
-
-
 
 var tagPickerVersion = 0;
 function renderEntryTags(tags, preselected){
@@ -2617,14 +2359,7 @@ function navigate(scr, opts){
   if(t){t.classList.add('active');}
   // Per-screen data loading
   if(scr==='watchlist'){loadWatchlist();}
-  if(scr==='collection' && currentUser){
-    var owner = currentUser.id;
-    ensureStyleItems().then(function(){
-      if(currentUser?.id === owner) _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
-    }).catch(function(){
-      if(currentUser?.id === owner) showToast('Could not load scent and wardrobe items.', '⚠');
-    });
-  }
+  if(scr==='collection') loadCollectionStyle();
   if(scr==='discover'){openDiscoverScreen();}
   if(scr==='insights'){
     setTimeout(function(){
@@ -2965,7 +2700,6 @@ function closeModal(id){
   }
 }
 document.querySelectorAll('.overlay').forEach(function(ov){ov.addEventListener('click',function(e){if(e.target===this)closeModal(this.id.slice(2))})});
-function setPill(el){el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});el.classList.add('active')}
 
 /* ── Discovery format pill (container class is disc-format-pills, not .pills) ── */
 function openDiscoverScreen(){
@@ -2974,20 +2708,29 @@ function openDiscoverScreen(){
 }
 
 async function loadCatalogDiscovery(pill){
-  _activeDiscoveryView = null;
+  var store = currentStyleStore();
+  if(!store) return;
+  var key = 'catalogue:' + pill;
+  if(_activeDiscoveryView?.key === key && _activeDiscoveryView.loading) return;
+  var view = {key:key,loading:true};
+  _activeDiscoveryView = view;
   _discRecs = null;
   renderCombinedDiscovery();
-  document.getElementById('disc-refresh').disabled = false;
-  var userId = currentUser?.id;
-  if(!userId) return;
+  var refresh = document.getElementById('disc-refresh');
+  refresh.disabled = true;
+  _discState('loading');
+  var stillCurrent = function(){return _activeDiscoveryView === view && isCurrentStyleStore(store);};
   try {
-    await ensureStyleItems();
-    if(currentUser?.id !== userId || _discPill !== pill) return;
+    var loaded = await journalData.run('discover',function(){return store.load();},stillCurrent,{
+      loading:'Loading catalogue picks…',error:'Could not load catalogue picks.'
+    });
+    if(!loaded || !stillCurrent()) return;
     if(pill === 'fragrances') loadFragDiscovery();
     else loadStyleDiscovery();
     discSearch(document.getElementById('disc-search-inp').value);
-  } catch(e) {
-    if(currentUser?.id === userId && _discPill === pill) _discState('error', 'Could not load saved style items. Reopen Discover to retry.');
+  } finally {
+    view.loading = false;
+    if(stillCurrent()) refresh.disabled = false;
   }
 }
 
@@ -2999,21 +2742,10 @@ function setDiscPill(el, pill){
     selectDiscoveryMode(document.querySelector('.dtab'), 'for-you');
   }
   document.getElementById('disc-seed').hidden = _discTabName !== 'because-loved' || pill === 'fragrances' || pill === 'style';
-  var tabsEl  = document.querySelector('.disc-tabs');
-  var sortSel = document.getElementById('disc-sort-sel');
-  if(pill === 'fragrances'){
-    if(tabsEl)  tabsEl.style.display  = 'none';
-    if(sortSel) sortSel.style.display = 'none';
-    loadCatalogDiscovery(pill);
-  } else if(pill === 'style'){
-    if(tabsEl)  tabsEl.style.display  = 'none';
-    if(sortSel) sortSel.style.display = 'none';
-    loadCatalogDiscovery(pill);
-  } else {
-    if(tabsEl)  tabsEl.style.display  = '';
-    if(sortSel) sortSel.style.display = '';
-    loadDiscovery();
-  }
+  var catalogue = pill === 'fragrances' || pill === 'style';
+  document.querySelector('.disc-tabs').style.display = catalogue ? 'none' : '';
+  document.getElementById('disc-sort-sel').style.display = catalogue ? 'none' : '';
+  openDiscoverScreen();
 }
 
 /* ── Watchlist: select all / remove selected / sort ── */
@@ -3047,13 +2779,6 @@ function wlRemoveSelected(){
     renderWatchlist();
   });
 }
-var _watchlistSort = 'date';
-var _queueSaving = false;
-function wlSort(value){
-  _watchlistSort = value;
-  renderWatchlist();
-}
-
 function selectDiscoveryMode(el, name){
   document.querySelectorAll('.dtab').forEach(function(tab){tab.classList.toggle('active', tab === el);});
   _discTabName = name;
@@ -3182,25 +2907,6 @@ function showToast(msg,icon){
   c.appendChild(t);
   requestAnimationFrame(function(){requestAnimationFrame(function(){t.classList.add('show')})});
   setTimeout(function(){t.classList.remove('show');setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t)},260)},2800);
-}
-
-/* ── Card grid / table view toggle ── */
-var _collectionPage = 1;
-var COLLECTION_PAGE_SIZE = 10;
-var collectionView='table';
-function toggleCollectionView(){
-  collectionView=collectionView==='table'?'grid':'table';
-  var tbl=document.querySelector('.tbl-wrap');
-  var grid=document.getElementById('cg-grid');
-  var icon=document.getElementById('view-icon');
-  if(collectionView==='grid'){
-    tbl.style.display='none';grid.style.display='grid';
-    icon.innerHTML='<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>';
-  } else {
-    tbl.style.display='';grid.style.display='none';
-    icon.innerHTML='<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18M3 6h18M3 18h18"/>';
-  }
-  renderCollectionPage();
 }
 
 /* ── Delete confirm flow ── */
@@ -3497,214 +3203,6 @@ function cmdSearch(val){
   }).join('');
 }
 
-/* ── Collection filter engine (C1–C5) ── */
-var colFilter = journalView.defaultFilters();
-var _colSortVal = 'date_desc';
-
-function applyCollectionFilter(){
-  _collectionPage = 1;
-  renderCollectionPage();
-}
-
-function renderCollectionPage(){
-  var view = journalView.collectionPage(_allEntries,colFilter,_colSortVal,_collectionPage,COLLECTION_PAGE_SIZE);
-  _collectionPage = view.page;
-  renderEntriesTable(collectionView === 'table' ? view.visible : []);
-  renderEntriesGrid(collectionView === 'grid' ? view.visible : []);
-  updateColPagination(view.count,view.start,view.visible.length,view.pages);
-  updateColChips();
-  updateColFilterBtn();
-  _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
-}
-
-function colSort(value){
-  _colSortVal = value;
-  document.getElementById('col-sort-sel').value = value;
-  applyCollectionFilter();
-}
-
-/* ── Individual filter setters ── */
-function colSearch(val){colFilter.search=val.trim();applyCollectionFilter();}
-
-/* ── Render tag filter pills from real entry tags ── */
-function renderColTagPills(entries){
-  var container=document.getElementById('col-tag-pills');
-  if(!container)return;
-  // Collect tag frequency from entries
-  var freq=Object.create(null);
-  (entries||[]).forEach(function(e){
-    (e.tags||[]).forEach(function(t){
-      var tag=(t.name||t||'').toLowerCase();
-      if(tag)freq[tag]=(freq[tag]||0)+1;
-    });
-  });
-  var tags=Object.keys(freq).sort(function(a,b){return freq[b]-freq[a];}).slice(0,30);
-  if(!tags.length){
-    container.innerHTML='<span style="font-size:11.5px;color:var(--t-3)">No tags yet</span>';
-    return;
-  }
-  container.innerHTML=tags.map(function(tag){
-    var active=colFilter.tags.indexOf(tag)>=0;
-    var safeTag=escHtml(tag);
-    return '<span class="col-tag-pill'+(active?' active':'')+'" data-tag="'+safeTag+'" onclick="toggleTagFilter(this,this.dataset.tag)">#'+safeTag+'</span>';
-  }).join('');
-}
-function setColPill(el){
-  el.closest('.pills').querySelectorAll('.pill').forEach(function(p){p.classList.remove('active')});
-  el.classList.add('active');
-  colFilter.format=el.textContent.trim();
-  var _scr=document.getElementById('s-collection');
-  if(_scr) _scr.classList.toggle('col-ss-mode',colFilter.format==='Fragrances'||colFilter.format==='Wardrobe');
-  applyCollectionFilter();
-}
-function toggleTagFilter(el,tag){
-  el.classList.toggle('active');
-  var idx=colFilter.tags.indexOf(tag);
-  if(idx>=0)colFilter.tags.splice(idx,1);else colFilter.tags.push(tag);
-  applyCollectionFilter();
-}
-function colUpdateRating(){
-  colFilter.ratingMin=parseFloat(document.getElementById('col-rmin').value)||0;
-  colFilter.ratingMax=Number(document.getElementById('col-rmax').value);
-  applyCollectionFilter();
-}
-function colUpdateDate(){
-  var yf=document.getElementById('col-yfrom').value;
-  var yt=document.getElementById('col-yto').value;
-  colFilter.yearFrom=yf?parseInt(yf):0;
-  colFilter.yearTo=yt?parseInt(yt):9999;
-  applyCollectionFilter();
-}
-function clearColFilters(){
-  colFilter=journalView.defaultFilters();
-  document.getElementById('col-search-inp').value='';
-  document.getElementById('col-rmin').value=0;
-  document.getElementById('col-rmax').value=10;
-  document.getElementById('col-yfrom').value='';
-  document.getElementById('col-yto').value='';
-  document.querySelectorAll('.col-tag-pill.active').forEach(function(p){p.classList.remove('active')});
-  document.querySelectorAll('#s-collection .pills .pill').forEach(function(p){p.classList.remove('active')});
-  document.querySelector('#s-collection .pills .pill').classList.add('active');
-  var _ss=document.getElementById('s-collection');if(_ss)_ss.classList.remove('col-ss-mode');
-  applyCollectionFilter();
-}
-
-/* ── Render Fragrances/Wardrobe cards inside Collections tab ── */
-function _renderColSS(q,fmt){
-  var section=document.getElementById('col-ss-section');
-  if(!section)return;
-  if(fmt==='Fragrances'){
-    section.style.display='';
-    var items=_loadFrags();
-    if(q)items=items.filter(function(f){return((f.name||'')+' '+(f.house||'')+' '+(f.character||'')+' '+(f.tags||[]).join(' ')).toLowerCase().indexOf(q)>=0;});
-    section.innerHTML=items.length?'<div class="frag-grid" style="padding:4px 30px 0">'+items.map(_fragCardHTML).join('')+'</div>':'<div style="padding:48px 30px;text-align:center;font-size:13px;color:var(--t-3)">No fragrances'+(q?' matching your search':'yet. Add your first scent in the Style &amp; Scent section.')+'</div>';
-  }else if(fmt==='Wardrobe'){
-    section.style.display='';
-    var items=_loadWard();
-    if(q)items=items.filter(function(w){return((w.name||'')+' '+(w.brand||'')+' '+(w.category||'')+' '+(w.tags||[]).join(' ')).toLowerCase().indexOf(q)>=0;});
-    section.innerHTML=items.length?'<div class="ward-grid" style="padding:4px 30px 0">'+items.map(_wardCardHTML).join('')+'</div>':'<div style="padding:48px 30px;text-align:center;font-size:13px;color:var(--t-3)">No wardrobe items'+(q?' matching your search':'yet. Add your first piece in the Style &amp; Scent section.')+'</div>';
-  }else if(fmt==='All'){
-    var frags=_loadFrags();
-    var ward=_loadWard();
-    if(q){
-      frags=frags.filter(function(f){return((f.name||'')+' '+(f.house||'')).toLowerCase().indexOf(q)>=0;});
-      ward=ward.filter(function(w){return((w.name||'')+' '+(w.brand||'')+' '+(w.category||'')).toLowerCase().indexOf(q)>=0;});
-    }
-    if(!frags.length&&!ward.length){section.style.display='none';section.innerHTML='';return;}
-    section.style.display='';
-    var html='';
-    if(frags.length)html+='<div class="col-ss-header">✦ Fragrances</div><div class="frag-grid" style="padding:0 30px">'+frags.map(_fragCardHTML).join('')+'</div>';
-    if(ward.length)html+='<div class="col-ss-header"'+(frags.length?' style="margin-top:8px"':'')+'>✦ Wardrobe</div><div class="ward-grid" style="padding:0 30px">'+ward.map(_wardCardHTML).join('')+'</div>';
-    section.innerHTML=html;
-  }else{
-    section.style.display='none';section.innerHTML='';
-  }
-}
-
-/* ── Filter panel toggle ── */
-function toggleFilterPanel(){
-  var panel=document.getElementById('col-adv-panel');
-  panel.classList.toggle('open');
-}
-
-/* ── Active filter chips (shows what's currently on) ── */
-function updateColChips(){
-  var bar=document.getElementById('col-chips');
-  var chips=[];
-  if(colFilter.search)chips.push({type:'search', label:'Search: "'+colFilter.search+'"'});
-  if(colFilter.format!=='All')chips.push({type:'format', label:'Format: '+colFilter.format});
-  if(colFilter.ratingMin>0||colFilter.ratingMax<10)chips.push({type:'rating', label:'Rating: '+colFilter.ratingMin+'–'+colFilter.ratingMax});
-  if(colFilter.yearFrom||colFilter.yearTo<9999)chips.push({type:'year', label:'Year: '+(colFilter.yearFrom||'any')+'–'+(colFilter.yearTo<9999?colFilter.yearTo:'any')});
-  colFilter.tags.forEach(function(tag){chips.push({type:'tag', tag:tag, label:'#'+tag});});
-
-  if(!chips.length){bar.classList.remove('visible');bar.innerHTML='';return;}
-  bar.classList.add('visible');
-  bar.innerHTML='<span style="font-size:11px;color:var(--t-3)">Filtered by:</span>'+
-    chips.map(function(c){
-      /* Use data attributes instead of serialized closures — avoids scope loss */
-      var extra = c.type === 'tag' ? ' data-chip-type="tag" data-chip-tag="'+escHtml(c.tag)+'"' : ' data-chip-type="'+c.type+'"';
-      return '<span class="col-chip"><span>'+escHtml(c.label)+'</span><span class="col-chip-x"'+extra+' onclick="clearColChip(this)">×</span></span>';
-    }).join('')+
-    '<span class="col-chips-clear" onclick="clearColFilters()">Clear all</span>';
-}
-
-/* ── Clear a single active filter chip (called from data-chip-type onclick) ── */
-function clearColChip(el){
-  var t = el.dataset.chipType;
-  if(t === 'search'){
-    colFilter.search = '';
-    var si = document.getElementById('col-search-inp'); if(si) si.value = '';
-  } else if(t === 'format'){
-    colFilter.format = 'All';
-    document.querySelectorAll('#s-collection .pills .pill').forEach(function(p){ p.classList.remove('active'); });
-    var first = document.querySelector('#s-collection .pills .pill'); if(first) first.classList.add('active');
-    var _ss2=document.getElementById('s-collection');if(_ss2)_ss2.classList.remove('col-ss-mode');
-  } else if(t === 'rating'){
-    colFilter.ratingMin = 0; colFilter.ratingMax = 10;
-    var rmin = document.getElementById('col-rmin'); if(rmin) rmin.value = 0;
-    var rmax = document.getElementById('col-rmax'); if(rmax) rmax.value = 10;
-  } else if(t === 'year'){
-    colFilter.yearFrom = 0; colFilter.yearTo = 9999;
-    var yf = document.getElementById('col-yfrom'); if(yf) yf.value = '';
-    var yt = document.getElementById('col-yto');   if(yt) yt.value = '';
-  } else if(t === 'tag'){
-    var tag = el.dataset.chipTag || '';
-    var idx = colFilter.tags.indexOf(tag);
-    if(idx >= 0) colFilter.tags.splice(idx, 1);
-    document.querySelectorAll('.col-tag-pill').forEach(function(p){
-      if(p.dataset.tag === tag) p.classList.remove('active');
-    });
-  }
-  applyCollectionFilter();
-}
-
-/* ── Pagination bar update ── */
-function changeCollectionPage(delta){
-  _collectionPage += delta;
-  renderCollectionPage();
-}
-
-function updateColPagination(count,start,length,pages){
-  var info = document.getElementById('col-pag-info');
-  var nav = document.getElementById('col-page-nav');
-  var filtered = journalView.hasFilters(colFilter);
-  info.textContent = count ? 'Showing ' + (start+1) + '–' + (start+length) + ' of ' + count + (filtered ? ' matching entries' : ' entries')
-    : filtered ? 'No matching media entries' : 'No media entries yet';
-  nav.hidden = pages < 2;
-  document.getElementById('col-page-number').textContent = _collectionPage + ' / ' + pages;
-  document.getElementById('col-page-prev').disabled = _collectionPage <= 1;
-  document.getElementById('col-page-next').disabled = _collectionPage >= pages;
-  var filterCount = document.getElementById('col-filter-count');
-  if(filterCount) filterCount.textContent = filtered ? count+' results' : '';
-}
-
-/* ── Filter button indicator dot ── */
-function updateColFilterBtn(){
-  var btn=document.getElementById('col-filter-btn');
-  if(!btn)return;
-  btn.classList.toggle('col-filter-on',journalView.hasFilters(colFilter));
-}
-
 /* ── Discover: search within real _discRecs ── */
 function discSearch(val){
   var res=document.getElementById('disc-search-res');
@@ -3818,13 +3316,11 @@ function toggleWhy(btn){
 
 /* ── Discovery Engine ──────────────────────────────────────── */
 
-function _discState(state, msg){
-  document.getElementById('disc-loading').style.display  = state==='loading'  ? '' : 'none';
-  document.getElementById('disc-nofp').style.display     = state==='nofp'     ? '' : 'none';
-  document.getElementById('disc-err').style.display      = state==='error'    ? '' : 'none';
-  document.getElementById('disc-hero-wrap').style.display = state==='results'  ? '' : 'none';
-  document.getElementById('disc-grid-wrap').style.display = state==='results'  ? '' : 'none';
-  if(state==='error' && msg) document.getElementById('disc-err-msg').textContent = msg;
+function _discState(state){
+  if(state !== 'loading') journalData.status('discover','');
+  document.getElementById('disc-nofp').style.display = state === 'nofp' ? '' : 'none';
+  document.getElementById('disc-hero-wrap').style.display = state === 'results' ? '' : 'none';
+  document.getElementById('disc-grid-wrap').style.display = state === 'results' ? '' : 'none';
 }
 
 function refreshDiscovery(){
@@ -3839,7 +3335,7 @@ function refreshDiscovery(){
 
 function retryDiscovery(){
   if(_discPill === 'fragrances' || _discPill === 'style') loadCatalogDiscovery(_discPill);
-  else loadDiscovery(true);
+  else loadDiscovery(true,false);
 }
 
 async function fetchDiscovery(userId, payload){
@@ -3848,8 +3344,8 @@ async function fetchDiscovery(userId, payload){
     method:'POST', headers:{'Content-Type':'application/json', Authorization:'Bearer ' + token},
     body:JSON.stringify(payload)
   });
-  var data = await response.json();
-  if(!response.ok) throw new Error(data.error || 'Could not load recommendations.');
+  var data = await response.json().catch(function(){return null;});
+  if(!response.ok || !data) throw new Error(data?.error || 'Could not load recommendations.');
   if(payload.strategy === 'grounded' && currentUser?.id === userId){
     var header = response.headers.get('Server-Timing');
     var diagnostics = document.getElementById('disc-request-timing');
@@ -3863,7 +3359,7 @@ async function fetchDiscovery(userId, payload){
   return payload.strategy === 'compare-low-ratings' ? data.comparison : data.recommendations;
 }
 
-async function loadDiscovery(force){
+async function loadDiscovery(force,advance){
   if(!currentUser || _discPill === 'fragrances' || _discPill === 'style') return;
   var userId = currentUser.id;
   var tab = _discTabName;
@@ -3903,15 +3399,19 @@ async function loadDiscovery(force){
   refresh.disabled = true;
   _discState('loading');
   try {
-    var picks = await session.load(key,{force:force,tab:tab,focus:focus,seedId:seedId},function(payload){
-      return fetchDiscovery(userId,{strategy:'grounded',...payload});
+    var stillCurrent = function(){return _activeDiscoveryView === view && currentUser?.id === userId;};
+    var picks = await journalData.run('discover',function(){
+      return session.load(key,{force:force && advance !== false,tab:tab,focus:focus,seedId:seedId},function(payload){
+        return fetchDiscovery(userId,{strategy:'grounded',...payload});
+      });
+    },stillCurrent,{
+      loading:'Finding media picks and checking catalogue matches…',
+      error:function(error){return error?.message || 'Could not load recommendations.';}
     });
-    if(_activeDiscoveryView !== view || currentUser?.id !== userId) return;
+    if(!picks || !stillCurrent()) return;
     _discRecs = picks;
     session.shown(picks,seedId);
     _renderDiscovery(picks);
-  } catch(error) {
-    if(_activeDiscoveryView === view && currentUser?.id === userId) _discState('error',error.message);
   } finally {
     view.loading = false;
     if(_activeDiscoveryView === view) refresh.disabled = false;
@@ -3955,25 +3455,30 @@ function affinityLabel(rec){
   return '<div class="disc-affinity"><strong>'+escHtml(rec.affinity.label)+'</strong> · '+escHtml(detail)+'</div>';
 }
 
+var _combinedDiscoveryRequest = null;
 async function renderCombinedDiscovery(){
   var wrap = document.getElementById('disc-style-picks');
-  var owner = currentUser?.id;
-  wrap.hidden = true;
-  if(!owner || _discPill !== 'all' || _discTabName !== 'for-you') return;
-  try {
-    await ensureStyleItems();
-    if(currentUser?.id !== owner || _discPill !== 'all' || _discTabName !== 'for-you') return;
-    var scents = stylePickPage('fragrance',_catalogueOffset.all,3).picks;
-    var style = stylePickPage('wardrobe',_catalogueOffset.all,3).picks;
-    wrap.innerHTML = (scents.length ? combinedCatalogueSection('Fragrance picks','fragrance',scents) : '')
-      + (style.length ? combinedCatalogueSection('Wardrobe picks','wardrobe',style) : '');
-    wrap.hidden = !wrap.innerHTML;
-  } catch {
-    if(currentUser?.id === owner && _discPill === 'all' && _discTabName === 'for-you'){
-      wrap.textContent = 'Could not load scent and style picks. Refresh to retry.';
-      wrap.hidden = false;
-    }
+  var store = currentStyleStore();
+  var token = {};
+  _combinedDiscoveryRequest = token;
+  if(!store || _discPill !== 'all' || _discTabName !== 'for-you'){
+    wrap.hidden = true;
+    journalData.status('discover-style','');
+    return;
   }
+  var stillCurrent = function(){
+    return _combinedDiscoveryRequest === token && isCurrentStyleStore(store) &&
+      _discPill === 'all' && _discTabName === 'for-you';
+  };
+  var loaded = await journalData.run('discover-style',function(){return store.load();},stillCurrent,{
+    loading:'Loading scent and wardrobe picks…',error:'Could not load scent and wardrobe picks.'
+  });
+  if(!loaded || !stillCurrent()) return;
+  var scents = stylePickPage('fragrance',_catalogueOffset.all,3).picks;
+  var style = stylePickPage('wardrobe',_catalogueOffset.all,3).picks;
+  wrap.innerHTML = (scents.length ? combinedCatalogueSection('Fragrance picks','fragrance',scents) : '')
+    + (style.length ? combinedCatalogueSection('Wardrobe picks','wardrobe',style) : '');
+  wrap.hidden = !wrap.innerHTML;
 }
 
 function combinedCatalogueSection(title, kind, recs){
@@ -4144,7 +3649,6 @@ function addFromDiscover(button){
 var _wlItems       = [];    /* cached watchlist rows */
 var _wlTab         = 'all';
 var _wlMoveId      = null;  /* watchlist id being moved to collection */
-var _wlAllSelected = false; /* select-all toggle state */
 var _watchlistLoadVersion = 0;
 
 async function loadWatchlist(){
@@ -4152,19 +3656,13 @@ async function loadWatchlist(){
   if(!owner) return;
   var version = ++_watchlistLoadVersion;
   var stillCurrent = function(){return currentUser?.id === owner && _watchlistLoadVersion === version;};
-  journalData.status('watchlist','loading','Loading Watchlist…');
-  var items;
-  try {
-    items = await journalData.readPages(function(from,to){
+  var items = await journalData.run('watchlist',function(){
+    return journalData.readPages(function(from,to){
       return SUPA.from('watchlist').select('*').eq('user_id',owner).eq('added_to_collection',false)
         .order('saved_at',{ascending:false}).order('id').range(from,to);
     },stillCurrent);
-  } catch {
-    if(stillCurrent()) journalData.status('watchlist','error','Could not load your Watchlist.');
-    return;
-  }
+  },stillCurrent,{loading:'Loading Watchlist…',error:'Could not load your Watchlist.'});
   if(!items || !stillCurrent()) return;
-  journalData.status('watchlist','');
   _wlItems = items;
   buildCmdIndex();
   renderWatchlist();
@@ -4230,134 +3728,6 @@ async function moveUpNext(button,offset){
   }
 }
 
-function renderWatchlist(){
-  var items = journalView.watchlistView(_wlItems,_wlTab,_watchlistSort);
-
-  var listEl  = document.getElementById('wl-list');
-  var emptyEl = document.getElementById('wl-empty');
-  var phSub   = document.getElementById('wl-ph-sub');
-  var badge   = document.getElementById('wl-count-badge');
-  var total   = _wlItems.length;
-
-  if(phSub)  phSub.textContent  = total + (total === 1 ? ' saved item' : ' saved items');
-  if(badge)  badge.textContent  = total > 0 ? total : '';
-
-  /* Always reset select-all state on re-render so button label stays accurate */
-  _wlAllSelected = false;
-  var selBtn = document.getElementById('wl-sel-all-btn');
-  if(selBtn) selBtn.textContent = 'Select All';
-
-  if(!listEl) return;
-
-  if(items.length === 0){
-    if(_wlItems.length === 0){
-      /* Watchlist is genuinely empty — show the full onboarding empty state */
-      listEl.innerHTML = '';
-      if(emptyEl) emptyEl.style.display = '';
-    } else {
-      /* Items exist but none match the current tab filter */
-      if(emptyEl) emptyEl.style.display = 'none';
-      var tabLabel = _wlTab === 'up_next' ? 'Up Next' : _wlTab === 'maybe' ? 'Maybe' : 'All';
-      listEl.innerHTML = '<div style="text-align:center;padding:48px 16px;color:var(--t-3);font-size:13px">'
-        + 'No <strong>' + tabLabel + '</strong> items yet.'
-        + '<br><span style="font-size:12px;opacity:.7;margin-top:4px;display:block">Switch to <em>All</em> or change an item\'s priority.</span>'
-        + '</div>';
-    }
-    return;
-  }
-  if(emptyEl) emptyEl.style.display = 'none';
-
-  /* Group by format */
-  var groups = {};
-  var groupOrder = [];
-  items.forEach(function(it){
-    var f = _wlTab === 'up_next' && _watchlistSort === 'queue' ? 'queue' : it.format || 'show';
-    if(!groups[f]){ groups[f] = []; groupOrder.push(f); }
-    groups[f].push(it);
-  });
-
-  var html = '';
-  groupOrder.forEach(function(fmt, gi){
-    html += '<div class="wl-section"' + (gi > 0 ? ' style="margin-top:18px"' : '') + '>'
-          + (fmt === 'queue' ? 'UP NEXT ORDER' : (journalView.formats[fmt]?.plural || fmt).toUpperCase()) + '</div>';
-    groups[fmt].forEach(function(it, idx){
-      var bg      = it.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
-      var initials = it.title.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
-      var score   = it.match_score ? Math.round(it.match_score) + '%' : '—';
-      var priCls  = journalView.watchlistPriority(it) === 'up_next' ? 'p-next' : 'p-maybe';
-      var tags    = (it.tags || []).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
-      var savedAgo = _timeAgo(it.saved_at);
-      var delay   = idx < 5 ? ' anim-delay-' + idx : '';
-      html += '<div class="wl-item anim-fadeup'+delay+'" data-wl-id="'+it.id+'">'
-        + '<input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0">'
-        + '<div class="wl-thumb" style="background:'+escHtml(bg)+'">'
-        +   '<span style="font-size:14px;color:rgba(255,255,255,.25);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>'
-        + '</div>'
-        + '<div class="wl-info">'
-        +   '<div class="wl-title">'+escHtml(it.title)+catalogueContext(it)+'</div>'
-        +   '<div class="wl-meta">'+(mediaIdentity.part(it)==='track'?'Track':FMT_LABEL[it.format]||it.format)+' · Added '+savedAgo+'</div>'
-        +   '<div class="wl-tags">'+tags+'</div>'
-        + '</div>'
-        + '<select class="wl-priority '+priCls+'" aria-label="Priority for '+escHtml(it.title)+'" onchange="setWatchlistPriority(this)">'
-        + '<option value="maybe"'+(journalView.watchlistPriority(it) !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
-        + '<option value="up_next"'+(journalView.watchlistPriority(it) === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
-        + '<div class="wl-match">'+score+'</div>'
-        + (fmt === 'queue' ? '<div class="wl-order-controls">'
-          + '<button class="btn btn-g btn-sm" title="Move earlier" aria-label="Move '+escHtml(it.title)+' earlier" '+(idx === 0 || _queueSaving ? 'disabled ' : '')+'onclick="moveUpNext(this,-1)">↑</button>'
-          + '<button class="btn btn-g btn-sm" title="Move later" aria-label="Move '+escHtml(it.title)+' later" '+(idx === items.length-1 || _queueSaving ? 'disabled ' : '')+'onclick="moveUpNext(this,1)">↓</button></div>' : '')
-        + '<div class="wl-actions">'
-        +   '<button class="btn btn-p btn-sm" style="white-space:nowrap" onclick="wlMoveToCollection(\''+it.id+'\')">Move to Collection</button>'
-        +   '<button class="btn btn-ghost btn-sm wl-remove-btn" onclick="startWlRemove(this)">Remove</button>'
-        +   '<div class="wl-remove-confirm"><span>Remove?</span>'
-        +     '<button class="btn btn-g btn-sm" onclick="cancelWlRemove(this)">Cancel</button>'
-        +     '<button class="btn btn-ghost btn-sm btn-danger" onclick="confirmWlRemove(this)">Yes, remove</button>'
-        +   '</div>'
-        +   '<button class="btn btn-ghost wl-pass-btn" onclick="passWlItem(this)" title="Not for me">✕</button>'
-        + '</div>'
-        + '</div>';
-    });
-  });
-  listEl.innerHTML = html;
-}
-
-function _timeAgo(iso){
-  var diff = Date.now() - new Date(iso).getTime();
-  var mins = Math.floor(diff / 60000);
-  if(mins < 1)   return 'just now';
-  if(mins < 60)  return mins + 'm ago';
-  var hrs = Math.floor(mins / 60);
-  if(hrs < 24)   return hrs + 'h ago';
-  var days = Math.floor(hrs / 24);
-  if(days === 1) return 'yesterday';
-  if(days < 30)  return days + ' days ago';
-  var mos = Math.floor(days / 30);
-  return mos + (mos === 1 ? ' month ago' : ' months ago');
-}
-
-function setWlTab(el){
-  document.querySelectorAll('.wl-stab').forEach(function(t){ t.classList.remove('active'); });
-  el.classList.add('active');
-  _wlTab = el.dataset.priority;
-  var select = document.getElementById('wl-sort-sel');
-  select.querySelector('[value="queue"]').hidden = _wlTab !== 'up_next';
-  _watchlistSort = _wlTab === 'up_next' ? 'queue' : 'date';
-  select.value = _watchlistSort;
-  renderWatchlist();
-}
-
-function startWlRemove(btn){
-  var actions = btn.closest('.wl-actions');
-  btn.style.display = 'none';
-  var confirmEl = actions.querySelector('.wl-remove-confirm');
-  if(confirmEl) confirmEl.classList.add('open');
-}
-function cancelWlRemove(btn){
-  var actions   = btn.closest('.wl-actions');
-  var confirmEl = actions.querySelector('.wl-remove-confirm');
-  if(confirmEl) confirmEl.classList.remove('open');
-  var removeBtn = actions.querySelector('.wl-remove-btn');
-  if(removeBtn) removeBtn.style.display = '';
-}
 async function confirmWlRemove(btn){
   var item  = btn.closest('.wl-item');
   var id    = item.dataset.wlId;
@@ -4536,24 +3906,20 @@ async function requestFingerprint(recompute){
   var owner = currentUser?.id;
   if(!owner) return false;
   var version = ++_fingerprintVersion;
-  journalData.status('insights','loading','Loading taste profile…');
   var stillCurrent = function(){return currentUser?.id === owner && version === _fingerprintVersion;};
-  try {
-    var result = recompute
+  var result = await journalData.run('insights',async function(){
+    var profile = recompute
       ? await SUPA.rpc('compute_fingerprint',{p_user_id:owner})
       : await SUPA.from('user_fingerprints').select('fingerprint_json').eq('user_id',owner).maybeSingle();
-    if(!stillCurrent()) return false;
-    if(result.error) throw result.error;
-    if(!result.data && !recompute && _allEntries.length) return requestFingerprint(true);
-    _fp = result.data?.fingerprint_json || result.data;
-    journalData.status('insights','');
-    renderInsights(_fp);
-    loadTimelineData();
-    return true;
-  } catch {
-    if(stillCurrent()) journalData.status('insights','error','Could not load your taste profile.');
-    return false;
-  }
+    if(profile.error) throw profile.error;
+    return profile;
+  },stillCurrent,{loading:'Loading taste profile…',error:'Could not load your taste profile.'});
+  if(!result || !stillCurrent()) return false;
+  if(!result.data && !recompute && _allEntries.length) return requestFingerprint(true);
+  _fp = result.data?.fingerprint_json || result.data;
+  renderInsights(_fp);
+  loadTimelineData();
+  return true;
 }
 
 function refreshJournal(keepVisibleBatch){
@@ -4568,95 +3934,6 @@ function refreshJournal(keepVisibleBatch){
 }
 
 /* ── Dynamic Patterns Discovered ─────────────────────────────────────────── */
-function renderPatterns(fp){
-  var grid = document.getElementById('patterns-grid');
-  if(!grid) return;
-  var themes  = (fp && fp.primary_themes)  || [];
-  var formats = (fp && fp.format_breakdown) || {};
-  var total   = (fp && fp.total_entries) || _allEntries.length || 0;
-  var avgRat  = fp ? parseFloat(fp.overall_avg_rating || 0) : 0;
-
-  if(!themes.length){
-    grid.innerHTML = '<div style="padding:20px 0;color:var(--t-3);font-size:13px;line-height:1.6">Add entries and tag them to reveal patterns in your taste — your top themes, format preferences, and listening/reading habits will appear here.</div>';
-    return;
-  }
-
-  var svgChart = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20v-5M12 20v-9M18 20V6"/></svg>';
-  var svgScale = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 21h8"/><path d="M4 8l4 9H4m0 0a4 4 0 008 0M12 8L8 17M12 8l4 9h4m0 0a4 4 0 01-8 0M12 8l4 9"/><line x1="4" y1="8" x2="20" y2="8"/></svg>';
-  var svgBook  = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>';
-  var svgLink  = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>';
-
-  function makeCard(icon, title, text, stat, tag){
-    var clickAttr = tag ? ' onclick="filterByTag(\''+tag+'\')" title="See entries tagged '+tag+'"' : '';
-    return '<div class="pat"'+clickAttr+'>'
-      +'<div class="pat-emoji">'+icon+'</div>'
-      +'<div class="pat-title">'+title+'</div>'
-      +'<div class="pat-text">'+text+'</div>'
-      +'<div class="pat-stat">'+stat+'</div>'
-      +(tag?'<div class="pat-cta">\u2192 See all '+tag+' entries</div>':'')
-      +'</div>';
-  }
-
-  var cards = [];
-  var t0 = themes[0];
-
-  /* Card 1: Top theme */
-  if(t0){
-    var freq = t0.frequency || 0;
-    var avg0 = parseFloat(t0.avg_rating||0).toFixed(1);
-    cards.push(makeCard(svgChart,
-      'Your strongest signal: ' + escHtml(t0.tag),
-      '"'+escHtml(t0.tag)+'" is your most prominent theme — it appears in '+freq+' entries with an average rating of '+avg0+'. This is the clearest lens through which you engage with content.',
-      freq + ' entries \u00b7 ' + avg0 + ' avg rating',
-      t0.tag
-    ));
-  }
-
-  /* Card 2: Best-rated format */
-  var fmtEntries = Object.keys(formats).filter(function(k){ return (formats[k].count||0) > 0; });
-  if(fmtEntries.length >= 2){
-    var best = fmtEntries.reduce(function(a,b){ return (parseFloat(formats[b].avg_rating||0) > parseFloat(formats[a].avg_rating||0)) ? b : a; });
-    var fmtLabel = {show:'Shows',book:'Books',film:'Films',sports_match:'Matches',music:'Music'}[best] || best;
-    var bestAvg = parseFloat(formats[best].avg_rating||0).toFixed(1);
-    var bestCnt = formats[best].count;
-    cards.push(makeCard(svgScale,
-      fmtLabel + ' hit hardest for you',
-      'Of all the formats you log, '+fmtLabel.toLowerCase()+' earn your highest average rating at '+bestAvg+'/10 across '+bestCnt+' entries. Your standards are clear — and '+fmtLabel.toLowerCase()+' consistently clear them.',
-      bestAvg + ' avg across ' + bestCnt + ' ' + fmtLabel.toLowerCase(),
-      null
-    ));
-  }
-
-  /* Card 3: Theme depth — top 2 combined coverage */
-  if(themes.length >= 2){
-    var t1 = themes[1];
-    var combined = (t0.frequency||0) + (t1.frequency||0);
-    var pct = total > 0 ? Math.round((combined/total)*100) : 0;
-    cards.push(makeCard(svgBook,
-      'Consistent taste, not scattered',
-      '"'+escHtml(t0.tag)+'" and "'+escHtml(t1.tag)+'" together cover '+pct+'% of your collection. Your taste is coherent — not scattered across genres, but anchored around a few strong aesthetic preferences.',
-      combined + ' of ' + total + ' entries share your top 2 themes',
-      t1.tag
-    ));
-  }
-
-  /* Card 4: Rating floor / overall signal quality */
-  if(avgRat > 0){
-    var qualifier = avgRat >= 8.5 ? 'exceptionally high' : avgRat >= 7.5 ? 'above average' : 'broad-ranging';
-    var insight = avgRat >= 8.0
-      ? 'You set a high bar. Content that makes your collection has genuinely earned its place — this keeps your taste signal clean and your recommendations sharper.'
-      : 'You log across a wide range of quality, capturing highlights and disappointments. This gives a more complete picture of your actual taste landscape.';
-    cards.push(makeCard(svgLink,
-      'Your collection floor is ' + qualifier,
-      insight,
-      avgRat.toFixed(1) + ' overall avg \u00b7 ' + total + ' entries',
-      null
-    ));
-  }
-
-  grid.innerHTML = cards.join('');
-}
-
 /* ── Populate settings from live auth data ────────────────────────────────── */
 function saveDisplayName(){
   var val=document.getElementById('settings-display-name').value.trim();
@@ -4739,307 +4016,6 @@ async function deleteTag(name){
 
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-function exportInsights(){
-  if(!_fp && !_allEntries.length){ showToast('No data to export yet'); return; }
-  var lines = [
-    'Narrative & Zeitgeist — Taste Insights',
-    'Exported: ' + new Date().toLocaleDateString(),
-    ''
-  ];
-  var total = (_fp && _fp.total_entries) || _allEntries.length || 0;
-  var avg   = (_fp && _fp.overall_avg_rating) ? parseFloat(_fp.overall_avg_rating).toFixed(1) : '—';
-  lines.push('OVERVIEW');
-  lines.push('Total Entries: ' + total);
-  lines.push('Average Rating: ' + avg);
-  if(_fp && _fp.primary_themes && _fp.primary_themes.length){
-    lines.push('');
-    lines.push('TOP THEMES');
-    _fp.primary_themes.slice(0,12).forEach(function(t, i){
-      lines.push((i+1) + '. ' + t.tag
-        + ' — ' + (t.frequency||0) + ' entries'
-        + ', ' + parseFloat(t.avg_rating||0).toFixed(1) + ' avg rating');
-    });
-  }
-  if(_fp && _fp.format_breakdown){
-    var fmtNames = {show:'Shows', film:'Films', book:'Books', sports_match:'Matches', music:'Music'};
-    lines.push('');
-    lines.push('FORMAT BREAKDOWN');
-    Object.keys(_fp.format_breakdown).forEach(function(k){
-      var d = _fp.format_breakdown[k];
-      if(!d || !d.count) return;
-      lines.push((fmtNames[k]||k) + ': ' + d.count + ' entries, ' + parseFloat(d.avg_rating||0).toFixed(1) + ' avg rating');
-    });
-  }
-  var text = lines.join('\n');
-  var blob = new Blob([text], {type: 'text/plain'});
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url;
-  a.download = 'narrative-zeitgeist-insights.txt';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-  showToast('Insights exported', '↓  ');
-}
-
-function topStyleTraits(weights){
-  return Object.entries(weights).sort(function(a,b){return b[1]-a[1] || a[0].localeCompare(b[0]);})
-    .slice(0,4).map(function(pair){return pair[0];}).join(', ');
-}
-
-async function renderStyleFingerprint(){
-  var panel = document.getElementById('insights-style');
-  var owner = currentUser?.id;
-  if(!owner){panel.hidden = true;panel.replaceChildren();return;}
-  try {
-    await ensureStyleItems();
-    if(currentUser?.id !== owner) return;
-    var scentProfile = _styleModel.scent(_loadFrags()).profile;
-    var styleProfile = _styleModel.wardrobe(_loadWard()).profile;
-    var scentCounts = scentProfile.statuses;
-    var wardrobeCounts = styleProfile.statuses;
-    function trait(label, weights){
-      var names = topStyleTraits(weights);
-      return names ? '<div><strong>'+label+'</strong> '+escHtml(names)+'</div>' : '';
-    }
-    panel.innerHTML = '<div class="ct">Scent &amp; Wardrobe Fingerprint</div><div class="style-fingerprint-grid">'
-      + '<div><h3>Fragrances</h3><p>'+scentCounts.owned+' owned · '+scentCounts.wishlisted+' wishlisted · '+scentCounts.tried+' tried</p>'
-      + trait('Recurring notes',scentProfile.notes) + trait('Common houses',scentProfile.houses) + '</div>'
-      + '<div><h3>Wardrobe</h3><p>'+wardrobeCounts.owned+' owned · '+wardrobeCounts.wishlisted+' wishlisted</p>'
-      + trait('Common categories',styleProfile.categories) + trait('Recurring styles',styleProfile.tags) + '</div></div>';
-    panel.hidden = false;
-  } catch {
-    if(currentUser?.id === owner){
-      panel.textContent = 'Scent and wardrobe insights could not load. Open Insights again to retry.';
-      panel.hidden = false;
-    }
-  }
-}
-
-function renderInsights(fp){
-  renderStyleFingerprint();
-  var sub     = document.getElementById('insights-ph-sub');
-  var building= document.getElementById('fp-building');
-  var fpList  = document.getElementById('fp-list');
-
-  var total   = (fp && fp.total_entries) ? fp.total_entries : _allEntries.length;
-  /* Update fp building progress bar */
-  var progLabel = document.getElementById('fp-progress-label');
-  var progFill  = document.querySelector('.fp-progress-fill');
-  if(progLabel) progLabel.textContent = Math.min(total,10) + ' of 10 entries logged';
-  if(progFill)  progFill.style.width = Math.min(100, Math.round((total/10)*100)) + '%';
-
-  if(!fp || !(fp.primary_themes && fp.primary_themes.length)){
-    if(building) building.classList.add('show');
-    if(fpList)   fpList.style.display = 'none';
-    /* Derive basic stats from raw _allEntries even without a computed fingerprint */
-    var derivedAvg = '—';
-    var derivedThemes = 0;
-    var derivedTop = '—';
-    if(_allEntries && _allEntries.length){
-      var rated = _allEntries.filter(function(e){ return e.rating != null && !isNaN(parseFloat(e.rating)); });
-      if(rated.length){
-        var sum = rated.reduce(function(s,e){ return s + parseFloat(e.rating); }, 0);
-        derivedAvg = (sum / rated.length).toFixed(1);
-      }
-      /* Count unique tags across entries */
-      var tagSet = {};
-      _allEntries.forEach(function(e){
-        (e.tags||[]).forEach(function(t){ var n=(t.name||t||'').toLowerCase(); if(n) tagSet[n]=true; });
-      });
-      derivedThemes = Object.keys(tagSet).length;
-      /* Top theme by frequency */
-      var tagFreq = {};
-      _allEntries.forEach(function(e){
-        (e.tags||[]).forEach(function(t){ var n=(t.name||t||'').toLowerCase(); if(n) tagFreq[n]=(tagFreq[n]||0)+1; });
-      });
-      var topKeys = Object.keys(tagFreq).sort(function(a,b){ return tagFreq[b]-tagFreq[a]; });
-      if(topKeys.length) derivedTop = topKeys[0];
-    }
-    var sc0=document.getElementById('sc-total'); if(sc0) sc0.textContent = total||'—';
-    var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = derivedAvg;
-    var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = derivedThemes||'—';
-    var sc3=document.getElementById('sc-top');   if(sc3){ sc3.textContent = derivedTop; sc3.style.fontSize='13px'; }
-    if(sub) sub.textContent = 'Your taste fingerprint · ' + total + ' entr'+(total===1?'y':'ies')+' logged';
-    renderPatterns(null);
-    return;
-  }
-  if(building) building.classList.remove('show');
-  if(fpList)   fpList.style.display = '';
-
-  var avgRat  = fp.overall_avg_rating ? parseFloat(fp.overall_avg_rating).toFixed(1) : '—';
-  var themes  = fp.primary_themes || [];
-  var topTag  = themes[0] ? themes[0].tag : '—';
-
-  /* sc-themes: always count unique tags from raw entries for consistency with the no-fp path */
-  var _utSet = {};
-  (_allEntries||[]).forEach(function(e){
-    (e.tags||[]).forEach(function(t){ var n=(t.name||t||'').toLowerCase(); if(n) _utSet[n]=true; });
-  });
-  var uniqueThemeCount = Object.keys(_utSet).length || themes.length;
-
-  var sc0=document.getElementById('sc-total'); if(sc0) sc0.textContent = total;
-  var sc1=document.getElementById('sc-avg');   if(sc1) sc1.textContent = avgRat;
-  var sc2=document.getElementById('sc-themes');if(sc2) sc2.textContent = uniqueThemeCount||'—';
-  var sc3=document.getElementById('sc-top');   if(sc3){ sc3.textContent = topTag; sc3.style.fontSize='14px'; }
-  if(sub) sub.textContent = 'Your taste fingerprint · Based on ' + total + ' entries';
-  renderPatterns(fp);
-
-  if(fpList){
-    var maxW = themes[0] ? (themes[0].weight || 1) : 1;
-    fpList.innerHTML = themes.slice(0,8).map(function(t){
-      var pct   = Math.round(((t.weight||0) / maxW) * 100);
-      var tag   = escHtml(t.tag);
-      var label = tag.charAt(0).toUpperCase() + tag.slice(1);
-      return '<div class=\"fp-item\" onclick=\"filterByTag(\'' + tag + '\')\" title=\"Filter by ' + tag + '\">'
-        + '<div class=\"fp-row\"><span class=\"fp-label\">' + label + '</span>'
-        + '<span class=\"fp-score\">' + parseFloat(t.avg_rating||0).toFixed(1) + ' avg \u00b7 ' + (t.frequency||0) + ' entries</span></div>'
-        + '<div class=\"fp-bg\"><div class=\"fp-fill\" style=\"--w:' + pct + '%;width:' + pct + '%\"></div></div>'
-        + '<div class=\"fp-item-hint\">\u2192 Filter Collection</div></div>';
-    }).join('');
-  }
-  _applyFpToCharts(fp);
-}
-
-function _applyFpToCharts(fp){
-  if(!fp) return;
-  var formats = fp.format_breakdown || {};
-  var themes  = fp.primary_themes  || [];
-  if(_charts.fmt){
-    var d = function(k){ return (formats[k] && formats[k].count) || 0; };
-    _charts.fmt.data.datasets[0].data = [d('film'),d('show'),d('book'),d('sports_match'),d('music')];
-    _charts.fmt.update();
-  }
-  if(_charts.gen && themes.length){
-    var top6 = themes.slice(0,6).slice().reverse();
-    _charts.gen.data.labels = top6.map(function(t){ return t.tag.charAt(0).toUpperCase()+t.tag.slice(1); });
-    _charts.gen.data.datasets[0].data = top6.map(function(t){ return parseFloat(t.avg_rating||0); });
-    _charts.gen.update();
-  }
-  if(_charts.radar && themes.length >= 3){
-    /* Use the user's actual top-6 tags as axes — hardcoded dimensions never matched real data */
-    var top6 = themes.slice(0,6);
-    var maxW  = top6[0] ? (top6[0].weight||1) : 1;
-    _charts.radar.data.labels = top6.map(function(t){
-      var tag = t.tag || '';
-      return tag.charAt(0).toUpperCase() + tag.slice(1);
-    });
-    _charts.radar.data.datasets[0].data = top6.map(function(t){
-      return Math.round(((t.weight||0) / maxW) * 100);
-    });
-    _charts.radar.update();
-  }
-}
-
-function loadTimelineData(){
-  if(!currentUser || !_charts.timeline) return;
-  var qmap = {};
-  _allEntries.forEach(function(e){
-    var r = parseFloat(e.rating);
-    if(isNaN(r)) return;   /* skip unrated entries */
-    if(!e.date_completed) return; /* skip entries without a real completion date —
-                                     falling back to created_at would place retroactively
-                                     logged content in today's quarter, distorting the trend */
-    var d = new Date(e.date_completed);
-    var q = d.getUTCFullYear() + ' Q' + (Math.floor(d.getUTCMonth()/3)+1);
-    if(!qmap[q]) qmap[q] = [];
-    qmap[q].push(r);
-  });
-  var labels = Object.keys(qmap).sort();
-  /* Show/hide empty state */
-  var emptyEl = document.getElementById('timeline-empty');
-  var canvas  = document.getElementById('timelineChart');
-  if(!labels.length){
-    if(emptyEl) emptyEl.style.display = '';
-    if(canvas)  canvas.style.display  = 'none';
-    return;
-  }
-  if(emptyEl) emptyEl.style.display = 'none';
-  if(canvas)  canvas.style.display  = '';
-  var data   = labels.map(function(q){
-    var arr = qmap[q];
-    return arr.length ? parseFloat((arr.reduce(function(s,v){return s+v;},0)/arr.length).toFixed(2)) : null;
-  });
-  _charts.timeline.data.labels = labels;
-  _charts.timeline.data.datasets[0].data = data;
-  _charts.timeline.update();
-}
-
-/* ── Chart initialisation ── */
-var chartsReady = false;
-function initCharts(){
-  if(typeof Chart === 'undefined') return;
-  if(chartsReady) return;
-  chartsReady = true;
-
-  var radarCtx = document.getElementById('radarChart');
-  if(radarCtx && !_charts.radar){
-    _charts.radar = new Chart(radarCtx, {
-      type:'radar',
-      /* Labels seeded blank — replaced with user's actual top-6 tags by _applyFpToCharts */
-      data:{ labels:['—','—','—','—','—','—'],
-             datasets:[{label:'Your Taste',data:[0,0,0,0,0,0],
-               backgroundColor:'rgba(74,173,186,0.15)',borderColor:'#4AADBA',
-               pointBackgroundColor:'#4AADBA',pointRadius:3,borderWidth:2}] },
-      options:{ responsive:true,maintainAspectRatio:true,
-        scales:{ r:{ ticks:{display:false}, grid:{color:'rgba(0,0,0,0.08)'},
-          pointLabels:{font:{size:11,family:'Inter'},color:'#7A96A4'},
-          suggestedMin:0,suggestedMax:100 }},
-        plugins:{legend:{display:false}} }
-    });
-  }
-  var fmtCtx = document.getElementById('fmtChart');
-  if(fmtCtx && !_charts.fmt){
-    _charts.fmt = new Chart(fmtCtx, {
-      type:'doughnut',
-      data:{ labels:['Films','Shows','Books','Matches','Music'],
-             datasets:[{data:[0,0,0,0,0],
-               backgroundColor:['#C06060','#2E7D9E','#5A8A5F','#9B7D3A','#7A6BAE'],
-               borderWidth:0,hoverOffset:6}] },
-      options:{ responsive:true,maintainAspectRatio:true,cutout:'65%',
-        plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},padding:12,boxWidth:10}}} }
-    });
-  }
-  var genCtx = document.getElementById('genChart');
-  if(genCtx && !_charts.gen){
-    _charts.gen = new Chart(genCtx, {
-      type:'bar',
-      data:{ labels:[],datasets:[{label:'Avg Rating',data:[],
-               backgroundColor:'rgba(74,173,186,0.7)',borderRadius:4,borderSkipped:false}] },
-      options:{ responsive:true,maintainAspectRatio:true,indexAxis:'y',
-        scales:{ x:{min:0,max:10,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:10}}},
-                 y:{grid:{display:false},ticks:{font:{size:11,family:'Inter'}}} },
-        plugins:{legend:{display:false}} }
-    });
-  }
-  var timeCtx = document.getElementById('timelineChart');
-  if(timeCtx && !_charts.timeline){
-    _charts.timeline = new Chart(timeCtx, {
-      type:'line',
-      data:{ labels:[],datasets:[{label:'Avg Rating',data:[],
-               borderColor:'#4AADBA',backgroundColor:'rgba(74,173,186,0.08)',
-               fill:true,tension:0.4,pointRadius:4,pointBackgroundColor:'#4AADBA'}] },
-      options:{ responsive:true,maintainAspectRatio:true,
-        scales:{ y:{min:0,max:10,grid:{color:'rgba(0,0,0,0.05)'},ticks:{font:{size:11}}},
-                 x:{grid:{display:false},ticks:{font:{size:11}}} },
-        plugins:{legend:{display:false}} }
-    });
-  }
-  /* _applyFpToCharts and loadTimelineData are called by the navigate handler, not here,
-     to ensure they run exactly once per Insights visit. */
-}
-
-/* ── Watchlist helpers ── */
-function _animateRemove(el, cb){
-  el.style.transition = 'opacity .3s, transform .3s';
-  el.style.opacity    = '0';
-  el.style.transform  = 'translateX(-14px)';
-  setTimeout(cb, 320);
-}
-
-
-
 function wlMoveToCollection(id){
   var item = _wlItems.find(function(row){return row.id === id;});
   if(!item) return;
@@ -5047,19 +4023,8 @@ function wlMoveToCollection(id){
   openEntryFromPick(item);
 }
 
-/* ── O2: Toggle fingerprint building/sparse state ── */
-function toggleFpState(){
-  var el  = document.getElementById('fp-building');
-  var btn = document.getElementById('fp-demo-btn');
-  if(!el) return;
-  var showing = el.classList.contains('show');
-  el.classList.toggle('show', !showing);
-  if(btn) btn.textContent = showing ? 'Demo: sparse state' : 'Demo: full state';
-}
 
-/* ══════════════════════════════════════════════
-   Content search (TMDB / Google Books / iTunes / TheSportsDB)
-   ══════════════════════════════════════════════ */
+
 var _fragFilter = 'all';
 var _wardFilter = 'all';
 var _fragEditId = null;
@@ -5173,10 +4138,6 @@ function resetStyleState(){
   document.getElementById('ward-grid').replaceChildren();
 }
 
-function ensureStyleItems(){
-  return currentStyleStore()?.load() ?? Promise.resolve(false);
-}
-
 function isCurrentStyleStore(store){
   return _styleStore === store && currentUser?.id === store.owner;
 }
@@ -5190,12 +4151,25 @@ function renderStyleScreen(kind){
 async function openStyleScreen(kind){
   var store = currentStyleStore();
   if(!store) return;
+  var stillCurrent = function(){return isCurrentStyleStore(store);};
+  var empty = document.getElementById(kind === 'fragrance' ? 'frag-empty' : 'ward-empty');
+  empty.style.display = 'none';
   document.getElementById('style-import-' + kind).hidden = !readLegacyStyle(localStorage,kind).items.length;
-  try {
-    if(await store.load() && isCurrentStyleStore(store)) renderStyleScreen(kind);
-  } catch {
-    if(isCurrentStyleStore(store)) showToast('Could not load saved items. Reopen this screen to retry.', '⚠');
-  }
+  var loaded = await journalData.run(kind,function(){return store.load();},stillCurrent,{
+    loading:'Loading your '+(kind === 'fragrance' ? 'fragrances' : 'wardrobe')+'…',
+    error:'Could not load your saved items.'
+  });
+  if(loaded && stillCurrent()) renderStyleScreen(kind);
+}
+
+async function loadCollectionStyle(){
+  var store = currentStyleStore();
+  if(!store) return;
+  var stillCurrent = function(){return isCurrentStyleStore(store);};
+  var loaded = await journalData.run('collection-style',function(){return store.load();},stillCurrent,{
+    loading:'Loading scent and wardrobe items…',error:'Could not load scent and wardrobe items.'
+  });
+  if(loaded && stillCurrent()) _renderColSS(colFilter.search.toLowerCase(),colFilter.format);
 }
 
 function refreshStyleViews(){
@@ -5250,9 +4224,6 @@ async function importSampleFragrances(button){
     }
   } finally { button.disabled = false; }
 }
-
-/* ── HTML-escape helper ── */
-function _sx(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 /* Optional sample collection derived from the original fragrance guide. */
 function sampleFragrances(){
@@ -5318,11 +4289,11 @@ function _fragCardHTML(f){
   var slCls  = {owned:'owned',wishlisted:'wishlisted',tried:'tried'}[f.status]||'tried';
   var slLabel= {owned:'Owned',wishlisted:'Wishlisted',tried:'Tried'}[f.status]||f.status;
   var allNotes = [f.notesTop,f.notesMid,f.notesBase].filter(Boolean).join(' · ');
-  var notesRow = allNotes ? '<div class="frag-notes-row"><span class="frag-notes-label">Notes</span>'+_sx(allNotes)+'</div>' : '';
-  var charLine = f.character ? '<div class="frag-char">'+_sx(f.character)+'</div>' : '';
+  var notesRow = allNotes ? '<div class="frag-notes-row"><span class="frag-notes-label">Notes</span>'+escHtml(allNotes)+'</div>' : '';
+  var charLine = f.character ? '<div class="frag-char">'+escHtml(f.character)+'</div>' : '';
   var chips = '';
-  if(f.season)   chips += '<span class="frag-chip season">'+_sx(f.season)+'</span>';
-  if(f.occasion) chips += '<span class="frag-chip occ">'+_sx(f.occasion.split(',')[0].trim())+'</span>';
+  if(f.season)   chips += '<span class="frag-chip season">'+escHtml(f.season)+'</span>';
+  if(f.occasion) chips += '<span class="frag-chip occ">'+escHtml(f.occasion.split(',')[0].trim())+'</span>';
   var ratingBlock = '';
   if(f.rating > 0){
     var pct = (f.rating/10*100).toFixed(0);
@@ -5331,13 +4302,13 @@ function _fragCardHTML(f){
   }
   return '<div class="frag-card" onclick="openFragranceModal(\''+f.id+'\')">'
     +fragrancePoster(f)
-    +'<div class="frag-card-top"><div><div class="frag-card-name">'+_sx(f.name)+'</div>'
-    +'<div class="frag-card-house">'+_sx(f.house)+'</div></div>'
+    +'<div class="frag-card-top"><div><div class="frag-card-name">'+escHtml(f.name)+'</div>'
+    +'<div class="frag-card-house">'+escHtml(f.house)+'</div></div>'
     +'<span class="frag-status '+slCls+'">'+slLabel+'</span></div>'
     +charLine+notesRow
     +(chips?'<div class="frag-chips">'+chips+'</div>':'')
     +ratingBlock
-    +((f.tags&&f.tags.length)?'<div class="frag-chips" style="margin-top:4px">'+f.tags.slice(0,4).map(function(t){ return '<span class="frag-chip tag">'+_sx(t)+'</span>'; }).join('')+'</div>':'')
+    +((f.tags&&f.tags.length)?'<div class="frag-chips" style="margin-top:4px">'+f.tags.slice(0,4).map(function(t){ return '<span class="frag-chip tag">'+escHtml(t)+'</span>'; }).join('')+'</div>':'')
     +'</div>';
 }
 
@@ -5394,21 +4365,21 @@ function loadWardrobe(){
 function _wardCardHTML(w){
   var statusCls = w.status==='Owned'?'s-owned':'s-wish';
   var chips = '';
-  if(w.category) chips += '<span class="ward-chip cat">'+_sx(w.category)+'</span>';
-  if(w.season)   chips += '<span class="ward-chip">'+_sx(w.season)+'</span>';
-  if(w.occasion) chips += '<span class="ward-chip">'+_sx(w.occasion)+'</span>';
-  if(w.status)   chips += '<span class="ward-chip '+statusCls+'">'+_sx(w.status)+'</span>';
-  var fabricLine = w.fabric ? '<div style="font-size:11px;color:var(--t-3);margin-bottom:6px">'+_sx(w.fabric)+'</div>' : '';
-  var pairLine   = w.pairing ? '<div class="ward-pair">'+_sx(w.pairing)+'</div>' : '';
+  if(w.category) chips += '<span class="ward-chip cat">'+escHtml(w.category)+'</span>';
+  if(w.season)   chips += '<span class="ward-chip">'+escHtml(w.season)+'</span>';
+  if(w.occasion) chips += '<span class="ward-chip">'+escHtml(w.occasion)+'</span>';
+  if(w.status)   chips += '<span class="ward-chip '+statusCls+'">'+escHtml(w.status)+'</span>';
+  var fabricLine = w.fabric ? '<div style="font-size:11px;color:var(--t-3);margin-bottom:6px">'+escHtml(w.fabric)+'</div>' : '';
+  var pairLine   = w.pairing ? '<div class="ward-pair">'+escHtml(w.pairing)+'</div>' : '';
   var colorName  = w.colorName || '';
   return '<div class="ward-card" onclick="openWardrobeModal(\''+w.id+'\')">'
     +'<div class="ward-card-top">'
-    +'<div class="ward-swatch" style="background:'+(/^#[a-f0-9]{6}$/i.test(w.color) ? w.color : '#888')+'" title="'+_sx(colorName)+'"></div>'
-    +'<div class="ward-info"><div class="ward-name">'+_sx(w.name)+'</div>'
-    +'<div class="ward-brand">'+_sx(w.brand||'')+'</div></div></div>'
+    +'<div class="ward-swatch" style="background:'+(/^#[a-f0-9]{6}$/i.test(w.color) ? w.color : '#888')+'" title="'+escHtml(colorName)+'"></div>'
+    +'<div class="ward-info"><div class="ward-name">'+escHtml(w.name)+'</div>'
+    +'<div class="ward-brand">'+escHtml(w.brand||'')+'</div></div></div>'
     +(chips?'<div class="ward-meta">'+chips+'</div>':'')
     +fabricLine+pairLine
-    +((w.tags&&w.tags.length)?'<div class="ward-meta" style="margin-top:4px">'+w.tags.slice(0,4).map(function(t){ return '<span class="ward-chip tag">'+_sx(t)+'</span>'; }).join('')+'</div>':'')
+    +((w.tags&&w.tags.length)?'<div class="ward-meta" style="margin-top:4px">'+w.tags.slice(0,4).map(function(t){ return '<span class="ward-chip tag">'+escHtml(t)+'</span>'; }).join('')+'</div>':'')
     +'</div>';
 }
 

@@ -20,6 +20,21 @@ const journalData = (() => {
     panel.querySelector('button').hidden = state !== 'error';
   }
 
-  return { readPages, status };
+  async function run(screen, operation, stillCurrent, messages) {
+    status(screen,'loading',messages.loading);
+    try {
+      const result = await operation();
+      if (!stillCurrent()) return null;
+      status(screen,'');
+      return result;
+    } catch (error) {
+      if (stillCurrent()) {
+        status(screen,'error',typeof messages.error === 'function' ? messages.error(error) : messages.error);
+      }
+      return null;
+    }
+  }
+
+  return { readPages, status, run };
 })();
 if (typeof module !== 'undefined') module.exports = journalData;

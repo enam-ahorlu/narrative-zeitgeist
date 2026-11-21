@@ -25,6 +25,7 @@ entries.push(...Array.from({length:9},(_,index)=>({
 const journalDrafts = [];
 let failJournalSave = true;
 let failCollectionLoad = true;
+let failStyleLoad = true;
 const watchlist = [];
 const dismissals = [];
 const styleItems = [];
@@ -48,6 +49,9 @@ const fixtures = {
   '/assets/media-identity.js': ['assets/media-identity.js', 'text/javascript; charset=utf-8'],
   '/assets/entry-form.js': ['assets/entry-form.js', 'text/javascript; charset=utf-8'],
   '/assets/style-forms.js': ['assets/style-forms.js', 'text/javascript; charset=utf-8'],
+  '/assets/collection-screen.js': ['assets/collection-screen.js', 'text/javascript; charset=utf-8'],
+  '/assets/watchlist-screen.js': ['assets/watchlist-screen.js', 'text/javascript; charset=utf-8'],
+  '/assets/insights-screen.js': ['assets/insights-screen.js', 'text/javascript; charset=utf-8'],
   '/assets/journal-data.js': ['assets/journal-data.js', 'text/javascript; charset=utf-8'],
   '/assets/journal-view.js': ['assets/journal-view.js', 'text/javascript; charset=utf-8'],
   '/supabase.js': ['supabase.js', 'text/javascript; charset=utf-8'],
@@ -213,7 +217,7 @@ function createMocks(assets) {
     if (path === '/rest/v1/rpc/compute_fingerprint') return send(profile);
     if (path === '/rest/v1/user_fingerprints') return send({ fingerprint_json: profile });
     if (path === '/rest/v1/style_items') {
-      if (method === 'GET') return send(styleItems.filter(matchesUser));
+      if (method === 'GET') return failStyleLoad ? send({message:'Synthetic style load failure'},503) : send(styleItems.filter(matchesUser));
       if (method === 'DELETE') {
         const id = url.searchParams.get('item_id').slice(3);
         const index = styleItems.findIndex(row => matchesUser(row) && row.item_id === id);
@@ -401,9 +405,17 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await visit('discover');
   await page.getByText('Discovery limit reached', { exact: false }).waitFor();
   limitDiscovery = false;
-  await page.getByRole('button', { name: 'Try Again' }).click();
+  await page.locator('#discover-request-status').getByRole('button', { name: 'Retry',exact:true }).click();
   await page.locator('#disc-hero-wrap').getByText('Synthetic discovery book').waitFor();
   await page.locator('#disc-hero-wrap').getByText('Close match',{exact:true}).waitFor();
+  const scentRetry = page.locator('#discover-style-request-status');
+  await scentRetry.getByText('Could not load scent and wardrobe picks.').waitFor();
+  const mediaRequestsBeforeStyleRetry = discoveryRequests;
+  failStyleLoad = false;
+  await scentRetry.getByRole('button',{name:'Retry',exact:true}).click();
+  await page.locator('#disc-style-picks').getByRole('heading',{name:'Fragrance picks'}).waitFor();
+  assert.equal(discoveryRequests,mediaRequestsBeforeStyleRetry);
+
   await page.locator('#disc-hero-wrap').getByRole('button', { name: '+ Watchlist' }).click();
   await visit('watchlist');
   await page.locator('#wl-list').getByText('Synthetic discovery book').waitFor();
@@ -600,11 +612,17 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.ok(await phone.locator('#s-settings.active').isVisible());
 
 
-
   await page.locator('.user-chip').click();
   await page.locator('#auth-submit-btn').waitFor();
   assert.equal(await page.locator('#frag-grid .frag-card').count(), 0);
+  assert.equal(await page.locator('#col-ss-section').getByText('A’s Tropical Wool Suit').count(), 0);
+  failStyleLoad = true;
   await signIn(page, users[1].email);
+  const wardrobeRetry = page.locator('#wardrobe-request-status');
+  await wardrobeRetry.getByText('Could not load your saved items.').waitFor();
+  assert.ok(await page.locator('#ward-empty').isHidden());
+  failStyleLoad = false;
+  await wardrobeRetry.getByRole('button',{name:'Retry',exact:true}).click();
   await page.getByText('No wardrobe items yet', { exact: true }).waitFor();
   assert.equal(await page.getByText('A’s Tropical Wool Suit').count(), 0);
   await visit('fragrances');

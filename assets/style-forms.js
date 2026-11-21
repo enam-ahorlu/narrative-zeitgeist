@@ -273,8 +273,8 @@ function renderCatalogueResults(prefix, value, rows, select){
     button.style.color = 'inherit';
     button.style.border = 'none';
     button.style.font = 'inherit';
-    button.innerHTML = '<div class="cs-info"><div class="cs-title-txt">' + _sx(row[0]) +
-      '</div><div class="cs-meta-txt">' + _sx([row[1],row[2]].filter(Boolean).join(' · ')) + '</div></div>';
+    button.innerHTML = '<div class="cs-info"><div class="cs-title-txt">' + escHtml(row[0]) +
+      '</div><div class="cs-meta-txt">' + escHtml([row[1],row[2]].filter(Boolean).join(' · ')) + '</div></div>';
     button.addEventListener('click', function(){select(row); clearCatalogueResults(prefix);});
     drop.appendChild(button);
   });

@@ -40,5 +40,7 @@ consistency problems below.
 The next changes add catalogue identity, repeat logging, track lookup,
 persistent Up Next ordering, and a bounded low-rating signal. Entry and Style &
 Scent forms live outside the page script. Collection, Watchlist, and Insights
-share request status handling. See [Product and refactor work](PRODUCT-WORK.md)
+each have their own rendering module. Their data reads use the same loading and
+retry handler as Discovery and Style & Scent. Discovery's media and catalogue
+sections can retry independently. See [Product and refactor work](PRODUCT-WORK.md)
 for compatibility decisions, measurements, and release checks.

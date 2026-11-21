@@ -117,6 +117,7 @@ function createStyleStore(client, owner, now = Date.now) {
 
   return {
     owner,
+    get ready() { return loaded && !disposed; },
     get busy() { return writing; },
     items(kind) { return items[kind]; },
     load,
