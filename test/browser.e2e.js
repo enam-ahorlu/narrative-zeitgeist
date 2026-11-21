@@ -584,6 +584,25 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await phone.goto(origin + '/#wardrobe');
   await signIn(phone, users[0].email);
   await phone.locator('#ward-grid').getByRole('img',{name:'A’s Tropical Wool Suit'}).waitFor();
+  /* The page must scroll on a phone: tall screens extend past the viewport and the window moves */
+  await phone.setViewportSize({width:320, height:560});
+  for (const screen of ['collection','insights','settings','discover','watchlist','fragrances']) {
+    await phone.evaluate(s => navigate(s), screen);
+    await phone.waitForTimeout(400);
+    const scrolled = await phone.evaluate(async () => {
+      const root = document.scrollingElement;
+      const room = root.scrollHeight - innerHeight;
+      window.scrollTo(0, 200);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      const moved = Math.round(window.scrollY);
+      window.scrollTo(0, 0);
+      return {room, moved};
+    });
+    if (scrolled.room > 40) assert.ok(scrolled.moved > 0, screen + ' does not scroll on a phone: ' + JSON.stringify(scrolled));
+    const wide = await phone.evaluate(() => [...document.querySelectorAll('.screen.active *')].filter(e => e.getBoundingClientRect().right > 321 && e.offsetParent !== null && !e.closest('.tbl-wrap,.disc-tabs,.pills')).slice(0,5).map(e => (e.id || e.className.baseVal || e.className).toString().slice(0,40)));
+    assert.deepEqual(wide, [], screen + ' has content wider than a 320px phone');
+  }
+  await phone.setViewportSize({width:390, height:844});
   if (process.env.NZ_SHOTS) {
     /* Optional: screenshots of every screen at phone widths, for layout review (not part of CI) */
     for (const width of [390, 320]) {

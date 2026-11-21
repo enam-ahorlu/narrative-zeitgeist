@@ -1044,8 +1044,21 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
 
 /* ── Phone layout: the page scrolls as one, nothing is trapped in a small inner box ── */
 @media(max-width:768px){
-  .main{padding-bottom:0}
-  .screen{height:auto;min-height:calc(100dvh - 62px);overflow:visible}
+  html,body{height:auto;overflow:visible}
+  body{overflow-x:hidden}
+  #app{height:auto}
+  .main{padding-bottom:0;flex:none;overflow-x:clip;overflow-y:visible;height:auto}
+  .wl-content>div:first-child{flex-wrap:wrap}
+  .fsel{max-width:100%}
+  .ig canvas,.card canvas{max-width:100%!important;height:auto!important}
+  .settings-layout{grid-template-columns:minmax(0,1fr)}
+  .settings-content,.settings-content>*,.sr{min-width:0}
+  .data-grid{grid-template-columns:minmax(0,1fr)}
+  .data-card>div:not(.data-card-icon){min-width:0}
+  .strip{flex-wrap:wrap}
+  .strip-item{flex:1 1 22%;min-width:70px}
+  .screen{height:auto;overflow:visible}
+  #app{padding-bottom:0}
   .tbl-wrap,.col-scroll,.ig,.disc-content,.wl-content,.ds-wrap,.cg-grid{overflow:visible;flex:none}
   .col-scroll{display:block}
   .tbl-wrap{padding-bottom:12px}
