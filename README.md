@@ -13,7 +13,8 @@ with suggestions from built-in catalogues.
 
 The Vercel entry point is `index.html`. The browser uses the bundled Supabase
 SDK, the public project configuration from `/api/config`, and the two scripts
-in `catalogues/`. The HTML prototype is an earlier reference.
+in `catalogues/`. `supabase.js` is a vendored copy of supabase-js 2.104.0; update
+it by replacing the file and changing this version.
 
 ## Run the checks
 

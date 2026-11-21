@@ -1,10 +1,4 @@
-<!DOCTYPE html><script type="application/json" id="cowork-artifact-meta">
-{
-  "name": "Narrative Zeitgeist Prototype",
-  "schemaVersion": 1,
-  "description": "Interactive HTML prototype for Narrative & Zeitgeist — all 5 screens plus design system reference. Click the nav items to switch screens. Sign in on the auth screen to enter the app."
-}
-</script>
+<!DOCTYPE html>
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
@@ -15,6 +9,7 @@
 <script src="/supabase.js"></script>
 <script src="/catalogues/fragrances.js"></script>
 <script src="/catalogues/wardrobe.js"></script>
+<script src="/assets/html-escape.js"></script>
 <script src="/assets/journal-view.js"></script>
 <script src="/assets/journal-data.js"></script>
 <script src="/assets/collection-screen.js"></script>
@@ -2146,10 +2141,6 @@ var FMT_LABEL = Object.fromEntries(Object.entries(journalView.formats).map(funct
 var FMT_BADGE = Object.fromEntries(Object.entries(journalView.formats).map(function(pair){return [pair[0],pair[1].badge];}));
 var MONTHS    = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function escHtml(s){
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 /* ── Detect password-recovery landing from URL (implicit AND PKCE flows) ── */
 var _pendingPasswordRecovery = (function(){
   /* Implicit flow: Supabase appends #access_token=...&type=recovery to the URL */
@@ -3201,7 +3192,7 @@ function cmdSearch(val){
   }).slice(0,10);
 
   if(!hits.length){
-    res.innerHTML='<div class="cmd-empty">No results for "<strong>'+val+'</strong>"</div>';
+    res.innerHTML='<div class="cmd-empty">No results for "<strong>'+escHtml(val)+'</strong>"</div>';
     return;
   }
 
@@ -3214,15 +3205,15 @@ function cmdSearch(val){
     return '<div class="cmd-group-label">'+groupLabels[k]+'</div>'+
       groups[k].map(function(d){
         var thumb=k==='entry'||k==='watchlist'
-          ? '<div class="cmd-item-thumb" style="background:'+d.bg+'">'+d.title.split(' ').map(function(w){return w[0]}).slice(0,3).join('')+'</div>'
+          ? '<div class="cmd-item-thumb" style="background:'+escHtml(d.bg)+'">'+escHtml(d.title.split(' ').map(function(w){return w[0]||''}).slice(0,3).join(''))+'</div>'
           : '<div class="cmd-item-icon"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M7 7h10M7 12h10M7 17h6"/></svg></div>';
         var action=k==='tag'
-          ? 'onclick="filterByTag(\''+escHtml(d.title)+'\');closeCmdPalette()"'
+          ? 'onclick="filterByTag(\''+escJs(d.title)+'\');closeCmdPalette()"'
           : k==='entry'
-          ? 'onclick="_cmdOpenEntry(\''+String(d._entry.id)+'\');closeCmdPalette()"'
+          ? 'onclick="_cmdOpenEntry(\''+escJs(d._entry.id)+'\');closeCmdPalette()"'
           : 'onclick="goToScreen(\''+d.screen+'\');closeCmdPalette()"';
         return '<div class="cmd-item" '+action+'>'+thumb+
-          '<div><div class="cmd-item-title">'+d.title+'</div><div class="cmd-item-sub">'+d.sub+'</div></div></div>';
+          '<div><div class="cmd-item-title">'+escHtml(d.title)+'</div><div class="cmd-item-sub">'+escHtml(d.sub)+'</div></div></div>';
       }).join('');
   }).join('');
 }

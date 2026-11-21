@@ -114,7 +114,7 @@ function openDetailModal(entry){
   var dc = document.getElementById('detail-cover');
   if(dc){
     if(entry.poster_url){
-      dc.style.backgroundImage='url('+entry.poster_url+')';
+      dc.style.backgroundImage=cssUrl(entry.poster_url);
       dc.style.backgroundSize='cover';
       dc.style.backgroundPosition='center';
       dc.style.background='';
@@ -130,7 +130,7 @@ function openDetailModal(entry){
   if(ts) ts.innerHTML =
     '<div style="font-size:10.5px;font-weight:600;letter-spacing:.05em;color:var(--t-2);margin-bottom:6px">TAGS</div>'+
     '<div style="display:flex;gap:5px;flex-wrap:wrap">'+
-      (tags.length ? tags.map(function(t){ return '<span class="tag tag-link" onclick="filterByTag(\''+escHtml(t)+'\')">'+escHtml(t)+'</span>'; }).join('') : '<span style="font-size:12px;color:var(--t-3)">No tags added</span>')+
+      (tags.length ? tags.map(function(t){ return '<span class="tag tag-link" onclick="filterByTag(\''+escJs(t)+'\')">'+escHtml(t)+'</span>'; }).join('') : '<span style="font-size:12px;color:var(--t-3)">No tags added</span>')+
     '</div>'+
     '<div class="tag-hint">Tap a tag to see all entries with that theme →</div>';
 
@@ -231,11 +231,11 @@ function _renderRelatedEntries(entry){
     var grad=e.cover_color||'linear-gradient(135deg,#1B5E76,#4AADBA)';
     var initials=e.title.split(/\s+/).slice(0,3).map(function(w){return w[0]||'';}).join('').toUpperCase().slice(0,4);
     var thumbHtml=e.poster_url
-      ?'<div class="detail-rel-thumb" style="background-image:url('+escHtml(e.poster_url)+');background-size:cover;background-position:center"></div>'
+      ?'<div class="detail-rel-thumb" style="background-image:'+escHtml(cssUrl(e.poster_url))+';background-size:cover;background-position:center"></div>'
       :'<div class="detail-rel-thumb" style="background:'+grad+'">'+escHtml(initials)+'</div>';
     var sharedStr=r.shared.slice(0,3).map(function(t){return escHtml(t);}).join(' · ');
     var rVal=parseFloat(e.rating)||0;
-    return'<div class="detail-rel-item" onclick="_openRelatedEntry(\''+escHtml(String(e.id))+'\')" style="cursor:pointer">'+
+    return'<div class="detail-rel-item" onclick="_openRelatedEntry(\''+escJs(e.id)+'\')" style="cursor:pointer">'+
       thumbHtml+
       '<div class="detail-rel-info">'+
         '<div class="detail-rel-title">'+escHtml(e.title)+'</div>'+

@@ -6,7 +6,7 @@ Snapshot: 21 November 2026, after the production update. Combines the open work 
 
 | Item | State |
 | --- | --- |
-| `main` | At `66db596`, promoted on 21 November 2026 as a fast-forward from `codex/narrative-hardening`. Production deployed from it and is live. |
+| `main` | Promoted on 21 November 2026 as fast-forwards from `codex/narrative-hardening`. Production deploys from it. |
 | `codex/narrative-hardening` | Same commit as `main`. |
 | CI | Passing on `66db596` (lint, unit tests, browser tests, whitespace check). Workflow lives in `.github/workflows/ci.yml`. |
 | Working folder | Needs a sync to `main` (see Tidy). A stash holds two CRLF-only changes from the old state. |
@@ -40,16 +40,16 @@ Snapshot: 21 November 2026, after the production update. Combines the open work 
 | B4 | Basic security headers in `vercel.json` | Compulsory | Done, confirmed on production |
 | B5 | `.gitattributes` for LF line endings | Compulsory | Done |
 | B6 | ESLint `no-undef` lint and CI workflow | Suggested | Done, CI passing |
-| M1 | Record migrations in a migration history | Suggested | Done for production (003 to 008 recorded). Staging backfill optional |
-| N1 | `public.set_updated_at` has no fixed `search_path` (Supabase security advisor warning) | Suggested | Open |
-| Q1 | Refund or commit-on-success for the Discovery quota | Suggested | Open |
-| Q2 | Model id from an environment variable | Suggested | Open |
+| M1 | Record migrations in a migration history | Suggested | Done. Production records 003 to 009. Staging was backfilled for 003 to 008 and records 009 |
+| N1 | `public.set_updated_at` has no fixed `search_path` (Supabase security advisor warning) | Suggested | Done (migration 009, production and staging). Advisor warning cleared |
+| Q1 | Refund or commit-on-success for the Discovery quota | Suggested | Done (migration 009). Provider failures return the slot through a server-only function; a model answer that cannot be used stays charged. Also fixed: a refused second Compare slot now returns the first |
+| Q2 | Model id from an environment variable | Suggested | Done. Set `DISCOVERY_MODEL` in Vercel to change it; the default is `claude-sonnet-4-6` and anything that is not a plain model id is ignored |
 | Q3 | Retire the baseline Discovery pipeline after the comparison decision | Suggested | Open, needs owner decision (it backs the Compare picks feature) |
-| Q4 | Escaping HTML helper, fix `cmdSearch` and the `poster_url` CSS case, then move off inline handlers, then consider a CSP | Suggested | Open |
+| Q4 | Escaping HTML helper, fix `cmdSearch` and the `poster_url` CSS case, then move off inline handlers, then consider a CSP | Suggested | Partly done. `assets/html-escape.js` with tests, command palette escaped, tag and related-entry handlers escaped (including the single-quote case), `poster_url` goes through `cssUrl`. Open: move off inline handlers, then a CSP |
 | Q5 | Recommendation quality: repeat blind comparisons with a fuller real library, record whether picks are tried, known, convincing | Suggested | Open, owner input needed |
 | Q6 | Discovery latency and history cost: inspect live timing, then decide on a database aggregate | Suggested | Open, needs live timing |
 | Q7 | Photo coverage (34 of 327 fragrances, 43 of 130 products), Adrian loafers image, rate-limited downloads | Suggested | Deferred by owner |
-| Q8 | Catalogue data shape and lazy loading, shared code folder, SDK version note, drop the stray `cowork-artifact-meta` block and the prototype file | Suggested | Open |
+| Q8 | Catalogue data shape and lazy loading, shared code folder, SDK version note, drop the stray `cowork-artifact-meta` block and the prototype file | Suggested | Partly done. Stray block removed, prototype file removed (still in git history), SDK version recorded in the README (supabase-js 2.104.0). Open: catalogue data shape and lazy loading, shared code folder |
 | Q9 | Incremental front-end modularisation (CSS file, ES modules), only when touching those areas | Suggested | Open |
 | Q10 | Optional extra: a JSON export of production data kept outside the repo, refreshed before each migration | Suggested | Open |
 

@@ -44,6 +44,7 @@ let limitDiscovery = true;
 
 const fixtures = {
   '/': ['index.html', 'text/html; charset=utf-8'],
+  '/assets/html-escape.js': ['assets/html-escape.js', 'text/javascript; charset=utf-8'],
   '/assets/discovery-comparison.js': ['assets/discovery-comparison.js', 'text/javascript; charset=utf-8'],
   '/assets/discovery-session.js': ['assets/discovery-session.js', 'text/javascript; charset=utf-8'],
   '/assets/style-store.js': ['assets/style-store.js', 'text/javascript; charset=utf-8'],
@@ -726,6 +727,13 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await visit('wardrobe');
   await page.locator('#s-wardrobe .pills').getByText('Jewelry',{exact:true}).click();
   await verifyPhoto(page,page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}));
+
+  await page.evaluate(() => openCmdPalette());
+  await page.locator('#cmd-input').fill('<img src=x onerror="window.__cmdInjected=1">');
+  await page.locator('#cmd-results .cmd-empty').waitFor();
+  assert.equal(await page.locator('#cmd-results img').count(), 0);
+  assert.equal(await page.evaluate(() => window.__cmdInjected), undefined);
+  await page.evaluate(() => closeCmdPalette());
 
   await visit('settings');
   await page.locator('#settings-display-name').fill('Renamed Reader');

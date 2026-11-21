@@ -19,7 +19,7 @@ function renderPatterns(fp){
   var svgLink  = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--p-light)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></svg>';
 
   function makeCard(icon, title, text, stat, tag){
-    var clickAttr = tag ? ' onclick="filterByTag(\''+tag+'\')" title="See entries tagged '+tag+'"' : '';
+    var clickAttr = tag ? ' onclick="filterByTag(\''+escJs(tag)+'\')" title="See entries tagged '+escHtml(tag)+'"' : '';
     return '<div class="pat"'+clickAttr+'>'
       +'<div class="pat-emoji">'+icon+'</div>'
       +'<div class="pat-title">'+title+'</div>'
