@@ -3,11 +3,13 @@
 // Set ANTHROPIC_API_KEY in Vercel → Project Settings → Environment Variables.
 
 const { sameWork } = require('../assets/media-identity');
-const { authContext } = require('../lib/supabase-server');
+const { authContext, refundDiscoveryRequests } = require('../lib/supabase-server');
 const { loadHistory, selectAnchors, lowRatedExamples, discoveryExclusions, makePrompt, verifyRecommendations } = require('../lib/grounded-discovery');
 
 const FORMATS = ['film', 'show', 'book', 'sports_match', 'music'];
 const TABS = ['for-you', 'hidden', 'trending', 'because-loved'];
+// The model can be changed in Vercel without a deploy. Anything that is not a plain model id is ignored.
+const DISCOVERY_MODEL = /^[\w.-]{1,80}$/.test(process.env.DISCOVERY_MODEL || '') ? process.env.DISCOVERY_MODEL : 'claude-sonnet-4-6';
 const SAFE_GRADIENT = /^linear-gradient\(\s*\d{1,3}deg\s*,\s*#[a-f\d]{6}\s*,\s*#[a-f\d]{6}\s*\)$/i;
 
 module.exports = async function handler(req, res) {
@@ -36,6 +38,7 @@ module.exports = async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: 'Discovery is unavailable.' });
 
   let retryAfter;
+  let reserved = 0;
   try {
     for (let slot=0; slot < (signalComparison ? 2 : 1); slot++) {
       const quota = await fetch(auth.url + '/rest/v1/rpc/reserve_discovery_request', {
@@ -48,22 +51,29 @@ module.exports = async function handler(req, res) {
       retryAfter = await quota.json();
       if (!Number.isInteger(retryAfter) || retryAfter < 0) throw new Error('Invalid quota response');
       if (retryAfter > 0) break;
+      reserved++;
     }
   } catch {
+    await refundDiscoveryRequests(auth, reserved);
     return res.status(503).json({ error: 'Discovery is temporarily unavailable. Try again shortly.' });
   }
 
   if (retryAfter > 0) {
+    await refundDiscoveryRequests(auth, reserved);
     res.setHeader('Retry-After', String(retryAfter));
     return res.status(429).json({ error: 'Discovery limit reached. Try again in about ' + Math.ceil(retryAfter / 60) + ' minute(s).' });
   }
 
+  // Slots lost to provider failures are given back. Slots where the model answered stay used.
+  let providerFailures = 0;
   try {
     // Preserve time for the catalogue checks inside Vercel's 60-second limit.
     const modelBudget = Math.max(1000, Math.min(40000, (grounded ? 47000 : 55000) - (Date.now() - started)));
     async function generate(examples) {
       const modelStarted = Date.now();
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      let response;
+      try {
+        response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -71,14 +81,19 @@ module.exports = async function handler(req, res) {
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
+          model: DISCOVERY_MODEL,
           max_tokens: grounded || comparison ? 2600 : 8192,
           messages: [{ role: 'user', content: grounded ? makePrompt(anchors, tab, avoid, examples)
             : buildPrompt(fingerprint, entryTitles, tab, becauseTitle, comparison) }]
         }),
         signal: AbortSignal.timeout(modelBudget)
-      });
+        });
+      } catch (error) {
+        providerFailures++;
+        throw error;
+      }
       if (!response.ok) {
+        providerFailures++;
         console.error('Anthropic Discovery returned status', response.status);
         throw new Error('Provider request failed');
       }
@@ -124,6 +139,7 @@ module.exports = async function handler(req, res) {
     res.setHeader('Server-Timing', 'history;dur=' + historyDuration + ', model;dur=' + result.model + ', verification;dur=' + result.verification);
     return res.status(200).json({ recommendations:result.picks });
   } catch (error) {
+    await refundDiscoveryRequests(auth, Math.min(providerFailures, reserved));
     if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
       console.warn('Discovery model timed out', { strategy: grounded ? 'grounded' : 'baseline', tab });
       return res.status(504).json({ error:'The recommendation service took too long. Try again shortly.' });

@@ -19,6 +19,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await db.exec(`
     create role anon;
     create role authenticated;
+    create role service_role;
     create schema auth;
     create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
     create function auth.uid() returns uuid language sql stable as $$
@@ -46,6 +47,7 @@ test('migrations protect journal data, enforce quota and cascade account removal
   await apply('migrations/006_discovery_feedback.sql');
   await apply('migrations/007_journal_workflows.sql');
   await apply('migrations/008_media_workflows.sql');
+  await apply('migrations/009_quota_refund.sql');
   const newUser = '00000000-0000-4000-8000-000000000009';
   await db.query("insert into auth.users (id,email) values ($1,'new@example.test')", [newUser]);
   assert.equal((await db.query('select id from public.profiles where id=$1', [newUser])).rows[0].id, newUser);
@@ -169,6 +171,38 @@ test('migrations protect journal data, enforce quota and cascade account removal
     await db.exec("reset role; update nz_private.discovery_quota set window_started_at = now() - interval '61 minutes'");
     await actAs(a);
     assert.equal(await quota(), 0);
+  });
+
+  await t.test('quota refunds are server-only, never exceed what was used, and leave old windows alone', async () => {
+    const refund = (user, count) => db.query('select public.refund_discovery_request($1, $2)', [user, count]);
+    const used = async user => {
+      await db.exec('reset role');
+      const count = (await db.query('select request_count from nz_private.discovery_quota where user_id=$1', [user])).rows[0]?.request_count;
+      await db.exec('set role service_role');
+      return count;
+    };
+    await actAs(a);
+    await assert.rejects(refund(a, 1), denied);
+    await actAs('', 'anon');
+    await assert.rejects(refund(a, 1), denied);
+
+    await db.exec('reset role; delete from nz_private.discovery_quota');
+    await actAs(a);
+    for (let index = 0; index < 3; index++) await db.query('select public.reserve_discovery_request()');
+    await db.exec('reset role; set role service_role');
+    await refund(a, 1);
+    assert.equal(await used(a), 2);
+    await refund(a, 99);
+    assert.equal(await used(a), undefined);
+    await refund(a, 1);
+
+    await db.exec('reset role');
+    await actAs(a);
+    for (let index = 0; index < 5; index++) await db.query('select public.reserve_discovery_request()');
+    await db.exec("reset role; update nz_private.discovery_quota set window_started_at = now() - interval '61 minutes'; set role service_role");
+    await refund(a, 2);
+    assert.equal(await used(a), 5);
+    await db.exec('reset role');
   });
 
   await t.test('style updates are private and deleting an Auth user cascades to their app data', async () => {

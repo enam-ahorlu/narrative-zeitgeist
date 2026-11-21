@@ -90,6 +90,54 @@ test('Discovery requires auth, validates inputs, enforces quota and sanitizes pr
   assert.match(timeout.body.error, /took too long/);
 });
 
+test('Discovery returns quota only for provider failures and reads its model from the environment', async (t) => {
+  process.env.ANTHROPIC_API_KEY = 'synthetic-anthropic';
+  process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'https://example.supabase.test';
+  process.env.SUPABASE_SERVICE_ROLE_KEY = 'synthetic-server-only';
+  const calls = [];
+  let providerStatus = 200;
+  let content = 'not json';
+  const item = { title: 'New book', format: 'book', match_score: 95,
+    reasons: ['reason one', 'reason two', 'reason three'], cover_color: 'unrecognized color' };
+  t.mock.method(globalThis, 'fetch', async (url, options) => {
+    calls.push({ url, options });
+    if (url.endsWith('/auth/v1/user')) return Response.json({ id: userId });
+    if (url.endsWith('/reserve_discovery_request')) return Response.json(0);
+    if (url.endsWith('/refund_discovery_request')) return Response.json(null);
+    return Response.json({ content: [{ type: 'text', text: content }] }, { status: providerStatus });
+  });
+  const headers = { authorization: token };
+  const refunds = () => calls.filter(call => call.url.endsWith('/refund_discovery_request'));
+  const provider = () => calls.filter(call => call.url === 'https://api.anthropic.com/v1/messages');
+
+  providerStatus = 529;
+  assert.equal((await invoke(discover, { headers, body })).status, 502);
+  assert.equal(refunds().length, 1);
+  assert.deepEqual(JSON.parse(refunds()[0].options.body), { p_user_id: userId, p_count: 1 });
+  assert.equal(refunds()[0].options.headers.apikey, process.env.SUPABASE_SERVICE_ROLE_KEY);
+
+  providerStatus = 200;
+  assert.equal((await invoke(discover, { headers, body })).status, 502);
+  assert.equal(refunds().length, 1, 'a model answer that cannot be used was still paid for');
+
+  content = JSON.stringify([item]);
+  assert.equal((await invoke(discover, { headers, body })).status, 200);
+  assert.equal(refunds().length, 1);
+
+  assert.equal(JSON.parse(provider()[0].options.body).model, 'claude-sonnet-4-6');
+  process.env.DISCOVERY_MODEL = 'claude-test-model';
+  delete require.cache[require.resolve('../api/discover')];
+  const configured = require('../api/discover');
+  await invoke(configured, { headers, body });
+  assert.equal(JSON.parse(provider().at(-1).options.body).model, 'claude-test-model');
+  process.env.DISCOVERY_MODEL = 'bad model; drop table';
+  delete require.cache[require.resolve('../api/discover')];
+  await invoke(require('../api/discover'), { headers, body });
+  assert.equal(JSON.parse(provider().at(-1).options.body).model, 'claude-sonnet-4-6');
+  delete process.env.DISCOVERY_MODEL;
+  delete require.cache[require.resolve('../api/discover')];
+});
+
 test('account removal targets the verified user and requires upstream success', async (t) => {
   const calls = [];
   let failed = true;
