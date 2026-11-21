@@ -1,4 +1,4 @@
-const discoveryIdentity = typeof module !== 'undefined' ? require('./media-identity') : mediaIdentity;
+const discoveryIdentity = typeof module !== 'undefined' ? require('../shared/media-identity') : mediaIdentity;
 
 /* Per-account, in-memory coordination for media recommendation batches. */
 function createDiscoverySession({ now = Date.now, ttl = 30 * 60 * 1000, limit = 16 } = {}) {

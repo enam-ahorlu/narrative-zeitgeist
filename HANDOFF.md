@@ -47,7 +47,7 @@ The deployed frontend is a static page with classic scripts. There is no fronten
 | Form state, validation, autocomplete and saves | [entry-form.js](assets/entry-form.js), [style-forms.js](assets/style-forms.js) |
 | Paging, request status, rendering selectors | [journal-data.js](assets/journal-data.js), [journal-view.js](assets/journal-view.js) |
 | Per-account style persistence and local ranking | [style-store.js](assets/style-store.js), [style-recommendations.js](assets/style-recommendations.js) |
-| Media identity, batch cache, and comparison UI | [media-identity.js](assets/media-identity.js), [discovery-session.js](assets/discovery-session.js), [discovery-comparison.js](assets/discovery-comparison.js) |
+| Media identity, batch cache, and comparison UI | [media-identity.js](shared/media-identity.js), [discovery-session.js](assets/discovery-session.js), [discovery-comparison.js](assets/discovery-comparison.js) |
 | Discovery API, authenticated history, prompting and verification | [api/discover.js](api/discover.js), [lib/grounded-discovery.js](lib/grounded-discovery.js) |
 | Search and external ratings | [api/search.js](api/search.js), [lib/media-catalogue.js](lib/media-catalogue.js), [api/ratings.js](api/ratings.js) |
 | Public config, environment isolation, and account deletion | [api/config.js](api/config.js), [lib/supabase-server.js](lib/supabase-server.js), [api/delete-account.js](api/delete-account.js) |

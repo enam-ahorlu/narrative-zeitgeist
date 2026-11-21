@@ -2,7 +2,7 @@
 // Calls Claude API with the user's taste fingerprint and returns personalised recommendations.
 // Set ANTHROPIC_API_KEY in Vercel → Project Settings → Environment Variables.
 
-const { sameWork } = require('../assets/media-identity');
+const { sameWork } = require('../shared/media-identity');
 const { authContext, refundDiscoveryRequests } = require('../lib/supabase-server');
 const { loadHistory, selectAnchors, lowRatedExamples, discoveryExclusions, makePrompt, verifyRecommendations } = require('../lib/grounded-discovery');
 

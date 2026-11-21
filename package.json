@@ -4,7 +4,8 @@
   "scripts": {
     "test": "node --test test/*.test.js",
     "test:browser": "node --test test/browser.e2e.js",
-    "lint": "node scripts/lint.js"
+    "lint": "node scripts/lint.js",
+    "export:data": "node scripts/export-data.js"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.17",

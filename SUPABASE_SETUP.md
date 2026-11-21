@@ -52,6 +52,7 @@ the production settings.
 | `PREVIEW_SUPABASE_ANON_KEY` | Staging publishable key or legacy anon JWT. Set only in Preview. |
 | `PREVIEW_SUPABASE_SECRET_KEY` | Staging server-only secret key for account deletion. Set only in Preview. |
 | `ANTHROPIC_API_KEY` | Server-only key for media recommendations. Use distinct keys per environment when available. |
+| `DISCOVERY_MODEL` | Optional. Anthropic model id for Discovery. Defaults to `claude-sonnet-4-6`; values that are not a plain model id are ignored. |
 | `TMDB_API_KEY` | Film and TV title search. |
 | `GOOGLE_BOOKS_API_KEY` | Optional Google Books title search. Open Library provides a fallback. |
 | `OMDB_API_KEY` | External film and TV ratings. |
@@ -59,7 +60,29 @@ the production settings.
 
 Keep the server keys in Vercel or an untracked local environment file. Configure
 the Anthropic project’s spending limit independently of the app’s per-account
-quota of 12 requests per hour.
+quota of 12 requests per hour. A request that fails because the model provider
+failed or timed out returns its slot; the refund needs the server secret key, so
+it does nothing in Preview until `PREVIEW_SUPABASE_SECRET_KEY` is set.
+
+## Backups and the content security policy
+
+Before applying a migration to production, write a copy of the data outside the
+repository:
+
+```
+SUPABASE_URL=https://<project>.supabase.co SUPABASE_SECRET_KEY=<secret key> npm run export:data
+```
+
+The file goes to `backups/`, which git ignores. It holds real journal data, so
+keep it out of shared folders. The script refuses to run if `backups/` is not
+ignored.
+
+`vercel.json` sends a Content-Security-Policy that limits scripts, connections,
+fonts and images to the hosts the app uses, and forbids framing, plugins and
+base-tag changes. It still allows inline scripts and styles, because the page
+uses inline handlers. The browser test serves the same header and fails on any
+violation. If a new external host is added, add it to the policy in the same
+change.
 
 ## Preview checks and promotion
 

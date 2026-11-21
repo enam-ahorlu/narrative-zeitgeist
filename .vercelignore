@@ -1,6 +1,6 @@
 # Keep the deployment to what the app needs. The page serves from the repository
 # root, so anything not listed here becomes a public static file.
-# api/, lib/, assets/, catalogues/, index.html, supabase.js, package.json and
+# api/, lib/, shared/, assets/, catalogues/, index.html, supabase.js, package.json and
 # vercel.json stay: the page and functions load them.
 *.md
 *.pdf

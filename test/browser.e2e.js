@@ -49,7 +49,7 @@ const fixtures = {
   '/assets/discovery-session.js': ['assets/discovery-session.js', 'text/javascript; charset=utf-8'],
   '/assets/style-store.js': ['assets/style-store.js', 'text/javascript; charset=utf-8'],
   '/assets/style-recommendations.js': ['assets/style-recommendations.js', 'text/javascript; charset=utf-8'],
-  '/assets/media-identity.js': ['assets/media-identity.js', 'text/javascript; charset=utf-8'],
+  '/shared/media-identity.js': ['shared/media-identity.js', 'text/javascript; charset=utf-8'],
   '/assets/entry-form.js': ['assets/entry-form.js', 'text/javascript; charset=utf-8'],
   '/assets/style-forms.js': ['assets/style-forms.js', 'text/javascript; charset=utf-8'],
   '/assets/collection-screen.js': ['assets/collection-screen.js', 'text/javascript; charset=utf-8'],
@@ -263,8 +263,12 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const photoFixtures = Object.fromEntries(photos.map(file => [
     '/catalogues/photos/' + file, ['catalogues/photos/' + file, 'image/webp']
   ]));
+  // Serve the real production policy so a blocked request fails the test.
+  const vercel = JSON.parse(await readFile('vercel.json', 'utf8'));
+  const csp = vercel.headers[0].headers.find(header => header.key === 'Content-Security-Policy').value;
   const assets = Object.fromEntries(await Promise.all(Object.entries({...fixtures, ...photoFixtures}).map(async ([url, [file, contentType]]) =>
-    [url, { body: await readFile(file), contentType }])));
+    [url, { body: await readFile(file), contentType,
+      headers: contentType.startsWith('text/html') ? { 'Content-Security-Policy': csp } : {} }])));
 
   async function openContext(options = {}) {
     const context = await browser.newContext(options);
@@ -284,6 +288,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   page.setDefaultTimeout(12000);
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (/Content Security Policy|Refused to/i.test(message.text())) errors.push(message.text()); });
   page.on('dialog', dialog => dialog.accept());
   async function verifyPhoto(target, locator) {
     await locator.scrollIntoViewIfNeeded();
@@ -552,6 +557,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const phone = await otherDevice.newPage();
   phone.setDefaultTimeout(12000);
   phone.on('pageerror', error => errors.push(error.message));
+  phone.on('console', message => { if (/Content Security Policy|Refused to/i.test(message.text())) errors.push(message.text()); });
   await phone.goto(origin + '/#wardrobe');
   await signIn(phone, users[0].email);
   await phone.locator('#ward-grid').getByRole('img',{name:'A’s Tropical Wool Suit'}).waitFor();
@@ -761,6 +767,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const recovery = await (await openContext()).newPage();
   recovery.setDefaultTimeout(12000);
   recovery.on('pageerror', error => errors.push(error.message));
+  recovery.on('console', message => { if (/Content Security Policy|Refused to/i.test(message.text())) errors.push(message.text()); });
   const hash = new URLSearchParams({
     type: 'recovery', access_token: jwt(users[0]), refresh_token: 'synthetic-recovery-refresh',
     token_type: 'bearer', expires_in: '3600'

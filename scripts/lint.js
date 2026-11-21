@@ -7,7 +7,7 @@ const { ESLint } = require('eslint');
 
 const root = path.join(__dirname, '..');
 const page = readFileSync(path.join(root, 'index.html'), 'utf8');
-const order = [...page.matchAll(/<script src="\/((?:assets|catalogues)\/[^"]+)"/g)].map(match => match[1]);
+const order = [...page.matchAll(/<script src="\/((?:assets|catalogues|shared)\/[^"]+)"/g)].map(match => match[1]);
 const inline = [...page.matchAll(/<script>([\s\S]*?)<\/script>/g)].pop()?.[1];
 if (!inline || !order.length) throw new Error('Could not find the page scripts');
 
@@ -15,7 +15,7 @@ const bundle = [...order.map(file => readFileSync(path.join(root, file), 'utf8')
 
 (async () => {
   const eslint = new ESLint({ cwd: root });
-  const serverFiles = ['api', 'lib', 'scripts'].flatMap(dir =>
+  const serverFiles = ['api', 'lib', 'scripts', 'shared'].flatMap(dir =>
     readdirSync(path.join(root, dir)).filter(name => name.endsWith('.js')).map(name => path.join(dir, name)));
   const results = [
     ...await eslint.lintFiles(serverFiles),
