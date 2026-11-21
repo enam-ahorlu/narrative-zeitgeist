@@ -12,6 +12,7 @@
 <script src="/assets/html-escape.js"></script>
 <script src="/assets/journal-view.js"></script>
 <script src="/assets/journal-data.js"></script>
+<script src="/assets/collection-export.js"></script>
 <script src="/assets/collection-screen.js"></script>
 <script src="/assets/watchlist-screen.js"></script>
 <script src="/assets/insights-screen.js"></script>
@@ -1082,6 +1083,13 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
 @media(max-width:520px){
   .ph-actions .btn,.ph-actions .fsel{flex:1 1 auto}
 }
+.entry-title-button{font:inherit;color:inherit;text-align:left;background:transparent;border:0;padding:0;cursor:pointer}
+.entry-title-button:focus-visible{outline:2px solid var(--p-rich);outline-offset:3px}
+.collection-stats-toggle{display:none}
+@media(max-width:768px){
+  .collection-stats-toggle{display:inline-flex;align-self:flex-start;margin:4px 16px}
+  .collection-stats-toggle[aria-expanded="false"] + .strip{display:none}
+}
 </style>
 </head>
 <body>
@@ -1231,7 +1239,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
       <div class="journal-request-status" id="collection-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadEntries()" hidden>Retry</button></div>
 
       <!-- O1: First-run welcome card (dismiss to hide) -->
-      <div class="welcome-card" id="welcome-card">
+      <div class="welcome-card" id="welcome-card" style="display:none">
         <div class="welcome-card-icon"><svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.9)" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
         <div class="welcome-card-body">
           <div class="welcome-card-title">Start building your taste fingerprint</div>
@@ -1240,7 +1248,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <button class="btn btn-sm welcome-card-btn" onclick="openModal('add')">Add First Entry</button>
         <button class="welcome-card-x" onclick="document.getElementById('welcome-card').style.display='none'" title="Dismiss">×</button>
       </div>
-      <div class="strip">
+      <button class="btn btn-glass btn-sm collection-stats-toggle" type="button" aria-controls="collection-stats" aria-expanded="false" onclick="this.setAttribute('aria-expanded',this.getAttribute('aria-expanded') !== 'true')">Collection statistics</button>
+      <div class="strip" id="collection-stats">
         <div class="strip-item"><div class="sv" id="sv-total">—</div><div class="sl">Total</div></div>
         <div class="strip-item"><div class="sv" id="sv-avg">—</div><div class="sl">Avg Rating</div></div>
         <div class="strip-item"><div class="sv" id="sv-films">—</div><div class="sl">Films</div></div>
@@ -1248,6 +1257,8 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div class="strip-item"><div class="sv" id="sv-books">—</div><div class="sl">Books</div></div>
         <div class="strip-item"><div class="sv" id="sv-matches">—</div><div class="sl">Matches</div></div>
         <div class="strip-item"><div class="sv" id="sv-music">—</div><div class="sl">Music</div></div>
+        <div class="strip-item"><div class="sv" id="sv-fragrance">—</div><div class="sl">Fragrances</div></div>
+        <div class="strip-item"><div class="sv" id="sv-wardrobe">—</div><div class="sl">Wardrobe</div></div>
       </div>
       <div class="filters">
         <div class="fsearch"><svg class="fsearch-icon" width="13" height="13" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><input type="text" id="col-search-inp" placeholder="Search titles, tags…" oninput="colSearch(this.value)"></div>
@@ -1631,19 +1642,12 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
 
           <!-- Data -->
           <div class="ss" id="s-data">
-            <div class="ss-head"><div><div class="ss-title">Data</div><div class="ss-sub">Import, export, and backup your collection</div></div></div>
+            <div class="ss-head"><div><div class="ss-title">Data</div><div class="ss-sub">Download your media journal and owned style items</div></div></div>
             <div class="ss-body">
               <div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t-3);padding-top:14px;margin-bottom:0">EXPORT</div>
               <div class="data-grid">
-                <div class="data-card" onclick="exportCollectionJSON()" style="cursor:pointer"><div class="data-card-icon" style="background:var(--c-show-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-show)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div><div><div class="data-card-title">Export as JSON</div><div class="data-card-sub">Full collection + metadata</div></div></div>
-                <div class="data-card" onclick="exportCollectionCSV()" style="cursor:pointer"><div class="data-card-icon" style="background:var(--c-book-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-book)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div><div class="data-card-title">Export as CSV</div><div class="data-card-sub">Spreadsheet-compatible</div></div></div>
-              </div>
-              <div style="font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t-3);margin-top:6px;margin-bottom:0">IMPORT</div>
-              <div class="data-grid" style="padding-bottom:14px">
-                <div class="data-card"><div class="data-card-icon" style="background:rgba(240,198,88,.15)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#C08B20" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></div><div><div class="data-card-title">From Letterboxd</div><div class="data-card-sub">Import your film diary</div></div></div>
-                <div class="data-card"><div class="data-card-icon" style="background:rgba(100,180,100,.15)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="#3A8A3A" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg></div><div><div class="data-card-title">From Goodreads</div><div class="data-card-sub">Import your book shelf</div></div></div>
-                <div class="data-card"><div class="data-card-icon" style="background:rgba(74,173,186,.12)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--p-mid)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/></svg></div><div><div class="data-card-title">From JSON / CSV</div><div class="data-card-sub">Re-import a previous export</div></div></div>
-                <div class="data-card"><div class="data-card-icon" style="background:var(--c-music-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-music)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/></svg></div><div><div class="data-card-title">From Last.fm</div><div class="data-card-sub">Import your scrobble history</div></div></div>
+                <button type="button" class="data-card" onclick="exportCollection('json')"><div class="data-card-icon" style="background:var(--c-show-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-show)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div><div><div class="data-card-title">Export as JSON</div><div class="data-card-sub">Full collection + metadata</div></div></button>
+                <button type="button" class="data-card" onclick="exportCollection('csv')"><div class="data-card-icon" style="background:var(--c-book-bg)"><svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--c-book)" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div><div><div class="data-card-title">Export as CSV</div><div class="data-card-sub">Spreadsheet-compatible</div></div></button>
               </div>
             </div>
           </div>
@@ -2277,6 +2281,7 @@ function handleAuthChange(event, session){
     if(currentUser) handleAuthChange('SIGNED_OUT', null);
     currentUser = session.user;
     _showApp();
+    loadCollectionStyle();
     Promise.all([loadEntries(), loadWatchlist()]).then(function(results){
       if(results[0] && currentUser?.id === session.user.id && document.getElementById('s-discover').classList.contains('active')){
         openDiscoverScreen();
@@ -2295,6 +2300,7 @@ function handleAuthChange(event, session){
     document.getElementById('m-newpass').style.display = 'none';
     closeCmdPalette();
     _collectionPage = 1;
+    _entriesReady = false;
     _entriesLoadVersion++;
     _watchlistLoadVersion++;
     _fingerprintVersion++;
@@ -2361,6 +2367,7 @@ function _showAuthScreen(){
 }
 
 /* ── Load all entries from Supabase and re-render ── */
+var _entriesReady = false;
 var _entriesLoadVersion = 0;
 async function loadEntries(){
   if(!currentUser) return;
@@ -2368,17 +2375,13 @@ async function loadEntries(){
   var version = ++_entriesLoadVersion;
   var stillCurrent = function(){return currentUser?.id === userId && _entriesLoadVersion === version;};
   var entries = await journalData.run('collection',function(){
-    return journalData.readPages(function(from,to){
-      return SUPA.from('entries_with_tags').select('*').eq('user_id',userId)
-        .order('created_at',{ascending:false}).order('id').range(from,to);
-    },stillCurrent);
+    return journalData.readEntries(SUPA,userId,stillCurrent);
   },stillCurrent,{loading:'Loading collection…',error:'Could not load your collection.'});
   if(!entries || !stillCurrent()) return;
   _allEntries = entries;
   buildCmdIndex();
-  renderColTagPills(entries);
-  renderCollectionPage();
-  updateCollectionStats(entries);
+  _entriesReady = true;
+  refreshCollection();
   loadTimelineData();
   if(_discSeedId && !entries.some(function(entry){return entry.id === _discSeedId;})) _discSeedId = '';
   showDiscoverySeeds(document.getElementById('disc-seed-query').value);
@@ -2539,57 +2542,6 @@ function saveColToggle(el, key){
   var prefs = JSON.parse(localStorage.getItem('nz-col-toggles') || '{}');
   prefs[key] = el.classList.contains('on');
   localStorage.setItem('nz-col-toggles', JSON.stringify(prefs));
-}
-
-function exportCollectionJSON(){
-  if(!_allEntries || !_allEntries.length){ showToast('No entries to export'); return; }
-  var data = {
-    exported: new Date().toISOString(),
-    version: '1',
-    entries: _allEntries.map(function(e){
-      return {
-        title: e.title, format: e.format, year: e.year,
-        rating: e.rating, review: e.review,
-        date_added: e.created_at, date_completed: e.date_completed,
-        tags: (e.tags||[]).map(function(t){ return t.name||t; })
-      };
-    })
-  };
-  var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url; a.download = 'narrative-zeitgeist-export.json';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-  showToast(_allEntries.length + ' entries exported as JSON', '↓  ');
-}
-
-function exportCollectionCSV(){
-  if(!_allEntries || !_allEntries.length){ showToast('No entries to export'); return; }
-  var rows = [['Title','Format','Year','Rating','Review','Tags','Date Added','Date Completed']];
-  _allEntries.forEach(function(e){
-    var tags = (e.tags||[]).map(function(t){ return t.name||t; }).join('; ');
-    rows.push([
-      e.title||'', e.format||'', e.year||'',
-      e.rating != null ? e.rating : '',
-      (e.review||'').replace(/"/g,'""'),
-      tags,
-      e.created_at ? e.created_at.slice(0,10) : '',
-      e.date_completed ? e.date_completed.slice(0,10) : ''
-    ]);
-  });
-  var csv = rows.map(function(r){
-    return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(',');
-  }).join('\n');
-  var blob = new Blob([csv], {type: 'text/csv'});
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url; a.download = 'narrative-zeitgeist-export.csv';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-  showToast(_allEntries.length + ' entries exported as CSV', '↓  ');
 }
 
 async function deleteAccount(){
@@ -2784,6 +2736,7 @@ function closeModal(id){
   if(id==='add' && document.getElementById('add-save-btn').disabled) return;
   document.getElementById('m-'+id).classList.remove('open');
   if(id==='detail'){cancelDelete();}
+  restoreCollectionFocus(id);
   if(id==='add'){
     _closeSearchDrop();
     editMode=false;
@@ -4375,7 +4328,7 @@ async function loadCollectionStyle(){
   var loaded = await journalData.run('collection-style',function(){return store.load();},stillCurrent,{
     loading:'Loading scent and wardrobe items…',error:'Could not load scent and wardrobe items.'
   });
-  if(loaded && stillCurrent()) renderCollectionPage();
+  if(loaded && stillCurrent()) refreshCollection();
 }
 
 async function loadWatchlistStyle(){
@@ -4388,7 +4341,7 @@ async function loadWatchlistStyle(){
 
 function refreshStyleViews(){
   if(document.getElementById('s-watchlist').classList.contains('active')) renderWatchlist();
-  if(document.getElementById('s-collection').classList.contains('active')) renderCollectionPage();
+  refreshCollection();
   if(document.getElementById('s-insights').classList.contains('active')) renderStyleFingerprint();
   refreshStyleDiscovery();
 }

@@ -81,6 +81,7 @@ function openFragranceModal(id){
 function closeFragranceModal(){
   var drop=document.getElementById('frag-cs-drop'); if(drop){ drop.innerHTML=''; drop.classList.remove('open'); }
   var m=document.getElementById('m-fragrance'); if(m) m.classList.remove('open');
+  restoreCollectionFocus('fragrance');
 }
 
 async function saveFragrance(){
@@ -181,6 +182,7 @@ function openWardrobeModal(id){
 function closeWardrobeModal(){
   clearCatalogueResults('ward');
   var m=document.getElementById('m-wardrobe'); if(m) m.classList.remove('open');
+  restoreCollectionFocus('wardrobe');
 }
 
 async function saveWardrobeItem(){

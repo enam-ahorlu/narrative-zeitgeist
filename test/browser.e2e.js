@@ -29,6 +29,7 @@ let failStyleLoad = true;
 const watchlist = [];
 const dismissals = [];
 const styleDismissals = [];
+const comparisonRows = [];
 const styleItems = [];
 const resetRecipients = [];
 const stylesCreated = [];
@@ -53,6 +54,7 @@ const fixtures = {
   '/shared/media-identity.js': ['shared/media-identity.js', 'text/javascript; charset=utf-8'],
   '/assets/entry-form.js': ['assets/entry-form.js', 'text/javascript; charset=utf-8'],
   '/assets/style-forms.js': ['assets/style-forms.js', 'text/javascript; charset=utf-8'],
+  '/assets/collection-export.js': ['assets/collection-export.js', 'text/javascript; charset=utf-8'],
   '/assets/collection-screen.js': ['assets/collection-screen.js', 'text/javascript; charset=utf-8'],
   '/assets/watchlist-screen.js': ['assets/watchlist-screen.js', 'text/javascript; charset=utf-8'],
   '/assets/insights-screen.js': ['assets/insights-screen.js', 'text/javascript; charset=utf-8'],
@@ -207,6 +209,13 @@ function createMocks(assets) {
       dismissals.push(body);
       return route.fulfill({ status:201 });
     }
+    if (path === '/rest/v1/discovery_comparisons') {
+      if (method === 'GET') return send(comparisonRows.filter(matchesUser));
+      if (!comparisonRows.some(row => row.user_id === user.id && row.id === body.id)) {
+        comparisonRows.push({...body, created_at:new Date().toISOString()});
+      }
+      return route.fulfill({status:201});
+    }
     if (path === '/rest/v1/style_dismissals') {
       if (method === 'GET') return send(styleDismissals.filter(matchesUser));
       styleDismissals.push(body);
@@ -260,7 +269,7 @@ function createMocks(assets) {
   };
 }
 
-test('browser covers regular signed-in, recommendation and Style & Scent flows', { timeout: 90000 }, async t => {
+test('browser covers regular signed-in, recommendation and Style & Scent flows', { timeout: 120000 }, async t => {
   const browser = await chromium.launch({
     channel: process.env.NZ_BROWSER_CHANNEL || 'chrome',
     executablePath: process.env.NZ_BROWSER_EXECUTABLE || undefined,
@@ -347,6 +356,17 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await pageStatus.getByText('Showing 1–10 of 12 entries').waitFor();
   assert.equal(await tableRows.count(),10);
   assert.equal(await page.locator('#cg-grid .cg-card').count(),0);
+  for (const layout of ['table','grid']) {
+    if (layout === 'grid') await page.locator('button[onclick="toggleCollectionView()"]').click();
+    const title = page.locator(layout === 'table' ? '#s-collection tbody' : '#cg-grid')
+      .getByRole('button',{name:'Journal A 1',exact:true});
+    await title.focus();
+    await page.keyboard.press('Enter');
+    await page.locator('#m-detail.open').waitFor();
+    await page.keyboard.press('Escape');
+    assert.equal(await title.evaluate(button=>button === document.activeElement),true);
+  }
+  await page.locator('button[onclick="toggleCollectionView()"]').click();
   await page.getByRole('button',{name:'Next page'}).click();
   assert.equal(await tableRows.count(),2);
   await page.getByRole('button',{name:'Previous page'}).click();
@@ -612,6 +632,50 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(styleDismissals.length,2);
   await visit('wardrobe');
 
+  // Reload from saved records, then exercise both Settings downloads with a mixed collection.
+  await page.reload();
+  await page.locator('#app.show').waitFor();
+  await visit('collection');
+  await page.waitForFunction(() => _entriesReady && _styleStore?.ready);
+  const owned = styleItems.filter(row=>row.user_id===users[0].id && row.details.status.toLowerCase()==='owned');
+  const library = entries.filter(row=>row.user_id===users[0].id);
+  assert.equal(Number(await page.locator('#sv-total').textContent()), library.length + owned.length);
+  await visit('settings');
+  // A cached style collection cannot turn a failed read into a successful partial export.
+  let partialDownloads = 0;
+  const countDownload = () => partialDownloads++;
+  page.on('download',countDownload);
+  failStyleLoad = true;
+  await page.getByRole('button',{name:/Export as JSON/}).click();
+  await page.getByText('Could not load the full collection for export.',{exact:false}).waitFor();
+  failStyleLoad = false;
+  page.off('download',countDownload);
+  assert.equal(partialDownloads,0);
+  for (const format of ['JSON','CSV']) {
+    const downloaded = page.waitForEvent('download');
+    await page.getByRole('button',{name:'Export as '+format,exact:false}).click();
+    const file = await downloaded;
+    const text = await readFile(await file.path(),'utf8');
+    if (format === 'JSON') {
+      const records = JSON.parse(text).entries;
+      assert.equal(records.length,library.length + owned.length);
+      assert.ok(!records.some(row=>row.title==='Journal B 1'));
+      assert.ok(!records.some(row=>row.format==='fragrance' && row.style.status!=='owned'));
+      const tracks = records.filter(row=>row.title==='Fixture Track');
+      assert.equal(new Set(tracks.map(row=>row.id)).size,2);
+      assert.equal(tracks[0].catalogue.id,'12345');
+      assert.ok(tracks.some(row=>row.notes==='First listen' && row.year===row.catalogue.year && row.year));
+      for (const item of owned) assert.deepEqual(records.find(row=>row.style?.id===item.item_id)?.style,{...item.details,id:item.item_id});
+      assert.ok(owned.some(row=>row.kind==='wardrobe') && owned.some(row=>row.kind==='fragrance'));
+    } else {
+      assert.match(text,/First listen/);
+      assert.match(text,/12345/);
+      for (const item of owned) assert.ok(text.includes(item.item_id));
+    }
+  }
+  await visit('collection');
+  await visit('wardrobe');
+
   const otherDevice = await openContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const phone = await otherDevice.newPage();
   phone.setDefaultTimeout(12000);
@@ -624,6 +688,13 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await phone.setViewportSize({width:320, height:560});
   for (const screen of ['collection','insights','settings','discover','watchlist','fragrances']) {
     await phone.evaluate(s => navigate(s), screen);
+    if(screen === 'collection'){
+      const toggle = phone.getByRole('button',{name:'Collection statistics'});
+      assert.ok(await phone.locator('#collection-stats').isHidden());
+      await toggle.tap();
+      assert.ok(await phone.locator('#collection-stats').isVisible());
+      await toggle.tap();
+    }
     await phone.waitForTimeout(400);
     const scrolled = await phone.evaluate(async () => {
       const root = document.scrollingElement;
@@ -676,6 +747,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await fitsPhone(phone.locator('.disc-format-pills').getByText('Style',{exact:false}),'Discover Style pill');
   const phoneCompare = phone.locator('#m-disc-compare');
   await phone.getByRole('button',{name:'Compare picks'}).tap();
+  await phoneCompare.getByRole('button',{name:'Past comparisons'}).tap();
+  await phoneCompare.getByText('Latest 2 completed comparisons').waitFor();
+  await phoneCompare.getByText(/Original · preferred in/).waitFor();
+  await phoneCompare.getByRole('button',{name:'Back to comparisons'}).tap();
   await phoneCompare.getByRole('button',{name:'Test the low-rating signal'}).tap();
   await phoneCompare.getByRole('heading',{name:'Set A',exact:true}).waitFor();
   await phoneCompare.getByRole('radio',{name:'Set A'}).check();

@@ -104,14 +104,22 @@ module.exports = async function handler(req, res) {
       const parsed = JSON.parse(payload);
       const model = Date.now() - modelStarted;
       const verificationStarted = Date.now();
-      const picks = grounded
-        ? await verifyRecommendations(parsed, anchors, known, tab)
-        : normalizeRecommendations(parsed, entryTitles);
+      let picks;
+      try {
+        picks = grounded ? await verifyRecommendations(parsed, anchors, known, tab)
+          : normalizeRecommendations(parsed, entryTitles);
+      } catch (error) {
+        if (error.code === 'CATALOGUE_UNAVAILABLE') providerFailures++;
+        throw error;
+      }
       return { picks, model, verification:Date.now()-verificationStarted };
     }
 
     if (signalComparison) {
-      const [without, withSignal] = await Promise.all([generate([]),generate(lowRatings)]);
+      const runs = await Promise.allSettled([generate([]),generate(lowRatings)]);
+      const failure = runs.find(run => run.status === 'rejected');
+      if (failure) throw failure.reason;
+      const [without, withSignal] = runs.map(run => run.value);
       const left = without.picks.filter(pick=>!withSignal.picks.some(other=>sameWork(pick,other)));
       const right = withSignal.picks.filter(pick=>!without.picks.some(other=>sameWork(pick,other)));
       const pairs = FORMATS.map(format => {
@@ -139,7 +147,11 @@ module.exports = async function handler(req, res) {
     res.setHeader('Server-Timing', 'history;dur=' + historyDuration + ', model;dur=' + result.model + ', verification;dur=' + result.verification);
     return res.status(200).json({ recommendations:result.picks });
   } catch (error) {
-    await refundDiscoveryRequests(auth, Math.min(providerFailures, reserved));
+    const restored = await refundDiscoveryRequests(auth, Math.min(providerFailures, reserved));
+    if (error.code === 'CATALOGUE_UNAVAILABLE') {
+      const quota = restored ? 'The failed lookup’s request slot was returned.' : 'The quota refund could not be confirmed.';
+      return res.status(503).json({error:'The media catalogues could not be reached. '+quota+' Retrying starts a new request.'});
+    }
     if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
       console.warn('Discovery model timed out', { strategy: grounded ? 'grounded' : 'baseline', tab });
       return res.status(504).json({ error:'The recommendation service took too long. Try again shortly.' });

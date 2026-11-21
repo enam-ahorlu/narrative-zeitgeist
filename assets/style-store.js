@@ -38,7 +38,7 @@ function createStyleStore(client, owner, now = Date.now) {
     return {user_id:owner,kind,item_id:item.id,details:normalize(kind,item)};
   }
 
-  async function readAll() {
+  async function readSnapshot() {
     const next = {fragrance:[],wardrobe:[]};
     for (let offset=0; ; offset+=pageSize) {
       const response = await client.from('style_items').select('kind,item_id,details')
@@ -46,11 +46,17 @@ function createStyleStore(client, owner, now = Date.now) {
       if (disposed) return false;
       if (response.error) throw response.error;
       for (const {kind,item_id,details} of response.data) {
-        next[kind].push({...normalize(kind,details),id:item_id});
+        next[kind].push({...details,...normalize(kind,details),id:item_id});
       }
       if (response.data.length < pageSize) break;
     }
     for (const rows of Object.values(next)) rows.sort((a,b)=>b.created-a.created);
+    return next;
+  }
+
+  async function readAll() {
+    const next = await readSnapshot();
+    if (!next || disposed) return false;
     items = next;
     loaded = true;
     return true;
@@ -141,6 +147,7 @@ function createStyleStore(client, owner, now = Date.now) {
 
   return {
     owner,
+    readSnapshot,
     isDismissed(kind, key) { return Boolean(dismissed[kind]?.has(key)); },
     loadDismissals,
     dismiss,

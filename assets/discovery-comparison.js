@@ -12,7 +12,8 @@ function showComparisonChoices(){
   body.innerHTML = '<p>Compare anonymous picks before seeing which method made them. Each comparison may use two Discovery requests.</p>'
     + '<div class="style-quick-actions">'
     + '<button class="btn btn-p btn-sm" onclick="startDiscoveryComparison(true)">Test the low-rating signal</button>'
-    + '<button class="btn btn-g btn-sm" onclick="startDiscoveryComparison(false)">Compare with the original recommender</button></div>';
+    + '<button class="btn btn-g btn-sm" onclick="startDiscoveryComparison(false)">Compare with the original recommender</button>'
+    + '<button class="btn btn-g btn-sm" onclick="showComparisonHistory()">Past comparisons</button></div>';
 }
 
 async function startDiscoveryComparison(testSignal){
@@ -28,7 +29,7 @@ async function startDiscoveryComparison(testSignal){
     return;
   }
   var userId = currentUser.id;
-  var run = {pending:true};
+  var run = {id:crypto.randomUUID(),pending:true};
   _discCompare = run;
   body.textContent = 'Building two anonymous sets from your collection…';
   try {
@@ -93,26 +94,106 @@ function renderDiscoveryComparison(lists, body){
     + '<div id="disc-compare-summary" role="status"></div>';
 }
 
-function revealDiscoveryComparison(button){
-  if(!_discCompare?.lists) return;
-  var checks = ['would try', 'already known', 'clear reason'];
-  var preference = document.querySelector('input[name="disc-preferred-set"]:checked')?.value;
-  var preferred = preference === 'tie' ? 'No overall preference' : (preference === '0' || preference === '1')
-    ? 'Your preference: ' + _discCompare.lists[Number(preference)].method : 'No overall preference recorded';
-  document.getElementById('disc-compare-summary').innerHTML = _discCompare.lists.map(function(list, index){
-    var panel = document.querySelector('[data-compare-list="' + index + '"]');
-    var heading = 'Set ' + ['A','B'][index] + ' · ' + list.method;
-    panel.querySelector('h3').textContent = heading;
-    var summary = checks.map(function(label, metric){
-      return panel.querySelectorAll('[data-compare-metric="' + metric + '"]:checked').length + '/' + list.picks.length + ' ' + label;
-    }).join(' · ');
-    var novel = Array.from(panel.querySelectorAll('.disc-compare-item')).filter(function(item){
-      return item.querySelector('[data-compare-metric="0"]').checked &&
-        !item.querySelector('[data-compare-metric="1"]').checked;
-    }).length;
-    return '<p>' + heading + ' · ' + summary + ' · ' + novel + ' new to you and would try</p>';
-  }).join('') + '<p>'+escHtml(preferred)+'. Results reflect this batch.</p>';
+async function revealDiscoveryComparison(button){
+  var run = _discCompare;
+  var owner = currentUser?.id;
+  if(!owner || !run?.lists || button.disabled) return;
+  button.disabled = true;
+  var choice = document.querySelector('input[name="disc-preferred-set"]:checked')?.value;
+  var preference = ({'0':'A','1':'B',tie:'tie'})[choice] || null;
+  var sets = run.lists.map(function(list,index){
+    var items = document.querySelectorAll('[data-compare-list="'+index+'"] .disc-compare-item');
+    return {method:list.method, picks:list.picks.map(function(pick,i){
+      var checks = items[i].querySelectorAll('input');
+      return {title:pick.title, format:pick.format, catalogue:mediaIdentity.metadata(pick),
+        wouldTry:checks[0].checked, known:checks[1].checked, fits:checks[2].checked};
+    })};
+  });
+  // Freeze the blind choices across retries, including an ambiguous network response.
   document.querySelectorAll('[data-compare-metric],input[name="disc-preferred-set"]').forEach(function(input){input.disabled = true;});
+  var summary = document.getElementById('disc-compare-summary');
+  try {
+    var result = await SUPA.from('discovery_comparisons').upsert({user_id:owner,id:run.id,preference,sets},
+      {onConflict:'user_id,id',ignoreDuplicates:true});
+    if(result.error) throw result.error;
+  } catch {
+    if(currentUser?.id === owner && _discCompare === run){
+      summary.textContent = 'Could not confirm the save. Your choices are ready to retry.';
+      button.disabled = false;
+      button.textContent = 'Retry saving results';
+    }
+    return;
+  }
+  if(currentUser?.id !== owner || _discCompare !== run) return;
+  summary.replaceChildren();
+  sets.forEach(function(set,index){
+    var heading = 'Set '+['A','B'][index]+' · '+set.method;
+    document.querySelector('[data-compare-list="'+index+'"] h3').textContent = heading;
+    var p = document.createElement('p');
+    p.textContent = heading+' · '+comparisonCounts(set.picks);
+    summary.append(p);
+  });
+  var message = document.createElement('p');
+  message.textContent = (choice === '0' || choice === '1') ? 'Your preference: '+sets[Number(choice)].method : 'No overall preference recorded';
+  summary.append(message);
+  button.disabled = false;
   button.textContent = 'Compare again';
   button.onclick = function(){_discCompare = null; showComparisonChoices();};
 }
+
+function comparisonCounts(picks){
+  var count = function(check){return picks.filter(check).length+'/'+picks.length;};
+  return count(p=>p.wouldTry)+' would try · '+count(p=>p.known)+' already known · '
+    +count(p=>p.fits)+' clear reason · '+count(p=>p.wouldTry && !p.known)+' new to you and would try';
+}
+
+function comparisonOutcomes(rows,entries,sameWork = mediaIdentity.sameWork){
+  var methods = new Map();
+  for(var row of rows){
+    row.sets.forEach(function(set,index){
+      var totals = methods.get(set.method) || {picks:[],logged:0,preferred:0,batches:0};
+      totals.batches++;
+      if(row.preference === ['A','B'][index]) totals.preferred++;
+      totals.picks.push(...set.picks);
+      totals.logged += set.picks.filter(pick=>entries.some(entry=>
+        Date.parse(entry.created_at) >= Date.parse(row.created_at) && sameWork(entry,pick))).length;
+      methods.set(set.method,totals);
+    });
+  }
+  return methods;
+}
+
+async function showComparisonHistory(){
+  var owner = currentUser?.id;
+  if(!owner) return;
+  var body = document.getElementById('disc-compare-body');
+  var panel = document.createElement('section');
+  var back = document.createElement('button');
+  back.textContent = 'Back to comparisons';
+  back.className = 'btn btn-g btn-sm';
+  back.onclick = showComparisonChoices;
+  body.replaceChildren(back,panel);
+  panel.textContent = 'Loading past comparisons…';
+  try {
+    var [results,loaded] = await Promise.all([
+      SUPA.from('discovery_comparisons').select('sets,preference,created_at')
+        .eq('user_id',owner).order('created_at',{ascending:false}).limit(30),
+      loadEntries()
+    ]);
+    if(currentUser?.id !== owner || !panel.isConnected) return;
+    if(results.error || !loaded) throw new Error('History unavailable');
+    var rows = results.data;
+    panel.textContent = rows.length ? 'Latest '+rows.length+' completed comparisons' : 'No completed comparisons yet.';
+    var methods = comparisonOutcomes(rows,_allEntries);
+    for(var [method,totals] of methods){
+      var line = document.createElement('p');
+      line.textContent = method+' · preferred in '+totals.preferred+'/'+totals.batches+' batches · '
+        +comparisonCounts(totals.picks)+' · '+totals.logged+'/'+totals.picks.length+' picks logged after comparison';
+      panel.append(line);
+    }
+  } catch {
+    if(currentUser?.id === owner && panel.isConnected) panel.textContent = 'Could not load comparison history. Go back and retry.';
+  }
+}
+
+if (typeof module !== 'undefined') module.exports = {comparisonOutcomes};

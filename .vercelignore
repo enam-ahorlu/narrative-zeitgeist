@@ -10,3 +10,6 @@ test/
 scripts/
 .github/
 eslint.config.mjs
+
+backups/
+_photo_work/

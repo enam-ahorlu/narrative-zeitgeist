@@ -5,6 +5,7 @@ a watchlist. Style & Scent adds account-owned fragrance and wardrobe collections
 with suggestions from built-in catalogues.
 
 - [Live app](https://narrative-zeitgeist.vercel.app/)
+- [Review fixes, evidence, and release status](REVIEW-FIXES.md)
 - [Maintainer handoff and current state](HANDOFF.md)
 - [Supabase and Vercel setup](SUPABASE_SETUP.md)
 - [Workflow and architecture review](WORKFLOW-REVIEW.md)

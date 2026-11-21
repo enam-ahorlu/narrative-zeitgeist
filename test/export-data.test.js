@@ -29,3 +29,15 @@ test('export fails loudly instead of writing a partial copy', async () => {
   await assert.rejects(exportTables({ url: 'https://project.supabase.co', secret: 'sb_secret_x',
     fetchImpl: async () => new Response('no', { status: 500 }) }), /entries|profiles failed with status 500/);
 });
+
+test('pre-migration backup skips only a confirmed missing comparison table', async () => {
+  const options = {url:'https://example.test',secret:'sb_secret_test',before014:true,
+    fetchImpl:async url => url.includes('/discovery_comparisons?')
+      ? Response.json({code:'PGRST205'},{status:404}) : Response.json([])};
+  const old = await exportTables(options);
+  assert.deepEqual(old.style_dismissals,[]);
+  assert.equal(Object.hasOwn(old,'discovery_comparisons'),false);
+  await assert.rejects(exportTables({...options,before014:false}),/discovery_comparisons/);
+  const current = await exportTables({...options,fetchImpl:async()=>Response.json([])});
+  assert.deepEqual(current.discovery_comparisons,[]);
+});
