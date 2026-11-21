@@ -855,11 +855,7 @@ textarea.fi{resize:vertical;min-height:64px}
 /* Desktop: lives in sidebar nav */
 #nav-back-btn{display:none;align-items:center;gap:7px;width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:var(--r-sm);padding:8px 14px;margin-bottom:10px;color:var(--sb-text-active);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.01em;transition:background .15s,color .15s;text-align:left;}
 #nav-back-btn:hover{background:rgba(255,255,255,.14);color:#fff;}
-/* Mobile: fixed bar at top of content area */
-@media(max-width:768px){
-  #nav-back-btn{position:fixed;top:0;left:0;right:0;width:100%;background:var(--n-surface);border:none;border-bottom:1px solid var(--n-border);border-radius:0;padding:11px 16px;color:var(--p-mid);font-size:13.5px;font-weight:500;margin:0;z-index:150;box-shadow:0 1px 4px rgba(0,0,0,.06);}
-  [data-theme="dark"] #nav-back-btn{background:#1a2a35;border-color:var(--n-border);}
-}
+#mobile-back-btn{display:none}
 /* ══════════════════════════════════════════════
    STYLE & SCENT — Fragrances + Wardrobe
 ══════════════════════════════════════════════ */
@@ -981,6 +977,35 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
 .journal-request-status[hidden],#add-source[hidden]{display:none}
 .catalogue-context{color:var(--t-3);font-size:11px;font-weight:400;margin-left:6px}
 .journal-request-status button{margin-left:8px}
+@media(max-width:768px){
+  .ph{flex-wrap:wrap;gap:8px}
+  .ph-actions{flex-wrap:wrap;min-width:0;max-width:100%}
+  .ph-actions .btn,.ph-actions .fsel{min-height:38px}
+  .disc-format-pills{flex-wrap:wrap;padding-inline:16px}
+  .disc-seed label{min-width:0}
+  .disc-seed .fi{min-width:0}
+  .disc-grid,.disc-compare-grid,.ig,.fgrid,.sfg{grid-template-columns:minmax(0,1fr)}
+  .disc-compare-item,.disc-hero-title,.wl-title,.rc-title,.frag-card-name,.ward-card-name{overflow-wrap:anywhere}
+  .disc-compare-item label,#disc-compare-preference label{padding-block:5px}
+  .modal-foot{flex-wrap:wrap}
+  .modal{max-height:90dvh;overscroll-behavior:contain}
+  .overlay input:not([type="range"]):not([type="checkbox"]):not([type="radio"]),.overlay select,.overlay textarea{font-size:16px}
+  .style-quick-actions .btn,.wl-order-controls .btn,.wl-priority{min-height:40px}
+  .wl-order-controls{display:flex;gap:4px}
+  .wl-order-controls .btn{min-width:40px;justify-content:center}
+  .wl-info{min-width:110px}
+  .sr{flex-wrap:wrap}
+  .sr-right{max-width:100%}
+  .tc-title .catalogue-context{min-width:0;overflow-wrap:anywhere}
+  .style-stat{min-width:0}
+  #mobile-back-btn:not([hidden]){display:flex;align-self:flex-start;margin:4px 16px 0;min-height:40px}
+}
+@media(max-width:380px){
+  .disc-seed{grid-template-columns:minmax(0,1fr)}
+  .disc-seed button{grid-column:1}
+  .ph-actions .btn{white-space:normal}
+  .mob-nav-add{width:42px;height:42px}
+}
 </style>
 </head>
 <body>
@@ -1115,6 +1140,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
   </nav>
 
   <main class="main">
+    <button type="button" class="btn btn-ghost btn-sm" id="mobile-back-btn" onclick="navigateBack()" hidden>‹ Back</button>
 
     <!-- COLLECTION -->
     <div class="screen active" id="s-collection">
@@ -1481,6 +1507,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <div class="ss" id="s-appearance">
             <div class="ss-head"><div><div class="ss-title">Appearance</div><div class="ss-sub">Control how the app looks and feels</div></div></div>
             <div class="ss-body">
+              <div class="sr"><div class="sr-left"><div class="sr-label">Design System</div><div class="sr-sub">Preview themes, colors, and components</div></div><div class="sr-right"><button type="button" class="btn btn-g btn-sm" onclick="navigate('designsystem')">Open Design System</button></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Dark Mode</div><div class="sr-sub">Switch between light and dark interface</div></div><div class="sr-right"><button type="button" class="toggle" id="dm-setting-toggle" role="switch" aria-label="Dark mode" onclick="toggleDarkMode()"></button></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Color Theme</div><div class="sr-sub">Sets the primary palette across the app</div></div><div class="sr-right"><div class="mini-theme-row"><button type="button" data-palette="#1B5E76" class="mini-theme active" onclick="applyThemeFromSettings(this,'#1B5E76','#4AADBA','#092E3D')" title="Ocean Teal"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)"></div><div class="mini-theme-name">Teal</div></button><button type="button" data-palette="#2A4A7A" class="mini-theme" onclick="applyThemeFromSettings(this,'#2A4A7A','#5A8ABA','#0A1E3A')" title="Deep Blue"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A4A7A,#5A8ABA)"></div><div class="mini-theme-name">Blue</div></button><button type="button" data-palette="#2A5A3A" class="mini-theme" onclick="applyThemeFromSettings(this,'#2A5A3A','#5A9A6A','#0A2A1A')" title="Forest"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#2A5A3A,#5A9A6A)"></div><div class="mini-theme-name">Forest</div></button><button type="button" data-palette="#7A4A6A" class="mini-theme" onclick="applyThemeFromSettings(this,'#7A4A6A','#B07A9A','#2A0A1A')" title="Mauve"><div class="mini-theme-swatch" style="background:linear-gradient(135deg,#7A4A6A,#B07A9A)"></div><div class="mini-theme-name">Mauve</div></button></div></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Accent Color</div><div class="sr-sub">Highlights, active states, and interactive elements</div></div><div class="sr-right"><div class="accent-row"><button type="button" data-accent="#4AADBA" aria-label="Teal" class="accent-dot active" style="background:linear-gradient(135deg,#1B5E76,#4AADBA)" onclick="setAccentFromSettings(this,'#4AADBA','#1B5E76')" title="Teal"></button><button type="button" data-accent="#9B94C0" aria-label="Lavender" class="accent-dot" style="background:linear-gradient(135deg,#5A5490,#9B94C0)" onclick="setAccentFromSettings(this,'#9B94C0','#5A5490')" title="Lavender"></button><button type="button" data-accent="#B89FAD" aria-label="Mauve" class="accent-dot" style="background:linear-gradient(135deg,#7A5A6A,#B89FAD)" onclick="setAccentFromSettings(this,'#B89FAD','#7A5A6A')" title="Mauve"></button><button type="button" data-accent="#6A9A7A" aria-label="Sage" class="accent-dot" style="background:linear-gradient(135deg,#2A5A3A,#6A9A7A)" onclick="setAccentFromSettings(this,'#6A9A7A','#2A5A3A')" title="Sage"></button></div></div></div>
@@ -2626,17 +2653,9 @@ function navigateBack(){
 }
 
 function _updateBackBtn(){
-  var btn    = document.getElementById('nav-back-btn');
-  var mainEl = document.querySelector('.main');
-  if(!btn) return;
-  if(_navHistory.length > 1){
-    btn.style.display = 'flex';
-    /* On mobile the button is fixed at top — push main content down so nothing hides under it */
-    if(window.innerWidth <= 768 && mainEl) mainEl.style.paddingTop = '44px';
-  } else {
-    btn.style.display = 'none';
-    if(mainEl) mainEl.style.paddingTop = '';
-  }
+  var canGoBack = _navHistory.length > 1;
+  document.getElementById('nav-back-btn').style.display = canGoBack ? 'flex' : 'none';
+  document.getElementById('mobile-back-btn').hidden = !canGoBack;
 }
 
 // Browser back/forward button support
@@ -2644,9 +2663,6 @@ window.addEventListener('popstate', function(e){
   var scr = (e.state && e.state.screen) || location.hash.replace('#','') || 'collection';
   navigate(scr, {pushHash: false, pushHistory: false});
 });
-
-/* Re-evaluate back-button padding when the device is rotated */
-window.addEventListener('resize', function(){ _updateBackBtn(); });
 
 document.querySelectorAll('.ni').forEach(function(item){
   item.addEventListener('click',function(){

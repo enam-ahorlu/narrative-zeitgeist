@@ -512,7 +512,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#ward-save-btn').click();
   await page.locator('#ward-grid').getByText('A’s Tropical Wool Suit').waitFor();
 
-  const otherDevice = await openContext({ viewport: { width: 390, height: 844 }, isMobile: true, deviceScaleFactor: 2 });
+  const otherDevice = await openContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const phone = await otherDevice.newPage();
   phone.setDefaultTimeout(12000);
   phone.on('pageerror', error => errors.push(error.message));
@@ -524,6 +524,82 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await phone.locator('#settings-password-btn').click();
   await phone.getByText('a reset link will be sent', { exact: false }).waitFor();
   assert.deepEqual(resetRecipients, ['a@example.test', 'a@example.test']);
+
+  // Narrow phone control bounds supplement touch actions, which can auto-scroll.
+  async function fitsPhone(locator,label){
+    await locator.waitFor();
+    const bounds = await locator.evaluate(element=>{
+      const box = element.getBoundingClientRect();
+      return {left:box.left,right:box.right,width:innerWidth,viewport:document.documentElement.clientWidth};
+    });
+    assert.ok(bounds.left >= -1 && bounds.right <= bounds.viewport+1, label+' exceeds phone width: '+JSON.stringify(bounds));
+  }
+  await phone.setViewportSize({width:320,height:640});
+  await phone.locator('#mni-discover').tap();
+  await fitsPhone(phone.locator('#disc-sort-sel'),'Discover order');
+  await fitsPhone(phone.locator('.disc-format-pills').getByText('Style',{exact:false}),'Discover Style pill');
+  const phoneCompare = phone.locator('#m-disc-compare');
+  await phone.getByRole('button',{name:'Compare picks'}).tap();
+  await phoneCompare.getByRole('button',{name:'Test the low-rating signal'}).tap();
+  await phoneCompare.getByRole('heading',{name:'Set A',exact:true}).waitFor();
+  await phoneCompare.getByRole('radio',{name:'Set A'}).check();
+  await phoneCompare.getByRole('button',{name:'Reveal results'}).tap();
+  await phoneCompare.getByText('Your preference:',{exact:false}).waitFor();
+  await phoneCompare.getByRole('button',{name:'Close comparison'}).tap();
+  await phone.locator('#dtab-because').tap();
+  await phone.locator('#disc-seed-entry').selectOption(entries.find(entry=>entry.title==='Journal A 1').id);
+  await phone.locator('#disc-hero-wrap').getByText('Seeded synthetic book').waitFor();
+  await fitsPhone(phone.locator('#disc-seed-clear'),'Clear starting entry');
+  await phone.locator('#disc-seed-clear').tap();
+  assert.equal(await phone.locator('#disc-seed-entry').inputValue(),'');
+
+
+  await phone.locator('#mni-add').tap();
+  await phone.locator('#add-format').selectOption('Track');
+  await phone.locator('#add-title').fill('Fixture Track');
+  await phone.locator('#cs-drop').getByText('Fixture Track',{exact:true}).tap();
+  await phone.locator('#tp-search-inp').fill('music rap');
+  const phoneTag = phone.locator('#tag-picker').getByRole('button',{name:'rap',exact:true});
+  await phoneTag.tap();
+  assert.equal(await phoneTag.getAttribute('aria-pressed'),'true');
+  await phone.locator('#add-notes').fill('Logged from a phone');
+  await phone.locator('#add-save-btn').tap();
+  await phone.locator('#m-add').waitFor({state:'hidden'});
+  assert.ok(entries.some(entry=>entry.notes==='Logged from a phone' && entry.catalogue?.kind==='track'));
+
+  watchlist.push(...['Mobile first film','Mobile second book'].map((title,index)=>({
+    id:randomUUID(),user_id:users[0].id,title,format:index?'book':'film',priority:'up_next',
+    saved_at:'2026-09-01',queue_position:index+1,added_to_collection:false
+  })));
+  await phone.locator('#mni-watchlist').tap();
+  await phone.locator('.wl-stab').getByText('Up Next',{exact:true}).tap();
+  const move = phone.getByRole('button',{name:'Move Mobile second book earlier'});
+  await fitsPhone(move,'Up Next reorder button');
+  await move.tap();
+  await phone.getByText('Up Next order saved').waitFor();
+  assert.equal(await phone.locator('#wl-list .wl-title').first().textContent(),'Mobile second book');
+
+  await phone.locator('#mni-style').tap();
+  const addScent = phone.locator('#s-fragrances .ph-actions').getByRole('button',{name:'Add Fragrance'});
+  await fitsPhone(addScent,'Add Fragrance');
+  await addScent.tap();
+  await phone.locator('#frag-name').fill('CK One');
+  await phone.locator('#frag-cs-drop').getByRole('button',{name:/CK One/}).first().tap();
+  await phone.locator('#frag-status').selectOption('tried');
+  await phone.locator('#frag-save-btn').tap();
+  await phone.locator('#frag-grid').getByText('CK One',{exact:true}).waitFor();
+  await phone.locator('#mni-insights').tap();
+  await phone.locator('#insights-style').getByText(/1 tried/).waitFor();
+
+  await phone.locator('#mni-settings').tap();
+  await phone.getByRole('button',{name:'Open Design System'}).tap();
+  assert.ok(await phone.locator('#s-designsystem').isVisible());
+  await phone.locator('#s-designsystem').getByRole('button',{name:'Compact',exact:true}).tap();
+  assert.equal(await phone.locator('body').getAttribute('data-density'),'compact');
+  await phone.locator('#mobile-back-btn').tap();
+  assert.ok(await phone.locator('#s-settings.active').isVisible());
+
+
 
   await page.locator('.user-chip').click();
   await page.locator('#auth-submit-btn').waitFor();
