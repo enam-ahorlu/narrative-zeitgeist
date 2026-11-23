@@ -12,8 +12,8 @@ test('journal uses the same format labels for search, entry forms, and browsing'
 
 test('collection filters complete data before sorting, clamping and paginating', () => {
   const entries = [
-    { title:'Zulu', format:'book', rating:8, tags:['one','two','third'], created_at:'2025-01-01' },
-    { title:'Alpha', format:'sports_match', rating:0, tags:['third'], date_completed:'2024-01-01', created_at:'2025-01-01' },
+    { title:'Zulu', format:'book', rating:null, tags:['one','two','third'], created_at:'2025-01-01' },
+    { title:'Alpha', format:'sports_match', rating:0, catalogue:{year:'1994'}, tags:['third'], date_completed:'2026-01-01', created_at:'2025-01-01' },
     { title:'Bravo', format:'book', rating:9, tags:['third-person'], created_at:'2024-01-01' }
   ];
   const filters = defaultFilters();
@@ -24,6 +24,8 @@ test('collection filters complete data before sorting, clamping and paginating',
   assert.equal(result.start,2);
   assert.deepEqual(result.visible,[entries[0]]);
   assert.equal(project({ tags:['third'] }).count,2);
+  assert.deepEqual(project({ratingMax:0}).visible,[entries[1]]);
+  assert.equal(project({yearFrom:1994,yearTo:1994}).count,1);
   assert.deepEqual(project({ format:'Matches', ratingMax:0, yearTo:2024 }).visible,[entries[1]]);
   assert.equal(project({ format:'Matches',yearFrom:2025 }).count,0);
   assert.deepEqual(project({},'rating_desc',1).visible,[entries[2]]);

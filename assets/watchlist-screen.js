@@ -18,13 +18,13 @@ function _wlStyleRow(kind, item){
   var fragrance = kind === 'fragrance';
   var name = item.name || (fragrance ? 'Fragrance' : 'Wardrobe item');
   var maker = fragrance ? item.house : item.brand;
-  var photo = safeStylePhoto(item.photoUrl || '') || styleCataloguePhoto(kind, item) || '';
+  var photo = safeStylePhoto(item.photoUrl || '') || styleCataloguePhoto(kind, item)?.url || '';
   var initials = name.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
   var thumb = photo ? '<img src="'+escHtml(photo)+'" alt="" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:contain" onerror="this.remove()">'
     : '<span style="font-size:14px;color:var(--t-3);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>';
   var detail = fragrance ? [item.character, item.season].filter(Boolean).join(' · ') : [item.category, item.season].filter(Boolean).join(' · ');
   return '<div class="wl-item anim-fadeup" data-wl-style="'+kind+'" data-style-id="'+escHtml(item.id)+'">'
-    + '<div class="wl-thumb" style="background:var(--p-ghost)">'+thumb+'</div>'
+    + '<div class="wl-thumb" style="position:relative;overflow:hidden;background:var(--p-ghost)">'+thumb+'</div>'
     + '<div class="wl-info"><div class="wl-title">'+escHtml(name)+'</div>'
     + '<div class="wl-meta">'+escHtml([maker, detail].filter(Boolean).join(' · ') || (fragrance ? 'Fragrance' : 'Wardrobe'))+'</div></div>'
     + '<div class="wl-actions">'
@@ -115,15 +115,15 @@ function renderWatchlist(){
     groups[fmt].forEach(function(it, idx){
       var bg      = it.cover_color || 'linear-gradient(135deg,#1B5E76,#4AADBA)';
       var initials = it.title.split(' ').slice(0,2).map(function(w){ return w[0]; }).join('');
-      var score   = it.match_score ? Math.round(it.match_score) + '%' : '—';
+      var poster = mediaPosterImage(it);
       var priCls  = journalView.watchlistPriority(it) === 'up_next' ? 'p-next' : 'p-maybe';
       var tags    = (it.tags || []).map(function(t){ return '<span class="tag">'+escHtml(t)+'</span>'; }).join('');
       var savedAgo = _timeAgo(it.saved_at);
       var delay   = idx < 5 ? ' anim-delay-' + idx : '';
       html += '<div class="wl-item anim-fadeup'+delay+'" data-wl-id="'+it.id+'">'
         + '<input type="checkbox" style="accent-color:var(--p-rich);flex-shrink:0">'
-        + '<div class="wl-thumb" style="background:'+escHtml(bg)+'">'
-        +   '<span style="font-size:14px;color:rgba(255,255,255,.25);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>'
+        + '<div class="wl-thumb" style="position:relative;overflow:hidden;background:'+escHtml(bg)+'">'
+        +   '<span style="font-size:14px;color:rgba(255,255,255,.25);font-family:\'Cormorant Garamond\',serif">'+escHtml(initials)+'</span>'+poster
         + '</div>'
         + '<div class="wl-info">'
         +   '<div class="wl-title">'+escHtml(it.title)+catalogueContext(it)+'</div>'
@@ -133,7 +133,6 @@ function renderWatchlist(){
         + '<select class="wl-priority '+priCls+'" aria-label="Priority for '+escHtml(it.title)+'" onchange="setWatchlistPriority(this)">'
         + '<option value="maybe"'+(journalView.watchlistPriority(it) !== 'up_next' ? ' selected' : '')+'>Maybe</option>'
         + '<option value="up_next"'+(journalView.watchlistPriority(it) === 'up_next' ? ' selected' : '')+'>Up Next</option></select>'
-        + '<div class="wl-match">'+score+'</div>'
         + (fmt === 'queue' ? '<div class="wl-order-controls">'
           + '<button class="btn btn-g btn-sm" title="Move earlier" aria-label="Move '+escHtml(it.title)+' earlier" '+(idx === 0 || _queueSaving ? 'disabled ' : '')+'onclick="moveUpNext(this,-1)">↑</button>'
           + '<button class="btn btn-g btn-sm" title="Move later" aria-label="Move '+escHtml(it.title)+' later" '+(idx === items.length-1 || _queueSaving ? 'disabled ' : '')+'onclick="moveUpNext(this,1)">↓</button></div>' : '')

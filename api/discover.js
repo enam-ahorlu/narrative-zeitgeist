@@ -38,20 +38,22 @@ module.exports = async function handler(req, res) {
   if (!apiKey) return res.status(503).json({ error: 'Discovery is unavailable.' });
 
   let retryAfter;
-  let reserved = 0;
+  const reserved = [];
   try {
     for (let slot=0; slot < (signalComparison ? 2 : 1); slot++) {
-      const quota = await fetch(auth.url + '/rest/v1/rpc/reserve_discovery_request', {
+      const quota = await fetch(auth.url + '/rest/v1/rpc/reserve_discovery_slot', {
         method: 'POST',
         headers: { ...auth.headers, 'Content-Type': 'application/json' },
         body: '{}',
         signal: AbortSignal.timeout(8000)
       });
       if (!quota.ok) throw new Error('Quota request failed');
-      retryAfter = await quota.json();
+      const receipt = await quota.json();
+      retryAfter = receipt.retry_after;
       if (!Number.isInteger(retryAfter) || retryAfter < 0) throw new Error('Invalid quota response');
       if (retryAfter > 0) break;
-      reserved++;
+      if (typeof receipt.window !== 'string' || !Number.isFinite(Date.parse(receipt.window))) throw new Error('Invalid quota window');
+      reserved.push(receipt.window);
     }
   } catch {
     await refundDiscoveryRequests(auth, reserved);
@@ -65,11 +67,11 @@ module.exports = async function handler(req, res) {
   }
 
   // Slots lost to provider failures are given back. Slots where the model answered stay used.
-  let providerFailures = 0;
+  const failedWindows = [];
   try {
     // Preserve time for the catalogue checks inside Vercel's 60-second limit.
     const modelBudget = Math.max(1000, Math.min(40000, (grounded ? 47000 : 55000) - (Date.now() - started)));
-    async function generate(examples) {
+    async function generate(examples, window) {
       const modelStarted = Date.now();
       let response;
       try {
@@ -89,11 +91,11 @@ module.exports = async function handler(req, res) {
         signal: AbortSignal.timeout(modelBudget)
         });
       } catch (error) {
-        providerFailures++;
+        failedWindows.push(window);
         throw error;
       }
       if (!response.ok) {
-        providerFailures++;
+        failedWindows.push(window);
         console.error('Anthropic Discovery returned status', response.status);
         throw new Error('Provider request failed');
       }
@@ -109,14 +111,14 @@ module.exports = async function handler(req, res) {
         picks = grounded ? await verifyRecommendations(parsed, anchors, known, tab)
           : normalizeRecommendations(parsed, entryTitles);
       } catch (error) {
-        if (error.code === 'CATALOGUE_UNAVAILABLE') providerFailures++;
+        if (error.code === 'CATALOGUE_UNAVAILABLE') failedWindows.push(window);
         throw error;
       }
       return { picks, model, verification:Date.now()-verificationStarted };
     }
 
     if (signalComparison) {
-      const runs = await Promise.allSettled([generate([]),generate(lowRatings)]);
+      const runs = await Promise.allSettled([generate([],reserved[0]),generate(lowRatings,reserved[1])]);
       const failure = runs.find(run => run.status === 'rejected');
       if (failure) throw failure.reason;
       const [without, withSignal] = runs.map(run => run.value);
@@ -142,12 +144,12 @@ module.exports = async function handler(req, res) {
       return res.status(200).json({ comparison:balanced });
     }
 
-    const result = await generate(lowRatings);
+    const result = await generate(lowRatings,reserved[0]);
     if (!grounded && !result.picks.length) throw new Error('No usable recommendations');
     res.setHeader('Server-Timing', 'history;dur=' + historyDuration + ', model;dur=' + result.model + ', verification;dur=' + result.verification);
     return res.status(200).json({ recommendations:result.picks });
   } catch (error) {
-    const restored = await refundDiscoveryRequests(auth, Math.min(providerFailures, reserved));
+    const restored = await refundDiscoveryRequests(auth, failedWindows);
     if (error.code === 'CATALOGUE_UNAVAILABLE') {
       const quota = restored ? 'The failed lookup’s request slot was returned.' : 'The quota refund could not be confirmed.';
       return res.status(503).json({error:'The media catalogues could not be reached. '+quota+' Retrying starts a new request.'});

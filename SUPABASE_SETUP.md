@@ -27,7 +27,7 @@ mailboxes that can receive the links.
 Apply all pending migrations before deploying the matching frontend and API.
 Migration 013 updates identity matching for existing and new titles. Migration
 014 stores private recommendation comparison results. Both are additive or
-replace compatible functions and leave existing journal rows intact.
+replace compatible functions and leave existing journal rows intact. Migration 015 makes media ratings optional, preserves Watchlist artwork, and adds distributed Search and Ratings limits. Deploy the corresponding Discovery handler after migration 015. Only the window-aware refund function can return slots. The previous handler can reserve slots but cannot refund them.
 
 ## Vercel environment variables
 
@@ -45,7 +45,7 @@ the production settings.
 | `SUPABASE_SECRET_KEY` | Server-only Supabase secret key used for account deletion. `SUPABASE_SERVICE_ROLE_KEY` is supported as a legacy alternative. |
 | `PREVIEW_SUPABASE_URL` | Staging Supabase project URL. Set only in Preview. |
 | `PREVIEW_SUPABASE_ANON_KEY` | Staging publishable key or legacy anon JWT. Set only in Preview. |
-| `PREVIEW_SUPABASE_SECRET_KEY` | Staging server-only secret key for account deletion. Set only in Preview. |
+| `PREVIEW_SUPABASE_SECRET_KEY` | Staging server-only secret key for account deletion and Discovery quota refunds. Set only in Preview. |
 | `ANTHROPIC_API_KEY` | Server-only key for media recommendations. Use distinct keys per environment when available. |
 | `DISCOVERY_MODEL` | Optional. Anthropic model id for Discovery. Defaults to `claude-sonnet-4-6`; values that are not a plain model id are ignored. |
 | `TMDB_API_KEY` | Film and TV title search. |
@@ -107,3 +107,5 @@ change.
    frontend. The older frontend cannot call the new authenticated Discovery
    handler without a matching backend rollback and would use browser-only
    Style & Scent storage.
+
+For a local restore rehearsal, pipe the decrypted application JSON into `node scripts/rehearse-restore.js`. Add `--before-014` for a snapshot taken before the comparison table existed. Set `NZ_BACKUP_SHA256` to the source checksum to verify the exact plaintext bytes before import. The utility uses in-memory PostgreSQL, reconstructs Auth IDs as placeholders, and compares restored application rows. Auth passwords and sessions need a separate provider backup.

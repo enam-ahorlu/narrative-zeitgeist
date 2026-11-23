@@ -320,7 +320,7 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .disc-compare-item{border:1px solid var(--n-border);border-radius:var(--r-sm);padding:10px;margin:8px 0}
 .disc-compare-item label{display:block;margin-top:5px;font-size:12px}
 .disc-tabs{display:flex;gap:2px;padding:14px 30px 0;border-bottom:1px solid var(--n-border);flex-shrink:0}
-.dtab{padding:8px 14px;font-size:12.5px;font-weight:500;color:var(--t-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;user-select:none}
+.dtab{background:transparent;border:0;font-family:inherit;padding:8px 14px;font-size:12.5px;font-weight:500;color:var(--t-3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;user-select:none}
 .dtab.active{color:var(--p-rich);border-bottom-color:var(--p-light)}
 .dtab:hover:not(.active){color:var(--t-2)}
 .disc-content{flex:1;overflow:auto;padding:16px 30px 30px}
@@ -428,7 +428,7 @@ tbody td{padding:11px 11px;font-size:13.5px;color:var(--t-1);vertical-align:midd
 .tp.sel{background:var(--p-ghost);color:var(--p-rich);border-color:var(--p-subtle)}
 .tp:hover:not(.sel){background:var(--n-border)}
 .ri{display:flex;align-items:center;gap:10px}
-.ri input[type=range]{flex:1;accent-color:var(--p-rich)}
+.ri input[type=number]{max-width:9rem}
 .rv{font-family:'DM Mono',monospace;font-size:22px;font-weight:500;color:var(--p-rich);width:32px;text-align:center}
 /* ── A1: Tag search filter ── */
 .tp-search-wrap{position:relative;margin-bottom:7px}
@@ -813,7 +813,7 @@ textarea.fi{resize:vertical;min-height:64px}
 .cs-wrap{position:relative}
 .cs-drop{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--n-surface);border:1px solid rgba(74,173,186,.3);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.32);z-index:500;max-height:260px;overflow-y:auto;display:none}
 .cs-drop.open{display:block}
-.cs-item{display:flex;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;transition:background .12s}
+.cs-item{width:100%;text-align:left;color:inherit;font:inherit;background:transparent;border:0;display:flex;gap:10px;align-items:center;padding:8px 12px;cursor:pointer;transition:background .12s}
 .cs-item:hover,.cs-item:active{background:rgba(74,173,186,.1)}
 .cs-poster{width:32px;height:48px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .cs-poster-ph{width:32px;height:48px;border-radius:4px;background:var(--n-bg);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px}
@@ -1112,7 +1112,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
     <div class="fl"><label>EMAIL</label><input class="fi" id="auth-email-inp" type="email" value="" placeholder="your@email.com" oninput="_authErr('')"></div>
     <div class="fl"><label>PASSWORD</label><div style="position:relative"><input class="fi" id="auth-pass-inp" type="password" placeholder="••••••••" style="padding-right:36px" oninput="_authErr('')"><button type="button" onclick="togglePassVis('auth-pass-inp',this)" tabindex="-1" style="position:absolute;right:0;top:0;bottom:0;width:34px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--t-3);padding:0" title="Show/hide password"><svg id="eye-auth-pass-inp" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></button></div></div>
     <div class="auth-row" id="auth-remember-row">
-      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" checked style="accent-color:#1B5E76"> Remember me</label>
+      <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="auth-remember" type="checkbox" style="accent-color:#1B5E76"> Remember me on this device</label>
       <a href="#" onclick="forgotPassword();return false;">Forgot password?</a>
     </div>
     <div id="auth-err" style="display:none;font-size:12px;color:#B5474A;background:rgba(181,71,74,.08);border:1px solid rgba(181,71,74,.2);border-radius:8px;padding:9px 12px;margin-bottom:2px"></div>
@@ -1272,7 +1272,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <div class="pill" onclick="setColPill(this)">Fragrances</div>
           <div class="pill" onclick="setColPill(this)">Wardrobe</div>
         </div>
-        <select class="fsel" id="col-sort-sel" onchange="colSort(this.value)"><option value="date_desc">Sort: Date Added</option><option value="rating_desc">Sort: Rating ↓</option><option value="title_asc">Sort: Title A–Z</option></select>
+        <select class="fsel" id="col-sort-sel" onchange="colSort(this.value)"><option value="date_desc">Sort: Date Added</option><option value="rating_desc">Sort: Rating ↓</option><option value="title_asc">Sort: Title A–Z</option><option value="format">Sort: Format</option></select>
       </div>
       <!-- C1/C2/C3 Advanced filter panel (toggle with Filter button) -->
       <div class="col-adv-panel" id="col-adv-panel">
@@ -1284,13 +1284,13 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <span style="font-size:11px;color:var(--t-3)">out of 10</span>
         </div>
         <div class="col-adv-row">
-          <span class="col-adv-label">Year</span>
-          <select class="fsel" id="col-yfrom" style="padding:5px 10px;font-size:12px" onchange="colUpdateDate()">
-            <option value="">Any start</option><option>2023</option><option>2024</option>
+          <span class="col-adv-label">Release year</span>
+          <select class="fsel" id="col-yfrom" aria-label="Earliest release year" style="padding:5px 10px;font-size:12px" onchange="colUpdateDate()">
+            <option value="">Any start</option>
           </select>
           <span class="rating-sep">–</span>
-          <select class="fsel" id="col-yto" style="padding:5px 10px;font-size:12px" onchange="colUpdateDate()">
-            <option value="">Any end</option><option>2023</option><option>2024</option>
+          <select class="fsel" id="col-yto" aria-label="Latest release year" style="padding:5px 10px;font-size:12px" onchange="colUpdateDate()">
+            <option value="">Any end</option>
           </select>
         </div>
         <div class="col-adv-row" style="align-items:flex-start">
@@ -1372,7 +1372,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
     <!-- DISCOVER -->
     <div class="screen" id="s-discover">
       <div class="ph">
-        <div><div class="ph-title">Discover</div><div class="ph-sub">Find your next favorite</div></div>
+        <div><div class="ph-title">Discover</div><div class="ph-sub">When four or fewer media picks remain after an action, an automatic refill uses one hourly request.</div></div>
         <div class="ph-actions">
           <button class="btn btn-glass btn-sm" onclick="compareDiscovery()">Compare picks</button>
           <button class="btn btn-glass btn-sm" id="disc-refresh" onclick="refreshDiscovery()">Refresh picks</button>
@@ -1399,10 +1399,10 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div class="pill" data-style-catalogue="style" onclick="setDiscPill(this,'style')">✦ Style</div>
       </div>
       <div class="disc-tabs">
-        <div class="dtab active" onclick="setDiscTab(this,'for-you')">For You</div>
-        <div class="dtab" id="dtab-because" onclick="setDiscTab(this,'because-loved')">More like this</div>
-        <div class="dtab" onclick="setDiscTab(this,'hidden')">Hidden Gems</div>
-        <div class="dtab" onclick="setDiscTab(this,'trending')">New releases</div>
+        <button type="button" aria-pressed="true" class="dtab active" onclick="setDiscTab(this,'for-you')">For You</button>
+        <button type="button" aria-pressed="false" class="dtab" id="dtab-because" onclick="setDiscTab(this,'because-loved')">More like this</button>
+        <button type="button" aria-pressed="false" class="dtab" onclick="setDiscTab(this,'hidden')">Hidden Gems</button>
+        <button type="button" aria-pressed="false" class="dtab" onclick="setDiscTab(this,'trending')">New releases</button>
       </div>
       <div class="disc-seed" id="disc-seed" hidden>
         <label for="disc-seed-query">Find a work in your collection</label>
@@ -1455,6 +1455,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <button class="btn btn-ghost btn-sm btn-danger" onclick="wlRemoveSelected()">Remove Selected</button>
         </div>
       </div>
+      <div class="journal-request-status" id="watchlist-style-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadWatchlistStyle()" hidden>Retry</button></div>
       <div class="journal-request-status" id="watchlist-request-status" role="status" hidden><span></span><button type="button" class="btn btn-g btn-sm" onclick="loadWatchlist()" hidden>Retry</button></div>
       <div class="wl-content">
         <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center">
@@ -1466,7 +1467,6 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
           <select class="fsel" id="wl-sort-sel" style="margin-left:auto" onchange="wlSort(this.value)">
             <option value="queue" hidden>Sort: Manual order</option>
             <option value="date">Sort: Date Added</option>
-            <option value="match">Sort: Match %</option>
             <option value="alpha">Sort: A → Z</option>
           </select>
         </div>
@@ -1613,9 +1613,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
             <div class="ss-body">
               <div class="sr"><div class="sr-left"><div class="sr-label">Default View</div><div class="sr-sub">How entries are displayed when you open Collection</div></div><div class="sr-right"><select class="sr-select" id="col-pref-view" onchange="saveColPref('view',this.value)"><option value="table">Table</option><option value="grid">Cards</option></select></div></div>
               <div class="sr"><div class="sr-left"><div class="sr-label">Default Sort</div><div class="sr-sub">Initial ordering of entries in your collection</div></div><div class="sr-right"><select class="sr-select" id="col-pref-sort" onchange="saveColPref('sort',this.value)"><option value="date_desc">Date Added ↓</option><option value="rating_desc">Rating ↓</option><option value="title_asc">Title A–Z</option><option value="format">Format</option></select></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Sport Badge Detail</div><div class="sr-sub">Show sport type (NFL, NBA, F1) inside the Match badge</div></div><div class="sr-right"><div class="toggle on" id="tog-sport-badge" onclick="saveColToggle(this,'sportBadge')"></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Show Taste Influence on Entries</div><div class="sr-sub">Display fingerprint weight indicator in entry detail</div></div><div class="sr-right"><div class="toggle on" id="tog-taste-influence" onclick="saveColToggle(this,'tasteInfluence')"></div></div></div>
-              <div class="sr"><div class="sr-left"><div class="sr-label">Auto-add to Watchlist on Discover</div><div class="sr-sub">One-click adds from Discover go directly to Watchlist</div></div><div class="sr-right"><div class="toggle" id="tog-auto-watchlist" onclick="saveColToggle(this,'autoWatchlist')"></div></div></div>
+              <div class="sr"><div class="sr-left"><div class="sr-label">Show Taste Influence on Entries</div><div class="sr-sub">Display fingerprint weight indicator in entry detail</div></div><div class="sr-right"><button type="button" class="toggle on" id="tog-taste-influence" role="switch" aria-label="Show Taste Influence" aria-checked="true" onclick="saveColToggle(this,'tasteInfluence')"></button></div></div>
             </div>
           </div>
 
@@ -1771,10 +1769,9 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
         <div class="fl ff"><label>TITLE</label><div class="cs-wrap"><input id="add-title" class="fi" type="text" placeholder="Type to search, or enter manually…" oninput="onTitleInput(this.value)" autocomplete="off"><div class="cs-drop" id="cs-drop"></div></div></div>
         <div class="fl"><label>FORMAT</label><select id="add-format" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px" onchange="changeEntryFormat(this)"><option value="">— Search All —</option><option>Film</option><option>Show</option><option>Book</option><option>Match</option><option value="Music">Music album</option><option value="Track">Music track</option></select></div>
         <div class="fl ff" id="add-source" hidden></div>
-        <div class="fl" id="sport-field" style="display:none"><label for="sport-select">SPORT</label><select id="sport-select" class="fi fsel" style="appearance:none;background-image:none;padding-right:12px"><option>Soccer</option><option>NFL</option><option>NBA</option><option>F1</option></select></div>
         <div class="fl"><label>DATE COMPLETED</label><input id="add-date" class="fi" type="date"></div>
         <div class="fl ff"><label>RATING</label>
-          <div class="ri"><input id="add-rating" type="range" min="0" max="10" step="0.5" value="8" oninput="updateRatingRef(this.value)"><div class="rv" id="rv">8</div></div>
+          <div class="ri"><input id="add-rating" class="fi" type="number" aria-label="Optional rating out of ten" placeholder="Unrated" min="0" max="10" step="0.5" oninput="updateRatingRef(this.value)"><div class="rv" id="rv">—</div></div>
           <div class="rating-ref" id="rating-ref">
             <span class="rating-tier" data-min="0" data-max="5.9">≤5 = mixed</span>
             <span class="rating-tier" data-min="6" data-max="7.4">6–7 = good</span>
@@ -2240,21 +2237,43 @@ var _pendingPasswordRecovery = (function(){
 
 /* ── React to all auth state changes — register BEFORE getSession() so we
        never miss PASSWORD_RECOVERY being fired during SDK initialisation ── */
+var authConfig, authSubscription, authStorage;
+function configureAuth(remember){
+  var storage = remember ? localStorage : sessionStorage;
+  if(authStorage === storage) return;
+  if(SUPA){
+    authSubscription.unsubscribe();
+    SUPA.auth.stopAutoRefresh();
+  }
+  authStorage = storage;
+  var baseKey = 'sb-' + new URL(authConfig.url).hostname.split('.')[0] + '-auth-token';
+  var tabKey = sessionStorage.getItem(baseKey+'-tab') || crypto.randomUUID();
+  sessionStorage.setItem(baseKey+'-tab',tabKey);
+  _authStorageKey = remember ? baseKey : baseKey+'-'+tabKey;
+  sessionStorage.setItem(baseKey+'-mode',remember ? 'device' : 'tab');
+  SUPA = supabase.createClient(authConfig.url,authConfig.key,{auth:{storage:storage,storageKey:_authStorageKey}});
+  var client = SUPA;
+  authSubscription = client.auth.onAuthStateChange(function(event,session){
+    if(SUPA === client) handleAuthChange(event,session);
+  }).data.subscription;
+}
 async function startApp(){
   var submit = document.getElementById('auth-submit-btn');
   submit.disabled = true;
   try {
     var response = await fetch('/api/config');
     if(!response.ok) throw new Error('Config unavailable');
-    var config = await response.json();
-    _authStorageKey = 'sb-' + new URL(config.url).hostname.split('.')[0] + '-auth-token';
-    SUPA = supabase.createClient(config.url, config.key, {auth:{storageKey:_authStorageKey}});
+    authConfig = await response.json();
+    var baseKey = 'sb-' + new URL(authConfig.url).hostname.split('.')[0] + '-auth-token';
+    var remember = sessionStorage.getItem(baseKey+'-mode') !== 'tab' && Boolean(localStorage.getItem(baseKey));
+    document.getElementById('auth-remember').checked = remember;
+    configureAuth(remember);
   } catch(e) {
     _authErr('Sign-in is unavailable. Reload the page to try again.');
     return;
   }
   submit.disabled = false;
-  SUPA.auth.onAuthStateChange(handleAuthChange);
+
 }
 
 function handleAuthChange(event, session){
@@ -2293,6 +2312,9 @@ function handleAuthChange(event, session){
     _activeDiscoveryView = null;
     _discoverySession = createDiscoverySession();
     _showAuthScreen();
+    document.getElementById('settings-display-name').value = '';
+    document.getElementById('auth-pass-inp').value = '';
+    document.getElementById('auth-remember').checked = false;
     currentEntry = null;
     _discAddRec = null;
     resetStyleState();
@@ -2304,7 +2326,7 @@ function handleAuthChange(event, session){
     _entriesLoadVersion++;
     _watchlistLoadVersion++;
     _fingerprintVersion++;
-    ['collection','collection-style','watchlist','insights','insights-style','discover','discover-style','fragrance','wardrobe'].forEach(function(screen){journalData.status(screen,'');});
+    ['collection','collection-style','watchlist','watchlist-style','insights','insights-style','discover','discover-style','fragrance','wardrobe'].forEach(function(screen){journalData.status(screen,'');});
     if(_charts.timeline){_charts.timeline.data.labels=[];_charts.timeline.data.datasets[0].data=[];_charts.timeline.update();}
     buildCmdIndex();
     clearColFilters();
@@ -2448,7 +2470,7 @@ function navigate(scr, opts){
   if(t){t.classList.add('active');}
   // Per-screen data loading
   if(scr==='watchlist'){loadWatchlist();loadWatchlistStyle();}
-  if(scr==='collection') loadCollectionStyle();
+  if(scr==='collection'){applyCollectionDefaults();loadCollectionStyle();}
   if(scr==='discover'){openDiscoverScreen();}
   if(scr==='insights'){
     setTimeout(function(){
@@ -2541,6 +2563,7 @@ function saveColToggle(el, key){
   el.classList.toggle('on');
   var prefs = JSON.parse(localStorage.getItem('nz-col-toggles') || '{}');
   prefs[key] = el.classList.contains('on');
+  el.setAttribute('aria-checked',String(prefs[key]));
   localStorage.setItem('nz-col-toggles', JSON.stringify(prefs));
 }
 
@@ -2568,7 +2591,7 @@ async function deleteAccount(){
     // immediately even if the browser cannot reach the sign-out endpoint.
     try { await SUPA.auth.signOut({scope:'local'}); } catch(e) {}
     if(currentUser?.id === userId){
-      try { localStorage.removeItem(_authStorageKey); } catch(e) {}
+      try { authStorage.removeItem(_authStorageKey); } catch(e) {}
       handleAuthChange('SIGNED_OUT', null);
     }
     showToast('Account and saved data deleted.', '✓');
@@ -2682,6 +2705,7 @@ async function enterApp(){
   var idleLabel = _authMode === 'signup' ? 'Create account' : 'Sign in';
   if(btn){ btn.textContent = _authMode === 'signup' ? 'Creating account…' : 'Signing in…'; btn.disabled = true; }
   try {
+    configureAuth(_authMode === 'signin' && document.getElementById('auth-remember').checked);
     if(_authMode === 'signup'){
       var name = ((document.getElementById('auth-name-inp')||{}).value||'').trim();
       var res  = await _withTimeout(SUPA.auth.signUp({
@@ -2776,7 +2800,7 @@ async function loadCatalogDiscovery(pill){
   _discState('loading');
   var stillCurrent = function(){return _activeDiscoveryView === view && isCurrentStyleStore(store);};
   try {
-    var loaded = await journalData.run('discover',function(){return store.load();},stillCurrent,{
+    var loaded = await journalData.run('discover',function(){return store.load(true);},stillCurrent,{
       loading:'Loading catalogue picks…',error:'Could not load catalogue picks.'
     });
     if(!loaded || !stillCurrent()) return;
@@ -2846,7 +2870,7 @@ function wlRemoveSelected(){
   });
 }
 function selectDiscoveryMode(el, name){
-  document.querySelectorAll('.dtab').forEach(function(tab){tab.classList.toggle('active', tab === el);});
+  document.querySelectorAll('.dtab').forEach(function(tab){tab.classList.toggle('active', tab === el);tab.setAttribute('aria-pressed',String(tab === el));});
   _discTabName = name;
   document.getElementById('disc-seed').hidden = name !== 'because-loved';
 }
@@ -2900,7 +2924,6 @@ function discoverFromEntry(){
 }
 
 /* setWlTab defined below with full _wlTab logic */
-function updateSportField(sel){document.getElementById('sport-field').style.display=sel.value==='Match'?'block':'none'}
 
 function applyTheme(el,deep,light,sbDeep){
   syncAppearanceChoice('data-palette',deep);
@@ -3159,7 +3182,7 @@ function setCover(el,gradient){
 /* ── A3: Rating reference row ── */
 function updateRatingRef(val){
   val=parseFloat(val);
-  document.getElementById('rv').textContent=val;
+  document.getElementById('rv').textContent=Number.isFinite(val) ? val : '—';
   document.querySelectorAll('.rating-tier').forEach(function(t){
     var min=parseFloat(t.dataset.min);
     var max=parseFloat(t.dataset.max);
@@ -3532,7 +3555,7 @@ async function renderCombinedDiscovery(){
     return _combinedDiscoveryRequest === token && isCurrentStyleStore(store) &&
       _discPill === 'all' && _discTabName === 'for-you';
   };
-  var loaded = await journalData.run('discover-style',function(){return store.load();},stillCurrent,{
+  var loaded = await journalData.run('discover-style',function(){return store.load(true);},stillCurrent,{
     loading:'Loading scent and wardrobe picks…',error:'Could not load scent and wardrobe picks.'
   });
   if(!loaded || !stillCurrent()) return;
@@ -3587,7 +3610,7 @@ function _renderHero(rec){
     +'<button class="btn btn-p btn-sm" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
     +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collection</button>'
     +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="dismissDiscovery(this,\'discarded\')" data-rec="'+recJson+'" title="Hide this suggestion without saying you dislike things like it">Discard</button>'
-    +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="dismissDiscovery(this)" data-rec="'+recJson+'" title="Tell the app this is not your kind of thing">Not for me</button>'
+    +'<button class="btn btn-sm" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);color:rgba(255,255,255,.9);font-size:12px;padding:6px 12px" onclick="dismissDiscovery(this)" data-rec="'+recJson+'" title="Save a dislike and hide this suggestion. Other rankings stay the same.">Not for me</button>'
     +'</div></div>'
     +'<div class="disc-hero-right" style="position:relative;z-index:1">'
     +(rec.catalog ? '<div class="disc-hero-match-label">Catalogue checked</div>' : '')
@@ -3639,7 +3662,7 @@ function _renderGrid(recs){
       +'<button class="btn btn-p btn-sm" style="flex:1;justify-content:center" onclick="saveToWatchlist(this)" data-rec="'+recJson+'">+ Watchlist</button>'
       +'<button class="btn btn-glass btn-sm" onclick="addFromDiscover(this)" data-rec="'+recJson+'">+ Collect</button>'
       +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this,\'discarded\')" data-rec="'+recJson+'" title="Hide this suggestion without saying you dislike things like it">Discard</button>'
-      +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'" title="Tell the app this is not your kind of thing">Not for me</button>'
+      +'<button class="btn btn-glass btn-sm" onclick="dismissDiscovery(this)" data-rec="'+recJson+'" title="Save a dislike and hide this suggestion. Other rankings stay the same.">Not for me</button>'
       +'</div></div></div>';
   });
   html += '</div>';
@@ -3656,9 +3679,11 @@ async function saveRecommendation(rec){
   _watchlistSaves.add(key);
   try {
     var catalogue = mediaIdentity.metadata(rec);
+    var poster = safeStylePhoto(rec.poster_url);
+
     var externalId = catalogue.provider ? (catalogue.provider + ':' + catalogue.id).slice(0,100) : null;
     var result = await SUPA.rpc('save_watchlist_media',{
-      p_title:rec.title, p_format:rec.format, p_external_id:externalId,
+      p_title:rec.title, p_format:rec.format, p_external_id:externalId, p_poster_url:poster || null,
       p_reasons:rec.reasons || [], p_cover_color:rec.cover_color || null, p_tags:rec.tags || [],
       p_catalogue:Object.keys(catalogue).length ? catalogue : null
     });
@@ -3740,9 +3765,8 @@ function openEntryFromPick(pick){
   document.getElementById('add-title').value = pick.title;
   var select = document.getElementById('add-format');
   select.value = mediaIdentity.part(pick) === 'track' ? 'Track' : FMT_LABEL[pick.format] || 'Show';
-  updateSportField(select);
   setEntryCatalogue(pick);
-  applyEntryPoster(pick.poster_url,pick.title,mediaIdentity.metadata(pick).year);
+  applyEntryPoster(safeStylePhoto(pick.poster_url),pick.title,mediaIdentity.metadata(pick).year);
 }
 
 function logEntryAgain(){
@@ -3889,7 +3913,7 @@ async function dismissDiscovery(btn, reason){
   btn.disabled = true;
   if(await rememberDismissal(item, currentUser?.id, discard ? 'discarded' : 'not_for_me')){
     removeDiscoveryPick(item);
-    showToast(discard ? 'Discarded. Your taste profile is unchanged.' : 'Dismissed from future recommendations.');
+    showToast(discard ? 'Discarded. Your taste profile is unchanged.' : 'Dislike saved. This suggestion is hidden.');
   }
   btn.disabled = false;
 }
@@ -4065,7 +4089,9 @@ function saveDisplayName(){
   var val=document.getElementById('settings-display-name').value.trim();
   if(!val){showToast('Please enter a display name');return;}
   if(!currentUser){showToast('Sign in to change your display name');return;}
+  var owner = currentUser.id;
   SUPA.auth.updateUser({data:{display_name:val}}).then(function(res){
+    if(currentUser?.id !== owner) return;
     if(res.error){showToast('Error saving name: '+res.error.message);return;}
     if(res.data&&res.data.user)currentUser=res.data.user;
     var sbn=document.getElementById('sb-user-name');
@@ -4080,7 +4106,7 @@ function populateSettings(){
   var email = currentUser.email || '';
   var dnInp = document.getElementById('settings-display-name');
   var emInp = document.getElementById('settings-email');
-  if(dnInp && !dnInp.value) dnInp.value = name;
+  if(dnInp) dnInp.value = name;
   if(emInp) emInp.value = email;
   /* Update About counts */
   var ec = document.getElementById('about-entry-count'); if(ec) ec.textContent = _allEntries.length || '—';
@@ -4094,12 +4120,11 @@ function populateSettings(){
   if(_cps) _cps.value = localStorage.getItem('nz-col-sort') || 'date_desc';
   /* Restore Collection Prefs toggles */
   var _togPrefs = JSON.parse(localStorage.getItem('nz-col-toggles') || '{}');
-  var _tsb = document.getElementById('tog-sport-badge');
   var _tti = document.getElementById('tog-taste-influence');
-  var _taw = document.getElementById('tog-auto-watchlist');
-  if(_tsb){ _togPrefs.sportBadge !== false ? _tsb.classList.add('on') : _tsb.classList.remove('on'); }
-  if(_tti){ _togPrefs.tasteInfluence !== false ? _tti.classList.add('on') : _tti.classList.remove('on'); }
-  if(_taw){ _togPrefs.autoWatchlist ? _taw.classList.add('on') : _taw.classList.remove('on'); }
+  if(_tti){
+    _tti.classList.toggle('on',_togPrefs.tasteInfluence !== false);
+    _tti.setAttribute('aria-checked',String(_togPrefs.tasteInfluence !== false));
+  }
   /* Restore density select */
   var _ds = document.getElementById('density-select');
   if(_ds) _ds.value = document.body.getAttribute('data-density') || 'comfortable';
@@ -4213,7 +4238,7 @@ function styleDiscoveryActions(kind,rec){
       return '<button class="btn btn-g btn-sm" type="button" data-status="'+status[0]+'" onclick="saveDiscoveryStyle(this)" aria-label="'+status[1]+' · '+escHtml(rec.name)+'">'+status[1]+'</button>';
     }).join('')
     + '<button class="btn btn-ghost btn-sm" type="button" data-reason="discarded" onclick="dismissStylePick(this)" title="Hide this pick without saying you dislike things like it">Discard</button>'
-    + '<button class="btn btn-ghost btn-sm" type="button" data-reason="not_for_me" onclick="dismissStylePick(this)" title="Tell the app this is not your kind of thing">Not for me</button>'
+    + '<button class="btn btn-ghost btn-sm" type="button" data-reason="not_for_me" onclick="dismissStylePick(this)" title="Save a dislike and hide this suggestion. Other rankings stay the same.">Not for me</button>'
     + '<button class="btn btn-ghost btn-sm" type="button" onclick="'+(scent ? 'addFragFromDiscover(this)' : 'addWardFromDiscover(this)')+'" data-'+(scent ? 'frag' : 'ward')+'="'+data+'">Details</button>'
     + (productPage ? '<a class="btn btn-ghost btn-sm" href="'+escHtml(productPage)+'" target="_blank" rel="noopener noreferrer">Product page</a>' : '')
     + '</div>';
@@ -4238,7 +4263,7 @@ async function dismissStylePick(button){
     showToast('Could not save this. Try again.', '⚠');
     return;
   }
-  showToast(discard ? 'Discarded. Your taste profile is unchanged.' : 'Dismissed from future recommendations.');
+  showToast(discard ? 'Discarded. Your taste profile is unchanged.' : 'Dislike saved. This suggestion is hidden.');
   refreshStyleDiscovery();
 }
 
@@ -4323,7 +4348,7 @@ async function openStyleScreen(kind){
   var empty = document.getElementById(kind === 'fragrance' ? 'frag-empty' : 'ward-empty');
   empty.style.display = 'none';
   document.getElementById('style-import-' + kind).hidden = !readLegacyStyle(localStorage,kind).items.length;
-  var loaded = await journalData.run(kind,function(){return store.load();},stillCurrent,{
+  var loaded = await journalData.run(kind,function(){return store.load(true);},stillCurrent,{
     loading:'Loading your '+(kind === 'fragrance' ? 'fragrances' : 'wardrobe')+'…',
     error:'Could not load your saved items.'
   });
@@ -4334,7 +4359,7 @@ async function loadCollectionStyle(){
   var store = currentStyleStore();
   if(!store) return;
   var stillCurrent = function(){return isCurrentStyleStore(store);};
-  var loaded = await journalData.run('collection-style',function(){return store.load();},stillCurrent,{
+  var loaded = await journalData.run('collection-style',function(){return store.load(true);},stillCurrent,{
     loading:'Loading scent and wardrobe items…',error:'Could not load scent and wardrobe items.'
   });
   if(loaded && stillCurrent()) refreshCollection();
@@ -4343,9 +4368,11 @@ async function loadCollectionStyle(){
 async function loadWatchlistStyle(){
   var store = currentStyleStore();
   if(!store) return;
-  try {
-    if(await store.load() && isCurrentStyleStore(store)) renderWatchlist();
-  } catch { /* the watchlist still shows saved titles; wishlisted scents and wardrobe appear once they load */ }
+  var stillCurrent = function(){return isCurrentStyleStore(store);};
+  var loaded = await journalData.run('watchlist-style',function(){return store.load(true);},stillCurrent,{
+    loading:'Loading fragrance and wardrobe wishes…',error:'Could not load fragrance and wardrobe wishes.'
+  });
+  if(loaded && stillCurrent()) renderWatchlist();
 }
 
 function refreshStyleViews(){

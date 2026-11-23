@@ -3,7 +3,7 @@
 // Music → iTunes    |  Match → TheSportsDB  |  all → parallel across all
 
 const { searchMedia, fetchWithTimeout } = require('../lib/media-catalogue');
-const { authContext } = require('../lib/supabase-server');
+const { authContext, allowCatalogueRequest } = require('../lib/supabase-server');
 const { film:fetchFilms, show:fetchShows, book:fetchBooks, music:fetchMusic, sports_match:fetchMatch } = searchMedia;
 const RAWG_KEY = process.env.RAWG_API_KEY;
 
@@ -17,6 +17,7 @@ module.exports = async (req, res) => {
   const { q, type } = req.query || {};
   if (typeof q !== 'string' || q.trim().length < 2 || q.length > 300) return res.json([]);
 
+  if (!await allowCatalogueRequest(auth,'search',res)) return;
   try {
     let results = [];
 

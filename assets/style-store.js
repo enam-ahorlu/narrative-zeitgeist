@@ -13,7 +13,7 @@ function createStyleStore(client, owner, now = Date.now) {
   let loaded = false;
   let dismissed = {fragrance:new Set(),wardrobe:new Set()};
   let dismissalsLoaded = false;
-  let writing = false;
+  let writing = null;
   let disposed = false;
 
   function normalize(kind, item) {
@@ -62,11 +62,12 @@ function createStyleStore(client, owner, now = Date.now) {
     return true;
   }
 
-  function load() {
-    if (disposed || loaded) return Promise.resolve(!disposed);
-    if (!reading) {
-      reading = readAll().finally(()=>{reading=null;});
-    }
+  function load(refresh = false) {
+    if (disposed) return Promise.resolve(false);
+    if (refresh && writing) return writing.then(()=>load(true),()=>load(true));
+    if (reading) return reading;
+    if (loaded && !refresh) return Promise.resolve(true);
+    reading = readAll().finally(()=>{reading=null;});
     return reading;
   }
 
@@ -78,13 +79,12 @@ function createStyleStore(client, owner, now = Date.now) {
 
   async function write(operation) {
     if (disposed || writing) return false;
-    writing = true;
-    try {
+    writing = (async ()=>{
       if (!await load() || disposed) return false;
-      return await operation();
-    } finally {
-      writing = false;
-    }
+      return operation();
+    })();
+    try { return await writing; }
+    finally { writing = null; }
   }
 
   function change(kind, item, remove) {
@@ -152,7 +152,7 @@ function createStyleStore(client, owner, now = Date.now) {
     loadDismissals,
     dismiss,
     get ready() { return loaded && !disposed; },
-    get busy() { return writing; },
+    get busy() { return Boolean(writing); },
     items(kind) { return items[kind]; },
     load,
     change,

@@ -1,15 +1,14 @@
 /* Journal entry form and title search. */
 
 function resetEntryForm(){
-  ['add-title','add-notes','add-date','add-year','tp-search-inp','sport-select'].forEach(function(id){
+  ['add-title','add-notes','add-date','add-year','tp-search-inp'].forEach(function(id){
     var field = document.getElementById(id);
     if(field) field.value = field.tagName === 'SELECT' ? field.options[0].value : '';
   });
   var format = document.getElementById('add-format');
   format.selectedIndex = 0;
-  updateSportField(format);
-  document.getElementById('add-rating').value = 8;
-  updateRatingRef(8);
+  document.getElementById('add-rating').value = '';
+  updateRatingRef('');
   clearPoster();
   setEntryCatalogue(null);
   _closeSearchDrop();
@@ -33,6 +32,8 @@ async function saveEntry(){
   if(!title){showToast('Please enter a title');return;}
   var format = journalView.formatKey(document.getElementById('add-format').value);
   if(!format){showToast('Please select a format');return;}
+  var rating = document.getElementById('add-rating');
+  if(!rating.reportValidity()) return;
   var watchlistId = _wlMoveId;
   var recommendation = _discAddRec;
   if(!editing && !_entryRepeat){
@@ -48,7 +49,7 @@ async function saveEntry(){
   try {
     var result = await SUPA.rpc('save_journal_media',{
       p_entry_id:entryId, p_edit:editing, p_title:title, p_format:format,
-      p_rating:Number(document.getElementById('add-rating').value),
+      p_rating:rating.value === '' ? null : rating.valueAsNumber,
       p_notes:document.getElementById('add-notes').value.trim() || null,
       p_cover_color:currentCover, p_date_completed:document.getElementById('add-date').value || null,
       p_poster_url:_posterUrl || null,
@@ -85,7 +86,7 @@ function openEditModal(){
   /* Use currentEntry directly — no DOM scraping */
   var title  = currentEntry.title  || '';
   var format = currentEntry.format || 'show';
-  var rVal   = Number(currentEntry.rating ?? 8);
+  var rVal   = currentEntry.rating ?? '';
 
   /* Update modal heading + button */
   document.getElementById('add-modal-title').textContent='Edit Entry';
@@ -100,7 +101,6 @@ function openEditModal(){
   fmtSel.value = mediaIdentity.part(currentEntry) === 'track' ? 'Track' : FMT_LABEL[format] || 'Show';
   setEntryCatalogue(currentEntry);
 
-  updateSportField(fmtSel);
 
   /* Pre-fill rating */
   var ratingInp=document.getElementById('add-rating');
@@ -159,7 +159,6 @@ function setEntryCatalogue(item){
 }
 
 function changeEntryFormat(select){
-  updateSportField(select);
   setEntryCatalogue(null);
   if(document.getElementById('cs-drop').classList.contains('open') || _csTimer){
     onTitleInput(document.getElementById('add-title').value);
@@ -201,10 +200,10 @@ function _doContentSearch(q){
       if(_csRequest !== request) return;
       _csResults = Array.isArray(list) ? list : [];
       var isAll = (type === 'all');
-      var manualRow = '<div class="cs-item cs-manual-row" onclick="_closeSearchDrop()">'
-        +'<div class="cs-poster-ph" style="font-size:14px">✏️</div>'
-        +'<div class="cs-info"><div class="cs-title-txt">Add "'+escHtml(q)+'" manually</div>'
-        +'<div class="cs-meta-txt">Fill in the details yourself below</div></div></div>';
+      var manualRow = '<button type="button" class="cs-item cs-manual-row" onclick="finishTitleSearch()">'
+        +'<span class="cs-poster-ph" style="font-size:14px">✏️</span>'
+        +'<span class="cs-info"><span class="cs-title-txt">Add "'+escHtml(q)+'" manually</span>'
+        +'<span class="cs-meta-txt">Fill in the details yourself below</span></span></button>';
       if(!_csResults.length){
         drop.innerHTML = '<div class="cs-searching">No results found in any database</div>'+manualRow;
         return;
@@ -215,15 +214,15 @@ function _doContentSearch(q){
         var fmtIcon = _FMT_ICONS[formatLabel] || icon;
         var posterHtml = r.poster_url
           ? '<img class="cs-poster" src="'+escHtml(r.poster_url)+'" alt="">'
-          : '<div class="cs-poster-ph">'+fmtIcon+'</div>';
+          : '<span class="cs-poster-ph">'+fmtIcon+'</span>';
         var typeLabel = isAll && r._type ? '<span style="font-size:10px;font-weight:600;color:var(--p-rich);margin-right:4px">'+formatLabel+'</span>' : '';
         var meta = (r.year||'') + (r.description ? (r.year?' · ':'')+r.description.slice(0,55):'');
-        return '<div class="cs-item" onclick="_pickSearchResult('+i+')">'
+        return '<button type="button" class="cs-item" onclick="_pickSearchResult('+i+')">'
           +posterHtml
-          +'<div class="cs-info">'
-            +'<div class="cs-title-txt">'+typeLabel+escHtml(r.title)+'</div>'
-            +'<div class="cs-meta-txt">'+escHtml(meta)+'</div>'
-          +'</div></div>';
+          +'<span class="cs-info">'
+            +'<span class="cs-title-txt">'+typeLabel+escHtml(r.title)+'</span>'
+            +'<span class="cs-meta-txt">'+escHtml(meta)+'</span>'
+          +'</span></button>';
       }).join('') + '<div class="cs-divider"></div>' + manualRow;
     })
     .catch(function(){
@@ -245,10 +244,9 @@ function _pickSearchResult(idx){
   if(formatLabel){
     var formatSelect = document.getElementById('add-format');
     formatSelect.value = formatLabel;
-    updateSportField(formatSelect);
   }
   setEntryCatalogue(r);
-  _closeSearchDrop();
+  finishTitleSearch();
   applyEntryPoster(r.poster_url,r.title,r.year);
 }
 
@@ -267,6 +265,28 @@ function clearPoster(){
   var cpw = document.getElementById('cover-poster-wrap');
   if(cpw) cpw.classList.remove('visible');
 }
+
+function finishTitleSearch(){
+  _closeSearchDrop();
+  document.getElementById('add-title').focus();
+}
+
+document.addEventListener('keydown',function(event){
+  var drop = document.getElementById('cs-drop');
+  var input = document.getElementById('add-title');
+  if(!drop.classList.contains('open') || (event.target !== input && !drop.contains(event.target))) return;
+  var results = Array.from(drop.querySelectorAll('button'));
+  if(event.key === 'Escape'){
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    finishTitleSearch();
+  } else if(results.length && ['ArrowDown','ArrowUp'].includes(event.key)){
+    event.preventDefault();
+    var index = results.indexOf(event.target);
+    var next = event.key === 'ArrowDown' ? index+1 : (index < 0 ? results.length-1 : index-1);
+    results[(next+results.length)%results.length].focus();
+  }
+},true);
 
 function _closeSearchDrop(){
   clearTimeout(_csTimer);

@@ -46,7 +46,7 @@ test('Discovery requires auth, validates inputs, enforces quota and sanitizes pr
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     calls.push({ url, options });
     if (url.endsWith('/auth/v1/user')) return Response.json({ id: userId }, { status: authStatus });
-    if (url.endsWith('/reserve_discovery_request')) return Response.json(retry, { status: quotaStatus });
+    if (url.endsWith('/reserve_discovery_slot')) return Response.json({retry_after:retry,window:'2026-11-23T10:00:00Z'}, { status: quotaStatus });
     if (timedOut) throw new DOMException('Synthetic timeout', 'TimeoutError');
     return Response.json({ content: [{ type: 'text', text: content }] }, { status: providerStatus });
   });
@@ -102,18 +102,18 @@ test('Discovery returns quota only for provider failures and reads its model fro
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     calls.push({ url, options });
     if (url.endsWith('/auth/v1/user')) return Response.json({ id: userId });
-    if (url.endsWith('/reserve_discovery_request')) return Response.json(0);
-    if (url.endsWith('/refund_discovery_request')) return Response.json(null);
+    if (url.endsWith('/reserve_discovery_slot')) return Response.json({retry_after:0,window:'2026-11-23T10:00:00Z'});
+    if (url.endsWith('/refund_discovery_slot')) return Response.json(null);
     return Response.json({ content: [{ type: 'text', text: content }] }, { status: providerStatus });
   });
   const headers = { authorization: token };
-  const refunds = () => calls.filter(call => call.url.endsWith('/refund_discovery_request'));
+  const refunds = () => calls.filter(call => call.url.endsWith('/refund_discovery_slot'));
   const provider = () => calls.filter(call => call.url === 'https://api.anthropic.com/v1/messages');
 
   providerStatus = 529;
   assert.equal((await invoke(discover, { headers, body })).status, 502);
   assert.equal(refunds().length, 1);
-  assert.deepEqual(JSON.parse(refunds()[0].options.body), { p_user_id: userId, p_count: 1 });
+  assert.deepEqual(JSON.parse(refunds()[0].options.body), { p_user_id: userId, p_window: '2026-11-23T10:00:00Z' });
   assert.equal(refunds()[0].options.headers.apikey, process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   providerStatus = 200;
@@ -215,4 +215,37 @@ test('search and ratings require a signed-in session and are not open to other o
   assert.deepEqual((await invoke(ratings, { method: 'GET', headers, query: { title: 'x'.repeat(301) } })).body, {});
   assert.equal(authCalls, 1, 'repeat checks of one token reuse the short verification cache');
   assert.equal(calls.some(url => /omdbapi|themoviedb/.test(url)), false);
+});
+
+test('ratings resolve provider identity, constrain title lookups and honor distributed limits',async t=>{
+  t.after(()=>{delete process.env.OMDB_API_KEY;delete process.env.TMDB_API_KEY;});
+  process.env.OMDB_API_KEY='fixture';
+  process.env.TMDB_API_KEY='fixture';
+  process.env.SUPABASE_URL='https://supabase.example.test';
+  process.env.SUPABASE_PUBLISHABLE_KEY='sb_publishable_synthetic';
+  const lookups=[];
+  let retry=0;
+  t.mock.method(globalThis,'fetch',async (address,options)=>{
+    const url=new URL(address);
+    if(url.pathname==='/auth/v1/user') return Response.json({id:userId});
+    if(url.pathname.endsWith('/reserve_catalogue_request')) return Response.json(retry);
+    assert.ok(options.signal);
+    lookups.push(url);
+    if(url.hostname==='api.themoviedb.org') return Response.json({imdb_id:'tt1234567'});
+    return Response.json({imdbRating:'8.1'});
+  });
+  const request={method:'GET',headers:{authorization:'Bearer ratings-fixture'},query:{title:'A remake',type:'series',year:'1994'}};
+  assert.equal((await invoke(ratings,request)).body.imdb,'8.1/10');
+  assert.equal(lookups[0].searchParams.get('y'),'1994');
+  assert.equal(lookups[0].searchParams.get('type'),'series');
+  await invoke(ratings,{...request,query:{...request.query,provider:'tmdb',id:'99'}});
+  assert.equal(lookups[1].pathname,'/3/tv/99/external_ids');
+  assert.equal(lookups[2].searchParams.get('i'),'tt1234567');
+  retry=15;
+  for(const handler of [ratings,search]){
+    const response=await invoke(handler,{...request,query:{...request.query,q:'A remake',type:'film'}});
+    assert.equal(response.status,429);
+    assert.equal(response.headers['Retry-After'],'15');
+  }
+  assert.equal(lookups.length,3);
 });

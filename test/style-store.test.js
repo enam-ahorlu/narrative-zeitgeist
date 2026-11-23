@@ -75,6 +75,22 @@ test('successful saves normalize legacy fields and failed and late writes leave 
   assert.equal(store.items('fragrance').length,0);
 });
 
+test('revisiting refreshes additions, updates and deletions from a second session',async()=>{
+  const rows=[];
+  const {client}=fixture({rows});
+  const store=createStyleStore(client,'owner');
+  await store.load();
+  rows.push({user_id:'owner',kind:'wardrobe',item_id:'external',details:{name:'Boots'}});
+  await store.load(true);
+  assert.equal(store.items('wardrobe')[0].name,'Boots');
+  rows[0].details.name='Edited boots';
+  await store.load(true);
+  assert.equal(store.items('wardrobe')[0].name,'Edited boots');
+  rows.pop();
+  await store.load(true);
+  assert.deepEqual(store.items('wardrobe'),[]);
+});
+
 test('legacy imports preserve a duplicate already saved by another tab', async () => {
   const rows = [];
   const {client,calls} = fixture({rows,mutate:()=>Promise.resolve({data:[]})});

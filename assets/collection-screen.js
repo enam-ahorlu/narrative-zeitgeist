@@ -166,7 +166,7 @@ function openDetailModal(entry){
       '<span style="font-size:12px;color:var(--t-3)">Completed '+_entryDateStr(entry)+'</span>'+
     '</div>'+
     '<div class="rating" style="font-size:36px;margin-bottom:5px">'+
-      '<div class="rd '+rdCls+'" style="width:10px;height:10px"></div>'+rVal+
+      '<div class="rd '+rdCls+'" style="width:10px;height:10px"></div>'+(Number.isFinite(rVal) ? rVal : 'Unrated')+
     '</div>'+
     '<div style="font-size:11px;color:var(--t-3)">Your rating</div>'+
     '<div id="ext-ratings"></div>';
@@ -211,7 +211,14 @@ function openDetailModal(entry){
   if(entry.format === 'film' || entry.format === 'show'){
     accountToken(currentUser && currentUser.id)
       .then(function(token){
-        return fetch('/api/ratings?title='+encodeURIComponent(entry.title),{headers:{Authorization:'Bearer '+token}});
+        var catalogue = mediaIdentity.metadata(entry);
+        var params = new URLSearchParams({title:entry.title,type:entry.format === 'show' ? 'series' : 'movie'});
+        if(catalogue.year) params.set('year',catalogue.year);
+        if(catalogue.provider && catalogue.id){
+          params.set('provider',catalogue.provider);
+          params.set('id',catalogue.id);
+        }
+        return fetch('/api/ratings?'+params,{headers:{Authorization:'Bearer '+token}});
       })
       .then(function(r){ return r.json(); })
       .then(function(d){
@@ -234,6 +241,9 @@ function openDetailModal(entry){
 function _renderDetailInfluence(entry){
   var el=document.querySelector('.detail-influence');
   if(!el)return;
+  el.hidden = JSON.parse(localStorage.getItem('nz-col-toggles') || '{}').tasteInfluence === false;
+  if(el.hidden) return;
+  if(entry.rating == null){el.innerHTML='<div class="di-label">Taste Influence</div><div class="di-text">Unrated entry</div>';return;}
   var tags=Array.isArray(entry.tags)?entry.tags:[];
   if(!tags.length||!_fp||!(_fp.primary_themes||[]).length){
     el.innerHTML='<div class="di-label">Taste Influence</div>'+
@@ -294,7 +304,7 @@ function _renderRelatedEntries(entry){
       ?'<div class="detail-rel-thumb" style="background-image:'+escHtml(cssUrl(e.poster_url))+';background-size:cover;background-position:center"></div>'
       :'<div class="detail-rel-thumb" style="background:'+escHtml(grad)+'">'+escHtml(initials)+'</div>';
     var sharedStr=r.shared.slice(0,3).map(function(t){return escHtml(t);}).join(' · ');
-    var rVal=parseFloat(e.rating)||0;
+    var rVal=e.rating ?? '—';
     return'<div class="detail-rel-item" onclick="_openRelatedEntry(\''+escJs(e.id)+'\')" style="cursor:pointer">'+
       thumbHtml+
       '<div class="detail-rel-info">'+
@@ -320,6 +330,18 @@ var COLLECTION_PAGE_SIZE = 10;
 var collectionView='table';
 function toggleCollectionView(){
   collectionView=collectionView==='table'?'grid':'table';
+  displayCollectionView();
+}
+function applyCollectionDefaults(){
+  collectionView = localStorage.getItem('nz-col-view') === 'grid' ? 'grid' : 'table';
+  var sort = document.getElementById('col-sort-sel');
+  sort.value = localStorage.getItem('nz-col-sort') || 'date_desc';
+  _colSortVal = sort.value || 'date_desc';
+  sort.value = _colSortVal;
+  _collectionPage = 1;
+  displayCollectionView();
+}
+function displayCollectionView(){
   var tbl=document.querySelector('.tbl-wrap');
   var grid=document.getElementById('cg-grid');
   var icon=document.getElementById('view-icon');
@@ -344,6 +366,15 @@ function applyCollectionFilter(){
 
 function refreshCollection(){
   var source = collectionSource();
+  var years = [...new Set(source.map(entry => String(entry.catalogue?.year || '')).filter(year => /^\d{4}$/.test(year)))].sort();
+  for(var id of ['col-yfrom','col-yto']){
+    var select = document.getElementById(id);
+    var selected = select.value;
+    select.replaceChildren(new Option(id === 'col-yfrom' ? 'Any start' : 'Any end',''),...years.map(year => new Option(year,year)));
+    select.value = years.includes(selected) ? selected : '';
+  }
+  colFilter.yearFrom = Number(document.getElementById('col-yfrom').value) || 0;
+  colFilter.yearTo = Number(document.getElementById('col-yto').value) || 9999;
   updateCollectionStats(source);
   renderColTagPills(source);
   renderCollectionPage(source);
@@ -443,7 +474,7 @@ function updateColChips(){
   if(colFilter.search)chips.push({type:'search', label:'Search: "'+colFilter.search+'"'});
   if(colFilter.format!=='All')chips.push({type:'format', label:'Format: '+colFilter.format});
   if(colFilter.ratingMin>0||colFilter.ratingMax<10)chips.push({type:'rating', label:'Rating: '+colFilter.ratingMin+'–'+colFilter.ratingMax});
-  if(colFilter.yearFrom||colFilter.yearTo<9999)chips.push({type:'year', label:'Year: '+(colFilter.yearFrom||'any')+'–'+(colFilter.yearTo<9999?colFilter.yearTo:'any')});
+  if(colFilter.yearFrom||colFilter.yearTo<9999)chips.push({type:'year', label:'Release year: '+(colFilter.yearFrom||'any')+'–'+(colFilter.yearTo<9999?colFilter.yearTo:'any')});
   colFilter.tags.forEach(function(tag){chips.push({type:'tag', tag:tag, label:'#'+tag});});
 
   if(!chips.length){bar.classList.remove('visible');bar.innerHTML='';return;}
