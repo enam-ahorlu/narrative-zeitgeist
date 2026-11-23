@@ -931,12 +931,16 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await wishesRetry.getByText('Could not load fragrance and wardrobe wishes.').waitFor();
   failStyleLoad = false;
   await wishesRetry.getByRole('button',{name:'Retry'}).click();
+  await wishesRetry.waitFor({state:'hidden'});
   await page.locator('#wl-list [data-wl-style="fragrance"]').getByText('Colonia',{exact:false}).waitFor();
   await page.locator('#wl-list').getByText('FRAGRANCES',{exact:true}).waitFor();
   assert.equal(await page.locator('#wl-list [data-wl-style] input[type="checkbox"]').count(), 0);
   /* Marking a wishlisted scent as owned from the watchlist saves it and moves it to the collection */
   const colonia = page.locator('#wl-list [data-wl-style="fragrance"]').filter({hasText:'Colonia'});
-  await verifyPhoto(page,colonia.locator('img'));
+  const coloniaSrc = '/catalogues/photos/acqua-di-parma-colonia.webp';
+  assert.equal(await colonia.locator('img').getAttribute('src'),coloniaSrc);
+  await colonia.locator('img').evaluate(img=>img.scrollIntoView({block:'nearest'}));
+  await page.waitForFunction(src=>document.querySelector('#wl-list img[src="'+src+'"]')?.naturalWidth > 0,coloniaSrc,{timeout:12000});
   await colonia.getByRole('button',{name:'Mark as owned'}).click();
   await page.getByText('moved to your collection as owned',{exact:false}).waitFor();
   assert.equal(await colonia.count(), 0);
