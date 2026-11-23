@@ -2,22 +2,36 @@
 // Returns IMDb, Rotten Tomatoes, and Metacritic scores for a film or show.
 // Requires OMDB_API_KEY environment variable (free at omdbapi.com).
 
-const { authContext } = require('../lib/supabase-server');
+const { fetchWithTimeout } = require('../lib/media-catalogue');
+const { authContext, allowCatalogueRequest } = require('../lib/supabase-server');
 
-const OMDB_KEY = process.env.OMDB_API_KEY || process.env.OMDb_API;
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method && req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed.' });
   const auth = await authContext(req, { cacheMs: 30000 });
   if (!auth.userId) return res.status(auth.status).json({ error: auth.error });
-  const { title } = req.query || {};
+  const { title, type, year, provider, id } = req.query || {};
   if (typeof title !== 'string' || !title.trim() || title.length > 300) return res.json({});
-  if (!OMDB_KEY) return res.json({});
+  const apiKey = process.env.OMDB_API_KEY || process.env.OMDb_API;
+  if (!apiKey) return res.json({});
+  if (!await allowCatalogueRequest(auth,'ratings',res)) return;
 
   try {
-    const url  = `https://www.omdbapi.com/?t=${encodeURIComponent(title)}&apikey=${OMDB_KEY}`;
-    const r    = await fetch(url);
+    const params = new URLSearchParams({apikey:apiKey});
+    let imdbId = provider === 'imdb' ? id : null;
+    if (provider === 'tmdb' && /^\d{1,12}$/.test(id) && ['movie','series'].includes(type) && process.env.TMDB_API_KEY) {
+      const kind = type === 'series' ? 'tv' : 'movie';
+      const ids = await fetchWithTimeout('https://api.themoviedb.org/3/'+kind+'/'+id+'/external_ids?api_key='+encodeURIComponent(process.env.TMDB_API_KEY));
+      imdbId = (await ids.json()).imdb_id;
+    }
+    if (/^tt\d{7,12}$/.test(imdbId)) params.set('i',imdbId);
+    else {
+      params.set('t',title.trim());
+      if (/^\d{4}$/.test(year)) params.set('y',year);
+      if (['movie','series'].includes(type)) params.set('type',type);
+    }
+    const r = await fetchWithTimeout('https://www.omdbapi.com/?'+params);
     const data = await r.json();
 
     if (data.Response === 'False') return res.json({});
@@ -41,7 +55,7 @@ module.exports = async (req, res) => {
     res.json(result);
 
   } catch (err) {
-    console.error('ratings error:', err.message);
+    console.error('External ratings unavailable');
     res.json({});
   }
 };

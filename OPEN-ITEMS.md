@@ -1,22 +1,8 @@
 # Open items
 
-Snapshot: 21 November 2026, after the production update and the follow-up fixes (production is on the commit `main` points to). Combines the open work in `HANDOFF.md`, the findings in `CRITIQUE.md` and the checks of the Supabase and Vercel projects. Priority is Compulsory (part of the production update) or Suggested (worth doing, not blocking). Update the status column as items close. Everything here should eventually be done.
+The current production branch is [main](https://github.com/enam-ahorlu/narrative-zeitgeist/tree/main). The November 21 release reached migration 014 and commit `3944e9b`. The [November 23 review record](REVIEW-FIXES.md#november-23-review) covers migration 015, verification, backup recovery, and current limitations.
 
-The implementation and verification record for the subsequent code review is in [Review fixes](REVIEW-FIXES.md). The table below records the earlier release.
-
-## Repository and access state
-
-| Item | State |
-| --- | --- |
-| `main` | Promoted on 21 November 2026 as fast-forwards from `codex/narrative-hardening`. Production deploys from it. |
-| `codex/narrative-hardening` | Same commit as `main`. |
-| CI | Passing on `66db596` (lint, unit tests, browser tests, whitespace check). Workflow lives in `.github/workflows/ci.yml`. |
-| Working folder | On `main`, in step with GitHub, clean. The old CRLF-only stash was verified as line endings only and dropped. |
-| Push access for Claude | Working through the Claude GitHub App. |
-| Supabase | Connected. Production `narrative-zeitgeist` (`zhchmiqxfyfwykktwfdm`, eu-west-3) and staging `narrative-zeitgeist-staging` (`moqeofhmssypnkztpzma`, eu-west-1). |
-| Vercel | Connected and authorized for the `enam-ahorlus-projects` team. |
-
-## Production update, as done
+## Earlier production update
 
 1. Verified backup taken inside the production database (schema `backup_20261121`, row counts match: 31 entries, 75 tags, 211 entry tags, 16 watchlist items, 1 profile).
 2. Rehearsed the old frontend (`1946a7e`) against the new schema on staging. It works, so migrations and deploy did not need to happen together.
@@ -32,7 +18,7 @@ The implementation and verification record for the subsequent code review is in 
 | P1 | Production backup, verified | Compulsory | Done (`backup_20261121` schema in production). Q10 covers an extra copy outside the database |
 | P2 | Old-frontend-versus-new-schema rehearsal on staging | Compulsory | Done |
 | P3 | Hosted staging smoke test with real sign-in: auth and recovery, search, a real paid Discovery request, save and reload, account isolation, deletion, desktop and physical phone | Compulsory | Open, owner action. Needs credentials, a paid request and a physical phone. Repeat the sign-in, save and Discovery checks on production |
-| P4 | Production Vercel variables and Anthropic spend limit | Compulsory | Production variables confirmed complete. Open, owner action: add `PREVIEW_SUPABASE_SECRET_KEY` in Vercel Preview (secret Claude does not hold) and set the Anthropic spend limit in the Anthropic console |
+| P4 | Production Vercel variables and Anthropic spend limit | Compulsory | Production variables confirmed complete. On November 23 Vercel confirmed the Preview secret is configured. The Anthropic workspace spend limit still needs independent confirmation |
 | P5 | Apply migrations 003 to 008 to production in order | Compulsory | Done |
 | P6 | Promote `main`, verify, record rollback | Compulsory | Done. Signed-in checks remain under P3 |
 | P7 | Enable leaked-password protection in Supabase Auth (both projects) | Compulsory | Closed by owner decision (21 Nov 2026): the setting needs the Supabase Pro plan and the organization is on Free. Risk accepted for now. Revisit if the plan is upgraded or the app gains other users |

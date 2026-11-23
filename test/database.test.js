@@ -248,35 +248,36 @@ test('migrations protect journal data, enforce quota and cascade account removal
     assert.equal(await quota(), 0);
   });
 
-  await t.test('quota refunds are server-only, never exceed what was used, and leave old windows alone', async () => {
-    const refund = (user, count) => db.query('select public.refund_discovery_request($1, $2)', [user, count]);
-    const used = async user => {
-      await db.exec('reset role');
-      const count = (await db.query('select request_count from nz_private.discovery_quota where user_id=$1', [user])).rows[0]?.request_count;
-      await db.exec('set role service_role');
-      return count;
-    };
-    await actAs(a);
-    await assert.rejects(refund(a, 1), denied);
-    await actAs('', 'anon');
-    await assert.rejects(refund(a, 1), denied);
-
+  await t.test('only the server can refund the originally reserved window', async () => {
+    const reserve = async () => (await db.query('select public.reserve_discovery_slot() as slot')).rows[0].slot;
+    const refund = async window => (await db.query('select public.refund_discovery_slot($1,$2) as refunded',[a,window])).rows[0].refunded;
     await db.exec('reset role; delete from nz_private.discovery_quota');
     await actAs(a);
-    for (let index = 0; index < 3; index++) await db.query('select public.reserve_discovery_request()');
-    await db.exec('reset role; set role service_role');
-    await refund(a, 1);
-    assert.equal(await used(a), 2);
-    await refund(a, 99);
-    assert.equal(await used(a), undefined);
-    await refund(a, 1);
-
-    await db.exec('reset role');
+    const first = await reserve();
+    assert.equal(first.retry_after,0);
+    await assert.rejects(refund(first.window), denied);
+    await actAs('', 'anon');
+    await assert.rejects(refund(first.window), denied);
+    await db.exec("reset role; update nz_private.discovery_quota set window_started_at = now() - interval '61 minutes'");
     await actAs(a);
-    for (let index = 0; index < 5; index++) await db.query('select public.reserve_discovery_request()');
-    await db.exec("reset role; update nz_private.discovery_quota set window_started_at = now() - interval '61 minutes'; set role service_role");
-    await refund(a, 2);
-    assert.equal(await used(a), 5);
+    const fresh = await reserve();
+    assert.notEqual(fresh.window,first.window);
+    await db.exec('reset role; set role service_role');
+    assert.equal(await refund(first.window),false);
+    await assert.rejects(db.query('select public.refund_discovery_request($1,1)',[a]),denied);
+    assert.equal(await refund(fresh.window),true);
+    assert.equal(await refund(fresh.window),false);
+    await db.exec('reset role');
+  });
+
+  await t.test('catalogue limits are independent per account and endpoint', async () => {
+    const reserve = async endpoint => (await db.query('select public.reserve_catalogue_request($1) as wait',[endpoint])).rows[0].wait;
+    await actAs(a);
+    for(let i=0;i<30;i++) assert.equal(await reserve('ratings'),0);
+    assert.ok(await reserve('ratings') > 0);
+    assert.equal(await reserve('search'),0);
+    await actAs(b);
+    assert.equal(await reserve('ratings'),0);
     await db.exec('reset role');
   });
 

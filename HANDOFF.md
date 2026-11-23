@@ -1,19 +1,16 @@
 # Narrative & Zeitgeist maintainer handoff
 
-Snapshot dated November 21, 2026. This handoff covers the hardening and catalogue work on `codex/narrative-hardening`. Use the code and numbered migrations on that branch when a historical design note differs from current behavior.
-
-For the subsequent review branch, use [Review fixes](REVIEW-FIXES.md) and the current setup guide. The snapshot below describes an earlier deployment.
+Production deploys from [main](https://github.com/enam-ahorlu/narrative-zeitgeist/tree/main). Migrations 013 and 014 reached production with [PR #1](https://github.com/enam-ahorlu/narrative-zeitgeist/pull/1). [PR #2](https://github.com/enam-ahorlu/narrative-zeitgeist/pull/2) fixed the overlapping Watchlist refresh in the November 21 release, `3944e9b`. The November 23 changes use migration 015. The [fix register](REVIEW-FIXES.md) tracks the implementation and release evidence.
 
 ## Start here
 
 | Item | Current state |
 | --- | --- |
 | Repository | [enam-ahorlu/narrative-zeitgeist](https://github.com/enam-ahorlu/narrative-zeitgeist) |
-| Working branch | [codex/narrative-hardening](https://github.com/enam-ahorlu/narrative-zeitgeist/tree/codex/narrative-hardening) |
-| Staging app | [Vercel preview](https://narrative-zeitgeist-git-codex-narr-7a13b2-enam-ahorlus-projects.vercel.app/). It uses the dedicated `narrative-zeitgeist-staging` Supabase project. The tested application revision is `394fe4b`. Later documentation commits leave that application code intact. |
-| Production app | [Live app](https://narrative-zeitgeist.vercel.app/). GitHub reported `1946a7e` as the latest production deployment at the time of this handoff. The hardening branch awaits production promotion. |
+| Production branch | [main](https://github.com/enam-ahorlu/narrative-zeitgeist/tree/main) |
+| Staging app | Use the Vercel Preview attached to the pull request being tested. Its public configuration must point to the dedicated staging Supabase project. |
+| Production app | [Live app](https://narrative-zeitgeist.vercel.app/) · [Production deployment history](https://github.com/enam-ahorlu/narrative-zeitgeist/deployments/Production) |
 | User data | Supabase stores hosted accounts and journal data. Check project identity in the service dashboards before making changes. Preview and production have separate accounts and records. |
-| Repository inventory | The original device copy and initial GitHub version matched across the 12 project files reviewed, ignoring line endings and Git metadata. GitHub now has the newer hardening work on the branch above. Vercel variables, provider credentials, and live Supabase records are managed in their services. |
 
 A new maintainer should start with this file, the [setup and migration guide](SUPABASE_SETUP.md), and the [catalogue checklist](STYLE-CATALOGUE.md). Read the branch history for the original change boundaries. The end of this file lists the concrete release and verification work still open.
 
@@ -70,7 +67,7 @@ Browser state owns drafts, navigation, filters and view caches. Supabase owns du
 
 Supabase row-level security scopes journal and style records to their owner. The account deletion handler verifies the signed-in caller before using the server-side admin key, and foreign-key cascades remove owned application data. Keep the project URL and its public and admin keys together. Preview uses the `PREVIEW_SUPABASE_*` variables and fails closed if credentials are missing or it points at production. The public config response exposes the URL and publishable key. Use the environment-variable names in [SUPABASE_SETUP.md](SUPABASE_SETUP.md). Keep actual secret values in Vercel or an untracked local environment file.
 
-The SQL order is the three root schema/migration files, then migrations 003 through 008. Migration 003 hardens account isolation and the fingerprint view. Migration 004 adds the quota, 005 adds account-owned Style & Scent, 006 adds Discovery feedback, 007 adds atomic journal and watchlist commands, and 008 adds catalogue identity, queue positions and related media commands. Migration 008 was applied to staging earlier in the work and exercised in a staging rollback-only check. Check the current production schema before promoting and apply only missing migrations in sequence. Replaying root scripts after 003 can restore older definitions. This latest photo and handoff update adds no schema migration.
+Install the historical root scripts and numbered migrations in the order printed by `node scripts/migration-files.js`. On an existing database, apply pending migrations only. Migration 013 fixes journal identity matching, 014 persists account-owned Discovery comparisons, and 015 supports optional ratings, Watchlist artwork, window-specific refunds and catalogue rate limits.
 
 Authenticated workflow code uses `save_journal_media`, `save_watchlist_media`, `dismiss_watchlist_media`, and `save_up_next_order` from 008, with atomic operations from 007 underneath where applicable. Mutation retries reuse draft IDs. Sign-out clears account-scoped state, cached cards and pending ownership checks. If rolling back production, use a compatible frontend and API pair and keep the hardened policies in place. A very old frontend uses browser-only Style & Scent and cannot call the new authenticated Discovery handler on its own.
 
@@ -109,15 +106,14 @@ npm run test:browser
 git diff --check
 ```
 
-The browser suite uses installed Chrome by default. Set `NZ_BROWSER_CHANNEL=msedge` for Edge or `NZ_BROWSER_EXECUTABLE` to a Chromium executable. The 33 automated tests and desktop/mobile browser suite passed for application revision `394fe4b`. The test suite covers catalogue identity, photos, embedded PostgreSQL ownership and transactions, quota, API responses, journal and Discovery state, recommendation rules, and Style & Scent persistence. The browser suite runs the actual page and Supabase SDK with synthetic accounts, network responses and image assets. It covers keyboard and touch flows, account switching, quick saves, and independent retries. The hosted release checks cover Anthropic, email delivery, and the production database separately. There is no tracked GitHub Actions workflow at this snapshot.
+The browser suite uses installed Chrome by default. Set `NZ_BROWSER_CHANNEL=msedge` for Edge or `NZ_BROWSER_EXECUTABLE` to a Chromium executable. The 33 automated tests and desktop/mobile browser suite passed for application revision `394fe4b`. The test suite covers catalogue identity, photos, embedded PostgreSQL ownership and transactions, quota, API responses, journal and Discovery state, recommendation rules, and Style & Scent persistence. The browser suite runs the actual page and Supabase SDK with synthetic accounts, network responses and image assets. It covers keyboard and touch flows, account switching, quick saves, and independent retries. The hosted release checks cover Anthropic, email delivery, and the production database separately. GitHub Actions runs lint, database and handler tests, and Chrome workflows.
 
 | Open work | What to verify |
 | --- | --- |
 | Hosted staging smoke test | Use a disposable staging login on desktop and a physical phone. Verify auth/password recovery if the release calls for it, catalogue search, a real paid Discovery request, save/reload, Style & Scent isolation across accounts, and account deletion using disposable data. Staging signup was exercised earlier. The latest browser tests use synthetic services. |
-| Production promotion | Confirm current schema and verified database backup, rehearse restore and migration order, configure production credentials, promote a reviewed matching revision, verify auth/saves/Discovery, and record rollback. The current production revision is old. Follow the [release checklist](SUPABASE_SETUP.md#preview-checks-and-promotion). |
+| Production verification | Match the main commit to its successful Vercel production deployment and check the public page and runtime configuration. The [release checklist](SUPABASE_SETUP.md#preview-checks-and-promotion) records the sequence. |
 | Recommendation quality and latency | Run repeat blind comparisons with a fuller real library at modest volume. Inspect live history, model and verification timing before changing the storage or retrieval model. The [local benchmark](PRODUCT-WORK.md#measurements-and-verification) measured transfer sizes and browser filtering on synthetic libraries. |
 | Photo coverage | Continue matching existing products by exact model, colorway or concentration. Several file downloads remain rate-limited and the Adrian loafers still need a reusable exact image. Official photo links are a fallback. Broader named-product expansion is deferred by the owner. |
-| Settings display name | Static review found that the Save handler still refers to an undeclared legacy `_sb` client. Account settings use `SUPA` elsewhere. Verify the repair through a saved display-name change and reload. |
 | Refactor scope | The requested Collection, Watchlist and Insights renderer split and shared retry pass is complete. The page still coordinates routing, auth, and some Discovery/Style & Scent presentation. Use measured needs to decide any future split. |
 
 ## History and continuation
@@ -129,4 +125,4 @@ The browser suite uses installed Chrome by default. Set `NZ_BROWSER_CHANNEL=msed
 | `ac6cc7b`, `8197caa`, `18d62df`, `9838a31` | Catalogue identity, repeat logs, individual tracks, persistent Up Next, low-rating comparison, narrow-phone workflows, screen-rendering split and unified retries. |
 | `98326d4`, `659709a`, `394fe4b` | Specific style products, photo sources and credits, style category browsing and artwork, 120-product target exceeded, another photo pass and this handoff. |
 
-For a new chat, share this file and identify `enam-ahorlu/narrative-zeitgeist` on `codex/narrative-hardening`. Ask the next maintainer to check the current branch and deployments, continue from the open work above, and keep writes to staging until a production release is explicitly authorized. See [REVIEW.md](REVIEW.md), [WORKFLOW-REVIEW.md](WORKFLOW-REVIEW.md), [STAGING-FEEDBACK.md](STAGING-FEEDBACK.md), and [PRODUCT-WORK.md](PRODUCT-WORK.md) for the original evidence and decisions.
+For a new chat, share this file and identify `enam-ahorlu/narrative-zeitgeist` on `main`. Ask the next maintainer to check the current branch and deployments, continue from the open work above, and keep writes to staging until a production release is explicitly authorized. See [REVIEW.md](REVIEW.md), [WORKFLOW-REVIEW.md](WORKFLOW-REVIEW.md), [STAGING-FEEDBACK.md](STAGING-FEEDBACK.md), and [PRODUCT-WORK.md](PRODUCT-WORK.md) for the original evidence and decisions.

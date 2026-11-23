@@ -36,6 +36,7 @@ const journalView = (() => {
     const matches = entries.filter(entry => {
       if (format && entry.format !== format) return false;
       const rating = Number(entry.rating);
+      if ((filters.ratingMin > 0 || filters.ratingMax < 10) && entry.rating == null) return false;
       if (rating < filters.ratingMin || rating > filters.ratingMax) return false;
       if (query || filters.tags.length) {
         const tags = (entry.tags ?? []).map(tag => tag.toLowerCase());
@@ -43,11 +44,12 @@ const journalView = (() => {
         if (query && !entry.title.toLowerCase().includes(query) && !tags.some(tag => tag.includes(query))) return false;
       }
       if (!dateFilter) return true;
-      const year = Number((entry.date_completed || entry.created_at || '').slice(0, 4));
+      const year = Number(entry.catalogue?.year);
       return year > 0 && year >= filters.yearFrom && year <= filters.yearTo;
     });
     // The default order comes from the journal query, which breaks date ties by ID.
-    if (sort === 'rating_desc') matches.sort((a,b) => Number(b.rating) - Number(a.rating));
+    if (sort === 'rating_desc') matches.sort((a,b) => (b.rating ?? -1) - (a.rating ?? -1));
+    if (sort === 'format') matches.sort((a,b) => formats[a.format].label.localeCompare(formats[b.format].label) || a.title.localeCompare(b.title));
     if (sort === 'title_asc') matches.sort((a,b) => a.title.localeCompare(b.title));
     const pages = Math.max(1, Math.ceil(matches.length / pageSize));
     const page = Math.min(pages, Math.max(1, requestedPage));

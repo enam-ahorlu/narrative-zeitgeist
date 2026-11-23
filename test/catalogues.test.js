@@ -65,8 +65,8 @@ test('catalogue photos match named products and include source and reuse credits
   for (const category of categories) {
     assert.ok(products.some(([name,type,brand])=>type === category && wardrobePhotos[productKey(name,brand)]),category);
   }
-  for (const [photos,keys,min] of [[scentPhotos,scentKeys,34],
-    [wardrobePhotos,wardrobeKeys,43]]) {
+  for (const [photos,keys,min] of [[scentPhotos,scentKeys,40],
+    [wardrobePhotos,wardrobeKeys,44]]) {
     assert.ok(Object.keys(photos).length >= min);
     for (const [key,photo] of Object.entries(photos)) {
       assert.ok(keys.includes(key),key);

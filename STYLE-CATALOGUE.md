@@ -57,10 +57,7 @@ and [Amouage’s Outlands](https://amouage.com/en-uk/products/new-outlands).
 Bottles are matched by house and edition. For example, 1 Million Parfum and
 the original 1 Million are separate entries.
 
-The remaining gap is access to reusable exact-match photographs. Download
-rate limits also blocked some verified sources, including the images found
-for Mitsouko, Opium Pour Homme, Obsession for Men and Red Wing Iron Ranger
-8111. The Adrian loafers still link to the manufacturer’s photo.
+The November 23 pass added licensed photos of Mitsouko, Opium Pour Homme and the Iron Ranger 8111. The catalogue now has photos for 40 of 327 fragrances and 44 of 130 wardrobe products. Each photo record identifies the photographer, licence and source. The Adrian loafers link to the manufacturer’s product page. [Mitsouko](https://commons.wikimedia.org/wiki/File:Mitsouko.jpg) · [Opium Pour Homme](https://commons.wikimedia.org/wiki/File:Opium_pour_Homme.jpg) · [Iron Ranger 8111](https://commons.wikimedia.org/wiki/File:8111_iron_ranger.jpg)
 
 
 ## Photo sourcing playbook

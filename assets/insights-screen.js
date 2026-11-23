@@ -45,7 +45,7 @@ function renderPatterns(fp){
   }
 
   /* Card 2: Best-rated format */
-  var fmtEntries = Object.keys(formats).filter(function(k){ return (formats[k].count||0) > 0; });
+  var fmtEntries = Object.keys(formats).filter(function(k){ return formats[k].avg_rating != null; });
   if(fmtEntries.length >= 2){
     var best = fmtEntries.reduce(function(a,b){ return (parseFloat(formats[b].avg_rating||0) > parseFloat(formats[a].avg_rating||0)) ? b : a; });
     var fmtLabel = {show:'Shows',book:'Books',film:'Films',sports_match:'Matches',music:'Music'}[best] || best;
@@ -97,7 +97,7 @@ function exportInsights(){
     ''
   ];
   var total = (_fp && _fp.total_entries) || _allEntries.length || 0;
-  var avg   = (_fp && _fp.overall_avg_rating) ? parseFloat(_fp.overall_avg_rating).toFixed(1) : '—';
+  var avg   = (_fp && _fp.overall_avg_rating != null) ? parseFloat(_fp.overall_avg_rating).toFixed(1) : '—';
   lines.push('OVERVIEW');
   lines.push('Total Entries: ' + total);
   lines.push('Average Rating: ' + avg);
@@ -117,7 +117,7 @@ function exportInsights(){
     Object.keys(_fp.format_breakdown).forEach(function(k){
       var d = _fp.format_breakdown[k];
       if(!d || !d.count) return;
-      lines.push((fmtNames[k]||k) + ': ' + d.count + ' entries, ' + parseFloat(d.avg_rating||0).toFixed(1) + ' avg rating');
+      lines.push((fmtNames[k]||k) + ': ' + d.count + ' entries, ' + (d.avg_rating == null ? '—' : Number(d.avg_rating).toFixed(1)) + ' avg rating');
     });
   }
   var text = lines.join('\n');
@@ -301,7 +301,7 @@ function renderInsights(fp){
   if(building) building.classList.remove('show');
   if(fpList)   fpList.style.display = '';
 
-  var avgRat  = fp.overall_avg_rating ? parseFloat(fp.overall_avg_rating).toFixed(1) : '—';
+  var avgRat  = fp.overall_avg_rating != null ? parseFloat(fp.overall_avg_rating).toFixed(1) : '—';
   var themes  = fp.primary_themes || [];
   var topTag  = themes[0] ? themes[0].tag : '—';
 

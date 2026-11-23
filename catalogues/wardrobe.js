@@ -231,6 +231,13 @@ var WARD_STYLE_DB = [
 
 // Product photographs with source and license details. WebP copies are resized.
 const WARDROBE_PHOTOS = {
+  "iron ranger 8111|red wing heritage": {
+    "url": "/catalogues/photos/red-wing-8111.webp",
+    "alt": "Red Wing Iron Ranger 8111 leather boot",
+    "source": "https://commons.wikimedia.org/wiki/File:8111_iron_ranger.jpg",
+    "credit": "Vangoat25, CC BY-SA 3.0, converted to WebP",
+    "license": "https://creativecommons.org/licenses/by-sa/3.0/"
+  },
   "1970s plaid knit sweater and skirt set|missoni": {
     "url": "/catalogues/photos/missoni-knit-set.webp",
     "source": "https://risdmuseum.org/art-design/collection/sweater-and-skirt-set-200926",

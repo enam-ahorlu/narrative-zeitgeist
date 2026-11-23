@@ -330,6 +330,20 @@ var FRAG_DB = [
 
 // Product photographs with source and license details. WebP copies are resized.
 const FRAGRANCE_PHOTOS = {
+  "mitsouko|guerlain": {
+    "url": "/catalogues/photos/guerlain-mitsouko.webp",
+    "alt": "Guerlain Mitsouko bottle",
+    "source": "https://commons.wikimedia.org/wiki/File:Mitsouko.jpg",
+    "credit": "Arienne McCracken, cropped by Gamaliel, CC BY-SA 2.0, resized and converted to WebP",
+    "license": "https://creativecommons.org/licenses/by-sa/2.0/"
+  },
+  "opium pour homme|yves saint laurent": {
+    "url": "/catalogues/photos/ysl-opium-homme.webp",
+    "alt": "Yves Saint Laurent Opium Pour Homme bottle",
+    "source": "https://commons.wikimedia.org/wiki/File:Opium_pour_Homme.jpg",
+    "credit": "Fox Wu, CC BY 2.0, resized and converted to WebP",
+    "license": "https://creativecommons.org/licenses/by/2.0/"
+  },
   "eau sauvage|dior": {
     "url": "/catalogues/photos/eau-sauvage.webp",
     "source": "https://commons.wikimedia.org/wiki/File:Eau_Sauvage_Christian_Dior.jpg",

@@ -48,8 +48,8 @@ test('authenticated Discovery excludes all history pages and requires verified, 
   t.mock.method(globalThis,'fetch',async (address, options) => {
     const url = new URL(address);
     if (url.pathname === '/auth/v1/user') return Response.json({id:userId});
-    if (url.pathname === '/rest/v1/rpc/reserve_discovery_request') { quotaCalls++; return Response.json(0); }
-    if (url.pathname.endsWith('/refund_discovery_request')) { refunds++; return Response.json(null); }
+    if (url.pathname === '/rest/v1/rpc/reserve_discovery_slot') { quotaCalls++; return Response.json({retry_after:0,window:'2026-11-23T10:00:00Z'}); }
+    if (url.pathname.endsWith('/refund_discovery_slot')) { refunds++; return Response.json(true); }
     if (url.pathname.startsWith('/rest/v1/')) {
       assert.equal(url.searchParams.get('user_id'), 'eq.' + userId);
       const offset = Number(url.searchParams.get('offset'));
@@ -149,9 +149,9 @@ test('blind low-rating comparison shares history, removes overlap and validates 
   t.mock.method(globalThis,'fetch',async (address,options)=>{
     const url = new URL(address);
     if(url.pathname === '/auth/v1/user') return Response.json({id:userId});
-    if(url.pathname === '/rest/v1/rpc/reserve_discovery_request'){
+    if(url.pathname === '/rest/v1/rpc/reserve_discovery_slot'){
       quota++;
-      return Response.json(0);
+      return Response.json({retry_after:0,window:'2026-11-23T10:00:00Z'});
     }
     if(url.pathname === '/rest/v1/entries_with_tags'){
       if(Number(url.searchParams.get('offset'))) return Response.json([]);

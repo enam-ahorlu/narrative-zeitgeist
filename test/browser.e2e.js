@@ -86,7 +86,7 @@ function createMocks(assets) {
     const path = url.pathname;
     const method = request.method();
     const send = (json, status = 200) => route.fulfill({ status, json });
-    if (url.hostname === 'upload.wikimedia.org' || url.hostname === 'user-photo.example.test') {
+    if (url.hostname === 'covers.openlibrary.org' || url.hostname === 'upload.wikimedia.org' || url.hostname === 'user-photo.example.test') {
       return route.fulfill({ contentType:'image/gif', body:Buffer.from(
         'R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64') });
     }
@@ -170,7 +170,7 @@ function createMocks(assets) {
         title: body.recent?.some(item => item.title === 'Synthetic discovery book') ? 'Fresh synthetic book' : 'Synthetic discovery book',
         format: 'book', affinity:{label:'Close match',sharedTags:['afrofuturism','mystery']},
         reasons: ['Theme match', 'Format match', 'Rating match'], tags: ['afrofuturism'],
-        meta: 'Book', cover_color: null, catalog:{provider:'openlibrary',id:body.recent?.some(item => item.title === 'Synthetic discovery book') ? '/works/fresh' : '/works/fixture2'}
+        meta: 'Book', cover_color: null, poster_url:'https://covers.openlibrary.org/b/id/123-M.jpg', catalog:{provider:'openlibrary',id:body.recent?.some(item => item.title === 'Synthetic discovery book') ? '/works/fresh' : '/works/fixture2'}
       }] });
     }
     if (path === '/rest/v1/entries_with_tags') {
@@ -181,7 +181,7 @@ function createMocks(assets) {
       journalDrafts.push(body.p_entry_id);
       if (failJournalSave) return send({message:'Synthetic transaction failure'},503);
       const item = { title:body.p_title, format:body.p_format, rating:body.p_rating,
-        notes:body.p_notes, catalogue:body.p_catalogue, tags:body.p_tags, user_id:user.id, id:body.p_entry_id, created_at:'2026-10-01' };
+        notes:body.p_notes, poster_url:body.p_poster_url,catalogue:body.p_catalogue, tags:body.p_tags, user_id:user.id, id:body.p_entry_id, created_at:'2026-10-01' };
       const existing = entries.find(entry=>matchesUser(entry) && entry.id===item.id);
       if(existing) Object.assign(existing,item);
       else entries.push(item);
@@ -199,7 +199,7 @@ function createMocks(assets) {
       return route.fulfill({status:204});
     }
     if (path === '/rest/v1/rpc/save_watchlist_media') {
-      const row = {user_id:user.id,title:body.p_title,format:body.p_format,tags:body.p_tags,
+      const row = {user_id:user.id,title:body.p_title,format:body.p_format,poster_url:body.p_poster_url,tags:body.p_tags,
         id:randomUUID(),priority:'maybe',saved_at:'2026-10-01',added_to_collection:false};
       watchlist.push(row);
       return send(row.id);
@@ -269,7 +269,7 @@ function createMocks(assets) {
   };
 }
 
-test('browser covers regular signed-in, recommendation and Style & Scent flows', { timeout: 120000 }, async t => {
+test('browser covers regular signed-in, recommendation and Style & Scent flows', { timeout: 180000 }, async t => {
   const browser = await chromium.launch({
     channel: process.env.NZ_BROWSER_CHANNEL || 'chrome',
     executablePath: process.env.NZ_BROWSER_EXECUTABLE || undefined,
@@ -345,6 +345,13 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await signIn(page, users[0].email, 'invalid-password');
   await page.getByText('Incorrect email or password', { exact: false }).waitFor();
   await signIn(page, users[0].email);
+  await page.locator('#app.show').waitFor();
+  const isolated = await context.newPage();
+  await isolated.goto(origin);
+  await isolated.locator('#auth-submit-btn:enabled').waitFor();
+  assert.equal(await isolated.locator('#app.show').count(),0);
+  await page.bringToFront();
+  assert.ok(await page.evaluate(()=>!Object.keys(localStorage).some(key=>key.endsWith('-auth-token'))));
   const loadError = page.locator('#collection-request-status');
   await loadError.getByText('Could not load your collection.').waitFor();
   failCollectionLoad = false;
@@ -409,6 +416,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
 
   await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
   assert.equal(journalDrafts[0],journalDrafts[1]);
+  assert.equal(entries.find(item=>item.title==='Synthetic new journal entry').rating,null);
   assert.equal(await page.locator('#add-notes').inputValue(),'');
   assert.equal(await page.locator('#add-title').inputValue(),'');
   await page.locator('#m-add').getByRole('button',{name:'Cancel'}).click();
@@ -425,7 +433,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
   await page.locator('#add-format').selectOption('Track');
   await page.locator('#add-title').fill('Fixture Track');
-  await page.locator('#cs-drop').getByText('Fixture Track',{exact:true}).click();
+  await page.locator('#cs-drop').getByRole('button',{name:/Fixture Track.*2012/}).waitFor();
+  await page.locator('#add-title').press('ArrowDown');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#add-title').inputValue(),'Fixture Track');
   await page.locator('#add-source').getByText('Fixture Artist',{exact:false}).waitFor();
   await page.locator('#add-notes').fill('First listen');
   await page.locator('#add-save-btn').click();
@@ -442,7 +453,10 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#s-collection .ph-actions button[onclick*="openModal"]').first().click();
   await page.locator('#add-format').selectOption('Track');
   await page.locator('#add-title').fill('Fixture Track');
-  await page.locator('#cs-drop').getByText('Fixture Track',{exact:true}).click();
+  await page.locator('#cs-drop').getByRole('button',{name:/Fixture Track.*2012/}).waitFor();
+  await page.locator('#add-title').press('ArrowDown');
+  await page.keyboard.press('Enter');
+  assert.equal(await page.locator('#add-title').inputValue(),'Fixture Track');
   const savesBeforeDuplicate = journalDrafts.length;
   await page.locator('#add-save-btn').click();
   await page.getByText('is already in your collection',{exact:false}).waitFor();
@@ -537,12 +551,17 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(clipped,0);
   await visit('watchlist');
   const savedRow = page.locator('#wl-list .wl-item').filter({hasText:'Synthetic discovery book'});
+  const poster = savedRow.getByRole('img',{name:'Synthetic discovery book cover'});
+  assert.equal(await poster.getAttribute('src'),'https://covers.openlibrary.org/b/id/123-M.jpg');
+  await poster.evaluate(img=>img.scrollIntoView({block:'nearest'}));
+  await page.waitForFunction(()=>document.querySelector('#wl-list img[alt="Synthetic discovery book cover"]')?.naturalWidth > 0,null,{timeout:12000});
   await savedRow.getByRole('button',{name:'Move to Collection'}).click();
   assert.equal(await page.locator('#add-title').inputValue(),'Synthetic discovery book');
   await page.locator('#add-save-btn').click();
   await page.getByText('Moved to Collection',{exact:false}).waitFor();
   assert.equal(await savedRow.count(),0);
   assert.equal(watchlist[0].added_to_collection,true);
+  assert.equal(entries.find(item=>item.title==='Synthetic discovery book').poster_url,'https://covers.openlibrary.org/b/id/123-M.jpg');
   await visit('collection');
   await page.locator('#s-collection .tbl-wrap').getByText('Synthetic discovery book',{exact:true}).waitFor();
   await page.locator('#s-collection .tbl-wrap').getByText('Journal A 1', {exact:true}).click();
@@ -550,7 +569,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-hero-wrap').getByText('Seeded synthetic book').waitFor();
   await page.locator('#disc-hero-wrap').getByText('Because you logged Journal A 1', {exact:false}).waitFor();
   await page.locator('#disc-hero-wrap').getByRole('button', {name:'Not for me'}).click();
-  await page.getByText('Dismissed from future recommendations.', {exact:false}).waitFor();
+  await page.getByText('Dislike saved. This suggestion is hidden.', {exact:false}).waitFor();
   assert.equal(dismissals[0].title, 'Seeded synthetic book');
   assert.equal(dismissals[0].reason, 'not_for_me');
   /* Discard hides a pick without recording a dislike */
@@ -641,7 +660,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await stylePicks.getByRole('article').filter({hasText:scentName}).first().waitFor({state:'detached'});
   const wardPick = stylePicks.locator('article', {has: page.getByRole('button',{name:'Not for me',exact:true})}).last();
   await wardPick.getByRole('button',{name:'Not for me',exact:true}).click();
-  await page.getByText('Dismissed from future recommendations.').waitFor();
+  await page.getByText('Dislike saved. This suggestion is hidden.').waitFor();
   assert.equal(styleDismissals.at(-1).reason,'not_for_me');
   assert.equal(styleDismissals.length,2);
   await visit('wardrobe');
@@ -841,10 +860,12 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(await page.locator('#frag-grid .frag-card').count(), 0);
   assert.equal(await page.locator('#col-ss-section').getByText('A’s Tropical Wool Suit').count(), 0);
   failStyleLoad = true;
+  await page.locator('#auth-remember').check();
   await signIn(page, users[1].email);
   const wardrobeRetry = page.locator('#wardrobe-request-status');
   await wardrobeRetry.getByText('Could not load your saved items.').waitFor();
   assert.ok(await page.locator('#ward-empty').isHidden());
+  assert.ok(await page.evaluate(()=>Object.keys(localStorage).some(key=>key.endsWith('-auth-token'))));
   failStyleLoad = false;
   await wardrobeRetry.getByRole('button',{name:'Retry',exact:true}).click();
   await page.getByText('No wardrobe items yet', { exact: true }).waitFor();
@@ -904,12 +925,18 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.notEqual(await page.locator('#ward-name').inputValue(), '');
   await page.locator('#ward-save-btn').click();
   await page.getByText('Item added',{exact:false}).waitFor();
+  failStyleLoad = true;
   await visit('watchlist');
+  const wishesRetry = page.locator('#watchlist-style-request-status');
+  await wishesRetry.getByText('Could not load fragrance and wardrobe wishes.').waitFor();
+  failStyleLoad = false;
+  await wishesRetry.getByRole('button',{name:'Retry'}).click();
   await page.locator('#wl-list [data-wl-style="fragrance"]').getByText('Colonia',{exact:false}).waitFor();
   await page.locator('#wl-list').getByText('FRAGRANCES',{exact:true}).waitFor();
   assert.equal(await page.locator('#wl-list [data-wl-style] input[type="checkbox"]').count(), 0);
   /* Marking a wishlisted scent as owned from the watchlist saves it and moves it to the collection */
   const colonia = page.locator('#wl-list [data-wl-style="fragrance"]').filter({hasText:'Colonia'});
+  await verifyPhoto(page,colonia.locator('img'));
   await colonia.getByRole('button',{name:'Mark as owned'}).click();
   await page.getByText('moved to your collection as owned',{exact:false}).waitFor();
   assert.equal(await colonia.count(), 0);
@@ -993,6 +1020,18 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   assert.equal(await page.evaluate(() => window.__cmdInjected), undefined);
   await page.evaluate(() => closeCmdPalette());
 
+  await visit('settings');
+  assert.equal(await page.locator('#settings-display-name').inputValue(),users[1].user_metadata.display_name);
+  await page.locator('#col-pref-view').selectOption('grid');
+  await page.locator('#col-pref-sort').selectOption('format');
+  await page.getByRole('switch',{name:'Show Taste Influence'}).click();
+  await visit('collection');
+  assert.equal(await page.locator('#col-sort-sel').inputValue(),'format');
+  assert.ok(await page.locator('#cg-grid').isVisible());
+  await page.locator('#s-collection .pills .pill',{hasText:'All'}).click();
+  await page.locator('#cg-grid .entry-title-button').filter({hasText:'Journal B 1'}).click();
+  assert.ok(await page.locator('.detail-influence').isHidden());
+  await page.keyboard.press('Escape');
   await visit('settings');
   await page.locator('#settings-display-name').fill('Renamed Reader');
   await page.locator('button[onclick="saveDisplayName()"]').click();
