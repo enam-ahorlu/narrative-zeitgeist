@@ -307,14 +307,21 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   page.on('pageerror', error => errors.push(error.message));
   page.on('console', message => { if (/Content Security Policy|Refused to/i.test(message.text())) errors.push(message.text()); });
   page.on('dialog', dialog => dialog.accept());
-  async function verifyPhoto(target, locator) {
-    await locator.scrollIntoViewIfNeeded();
-    const image = await locator.elementHandle();
-    try {
-      await target.waitForFunction(img => img.complete && img.naturalWidth > 0,image,{timeout:12000});
-    } finally {
-      await image.dispose();
-    }
+  async function verifyPhoto(locator) {
+    // A style refresh may replace the card while its lazy image is loading.
+    // Resolve the locator again on each poll and check the image on the current card.
+    const deadline = Date.now()+12000;
+    do {
+      const loaded = await locator.evaluateAll(images=>{
+        if(images.length !== 1) return false;
+        const img = images[0];
+        img.scrollIntoView({block:'nearest'});
+        return img.complete && img.naturalWidth > 0;
+      });
+      if(loaded) return;
+      await new Promise(resolve=>setTimeout(resolve,100));
+    } while(Date.now()<deadline);
+    assert.fail('Photo did not load on the displayed card: '+locator);
   }
 
   const signIn = async (target, email, password = 'test-password') => {
@@ -844,7 +851,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const phoneCategory = phone.locator('#disc-style-category');
   await fitsPhone(phoneCategory,'Style category');
   await phoneCategory.selectOption('Jewelry');
-  await verifyPhoto(phone,phone.locator('#disc-content').getByRole('img',{name:'Tutti Frutti Bracelet',exact:true}));
+  await verifyPhoto(phone.locator('#disc-content').getByRole('img',{name:'Tutti Frutti Bracelet',exact:true}));
 
   await phone.locator('#mni-settings').tap();
   await phone.getByRole('button',{name:'Open Design System'}).tap();
@@ -904,11 +911,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
     const headings = [...picks.querySelectorAll('h3')].map(node => node.textContent);
     return Boolean(grid.compareDocumentPosition(picks) & Node.DOCUMENT_POSITION_FOLLOWING) && headings.join('|') === 'Fragrance picks|Wardrobe picks';
   }),true);
-  await verifyPhoto(page,combined.getByRole('img',{name:'Dior Sauvage Eau de Toilette packaging'}));
+  await verifyPhoto(combined.getByRole('img',{name:'Dior Sauvage Eau de Toilette packaging'}));
   const sauvageCard = combined.getByRole('article').filter({hasText:'Sauvage EDT'});
   assert.match(await sauvageCard.getByRole('link',{name:'Product page'}).getAttribute('href'),/^https:\/\/www\.dior\.com\//);
-  await verifyPhoto(page,combined.getByRole('img',{name:'Chanel Allure Homme Eau de Toilette bottle and box'}));
-  await verifyPhoto(page,combined.getByRole('img',{name:'1461 Made in England Oxblood Shoes',exact:true}));
+  await verifyPhoto(combined.getByRole('img',{name:'Chanel Allure Homme Eau de Toilette bottle and box'}));
+  await verifyPhoto(combined.getByRole('img',{name:'1461 Made in England Oxblood Shoes',exact:true}));
   /* Move the pick window so Colonia is on screen (cold-start picks follow catalogue order, photographed first) */
   await page.evaluate(() => { _catalogueOffset.all = 2; return renderCombinedDiscovery(); });
   await combined.locator('article').filter({hasText:'Colonia'}).waitFor();
@@ -988,7 +995,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   const euphoria = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Euphoria Men'});
   const euphoriaImage = euphoria.getByRole('img',{name:'Euphoria Men bottle',exact:true});
   assert.equal(await euphoriaImage.getAttribute('src'),'/catalogues/photos/euphoria-men.webp');
-  await verifyPhoto(page,euphoriaImage);
+  await verifyPhoto(euphoriaImage);
   await page.locator('#disc-search-inp').fill('khamrah qahwa');
   await page.locator('#disc-search-res').getByText('Khamrah Qahwa', { exact: true }).waitFor();
   await page.locator('#disc-search-inp').press('Escape');
@@ -998,7 +1005,7 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-search-inp').fill('jordan crimson tint');
   const jordanImage = page.locator('#disc-search-res').getByRole('img',{name:'Air Jordan 1 Mid SE Crimson Tint',exact:true});
   assert.equal(await jordanImage.getAttribute('src'),'/catalogues/photos/air-jordan-crimson.webp');
-  await verifyPhoto(page,jordanImage);
+  await verifyPhoto(jordanImage);
   await page.locator('#disc-search-inp').fill('dr martens adrian');
   const loafer = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Adrian Smooth Leather Tassel Loafers'});
   await loafer.getByRole('link',{name:'Product page'}).waitFor();
@@ -1011,11 +1018,11 @@ test('browser covers regular signed-in, recommendation and Style & Scent flows',
   await page.locator('#disc-style-category').selectOption('Jewelry');
   await page.locator('#disc-search-inp').fill('cartier');
   const bracelet = page.locator('#disc-search-res .disc-result-item').filter({hasText:'Tutti Frutti Bracelet'});
-  await verifyPhoto(page,bracelet.getByRole('img',{name:'Tutti Frutti Bracelet'}));
+  await verifyPhoto(bracelet.getByRole('img',{name:'Tutti Frutti Bracelet'}));
   await bracelet.getByRole('button',{name:'Wishlist · Tutti Frutti Bracelet'}).click();
   await visit('wardrobe');
   await page.locator('#s-wardrobe .pills').getByText('Jewelry',{exact:true}).click();
-  await verifyPhoto(page,page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}));
+  await verifyPhoto(page.locator('#ward-grid').getByRole('img',{name:'Tutti Frutti Bracelet'}));
 
   await page.evaluate(() => openCmdPalette());
   await page.locator('#cmd-input').fill('<img src=x onerror="window.__cmdInjected=1">');
