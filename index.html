@@ -671,8 +671,8 @@ textarea.fi{resize:vertical;min-height:64px}
 .mob-nav-item span{font-size:9.5px;font-weight:500;letter-spacing:.02em;line-height:1}
 .mob-nav-item.active{color:var(--sb-text-active)}
 .mob-nav-item.active svg{opacity:1}
-#mni-add{position:absolute;left:50%;transform:translateX(-50%);bottom:64px;padding:0;z-index:1}
-.mob-nav-add{background:linear-gradient(135deg,var(--p-rich),var(--p-light));border-radius:50%;width:54px;height:54px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(74,173,186,.55),0 0 0 6px var(--sb-bg)}
+#mni-add{padding:0}
+.mob-nav-add{background:linear-gradient(135deg,var(--p-rich),var(--p-light));border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .mob-nav-add svg{opacity:1!important;color:#fff}
 
 /* ── Mobile responsive ── */
@@ -773,7 +773,7 @@ textarea.fi{resize:vertical;min-height:64px}
   /* Mobile nav: 6 items — shrink text + icons slightly */
   .mob-nav-item svg{width:18px;height:18px}
   .mob-nav-item span{font-size:8.5px}
-  .mob-nav-add{width:50px;height:50px}
+  .mob-nav-add{width:38px;height:38px}
   .mob-nav-add svg{width:20px;height:20px}
   /* (dead rule removed: #mni-add bottom:64px had no effect — element is not positioned) */
 
@@ -1041,7 +1041,7 @@ button[data-accent].active{outline:2px solid var(--theme-accent-deep);outline-of
   .disc-seed{grid-template-columns:minmax(0,1fr)}
   .disc-seed button{grid-column:1}
   .ph-actions .btn{white-space:normal}
-  .mob-nav-add{width:42px;height:42px}
+  .mob-nav-add{width:34px;height:34px}
 }
 
 /* ── Phone layout: the page scrolls as one, nothing is trapped in a small inner box ── */
